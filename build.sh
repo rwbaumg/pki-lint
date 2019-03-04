@@ -2,8 +2,12 @@
 # Builds sources for the certificate linter
 
 # Update sub-modules
-if ! git submodule update --recursive; then
+if ! git submodule init; then
   echo >&2 "ERROR: Failed to initialize required modules."
+  exit 1
+fi
+if ! git submodule update --recursive; then
+  echo >&2 "ERROR: Failed to update required modules."
   exit 1
 fi
 
