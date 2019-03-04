@@ -1,0 +1,6 @@
+Certificate linting helper.
+
+Uses code from the following repositories:
+- https://git.0x19e.net/security/certlint.git
+- https://git.0x19e.net/security/x509lint.git
+- https://git.0x19e.net/security/ev-checker.git

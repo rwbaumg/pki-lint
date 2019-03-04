@@ -1,0 +1,12 @@
+[submodule "lints/certlint"]
+	path = lints/certlint
+	url = https://git.0x19e.net/security/certlint.git
+	branch = master
+[submodule "lints/ev-checker"]
+	path = lints/ev-checker
+	url = https://git.0x19e.net/security/ev-checker.git
+	branch = master
+[submodule "lints/x509lint"]
+	path = lints/x509lint
+	url = https://git.0x19e.net/security/x509lint.git
+	branch = x19e-master
