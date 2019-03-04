@@ -270,7 +270,8 @@ if [ ! -e "${CERT}" ]; then
 fi
 
 X509_BIN="${DIR}/lints/x509lint/${X509_MODE}"
-CLINT_DIR="${DIR}/lints/certlint"
+AWS_CLINT_DIR="${DIR}/lints/aws-certlint"
+GS_CLINT_DIR="${DIR}/lints/gs-certlint"
 EV_CHECK_BIN="${DIR}/lints/ev-checker/ev-checker"
 GOLANG_LINTS="${DIR}/lints/golang/*.go"
 
@@ -282,8 +283,8 @@ fi
 if [ ! -e "${EV_CHECK_BIN}" ]; then
   usage "Missing required binary (did you build it?): lints/ev-checker/ev-checker"
 fi
-if [ ! -e "${CLINT_DIR}/bin/certlint" ]; then
-  usage "Missing required binary (did you build it?): lints/certlint/bin/certlint"
+if [ ! -e "${AWS_CLINT_DIR}/bin/certlint" ]; then
+  usage "Missing required binary (did you build it?): lints/aws-certlint/bin/certlint"
 fi
 
 PEM_FILE="/tmp/$(basename ${CERT}).pem"
@@ -297,8 +298,8 @@ fi
 DER_FILE="/tmp/$(basename ${CERT}).der"
 openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
-pushd ${CLINT_DIR} > /dev/null 2>&1
-CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
+pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
+AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
 popd > /dev/null 2>&1
 
 X509LINT=$(${X509_BIN} "${PEM_FILE}")
@@ -307,12 +308,12 @@ EC=0
 
 echo "Checking certificate '${CERT}' ..."
 
-if [ ! -z "${CERTLINT}" ]; then
-echo "certlint:"
-echo "${CERTLINT}"
+if [ ! -z "${AWS_CERTLINT}" ]; then
+echo "aws-certlint:"
+echo "${AWS_CERTLINT}"
 EC=1
 else
-echo "certlint: certificate OK"
+echo "aws-certlint: certificate OK"
 fi
 
 if [ ! -z "${X509LINT}" ]; then

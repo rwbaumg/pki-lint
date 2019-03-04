@@ -1,6 +1,10 @@
-[submodule "lints/certlint"]
-	path = lints/certlint
-	url = https://git.0x19e.net/security/certlint.git
+[submodule "lints/aws-certlint"]
+	path = lints/aws-certlint
+	url = https://git.0x19e.net/security/aws-certlint.git
+	branch = master
+[submodule "lints/gs-certlint"]
+	path = lints/gs-certlint
+	url = https://git.0x19e.net/security/gs-certlint.git
 	branch = master
 [submodule "lints/ev-checker"]
 	path = lints/ev-checker
