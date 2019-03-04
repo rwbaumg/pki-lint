@@ -212,7 +212,20 @@ fi
 
 X509_BIN="${DIR}/lints/x509lint/${X509_MODE}"
 CLINT_DIR="${DIR}/lints/certlint"
+EV_CHECK_BIN="${DIR}/lints/ev-checker/ev-checker"
 GOLANG_LINTS="${DIR}/lints/golang/*.go"
+
+# $(realpath --relative-to="$(pwd)" "${BIN}
+
+if [ ! -e "${X509_BIN}" ]; then
+  usage "Missing required binary (did you build it?): lints/x509lint/${X509_MODE}"
+fi
+if [ ! -e "${EV_CHECK_BIN}" ]; then
+  usage "Missing required binary (did you build it?): lints/ev-checker/ev-checker"
+fi
+if [ ! -e "${CLINT_DIR}/bin/certlint" ]; then
+  usage "Missing required binary (did you build it?): lints/certlint/bin/certlint"
+fi
 
 DER_FILE="/tmp/$(basename ${CERT}).der"
 PEM_FILE="/tmp/$(basename ${CERT}).pem"
