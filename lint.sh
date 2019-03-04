@@ -42,15 +42,20 @@ usage()
 
     ARGUMENTS
 
-     certificate           The certificate (in PEM format) to lint.
+     certificate             The certificate (in PEM format) to lint.
 
     OPTIONS
 
-     -r, --root            Certificate is a root CA.
-     -i, --intermediate    Certificate is an Intermediate CA.
-     -s, --server          Certificate is for an end-entity.
-     -v, --verbose         Make the script more verbose.
-     -h, --help            Prints this usage.
+     -r, --root              Certificate is a root CA.
+     -i, --intermediate      Certificate is an Intermediate CA.
+     -s, --subscriber        Certificate is for an end-entity.
+
+     -c, --chain <file>      Specifies a CA chain file to use.
+     -e, --ev-policy <oid>   Specifies an OID to test for EV compliance.
+     -h, --hostname <name>   Specifies the hostname for EV testing.
+
+     -v, --verbose           Make the script more verbose.
+     -h, --help              Prints this usage.
 
     EOF
 
@@ -71,6 +76,22 @@ test_arg()
 
   if echo "$argv" | egrep -q '^-'; then
     usage "Argument for option $arg cannot start with '-'"
+  fi
+}
+
+test_file_arg()
+{
+  local arg="$1"
+  local argv="$2"
+
+  test_arg "$arg" "$argv"
+
+  if [ -z "$argv" ]; then
+    argv="$arg"
+  fi
+
+  if ! [ -e "$argv" ]; then
+    usage "File does not exist: '$argv'."
   fi
 }
 
@@ -162,6 +183,10 @@ test_mode()
   fi
 }
 
+CA_CHAIN=""
+EV_POLICY=""
+EV_HOST=""
+
 # process arguments
 [ $# -gt 0 ] || usage
 while [ $# -gt 0 ]; do
@@ -176,9 +201,36 @@ while [ $# -gt 0 ]; do
       X509_MODE="x509lint-int"
       shift
     ;;
-    -s|--server)
+    -s|--subscriber)
       test_mode
       X509_MODE="x509lint-sub"
+      shift
+    ;;
+    -c|--chain)
+      if [ ! -z "${CA_CHAIN}" ]; then
+        usage "Cannot specify multiple chain files."
+      fi
+      test_file_arg "$1" "$2"
+      shift
+      CA_CHAIN="$1"
+      shift
+    ;;
+    -e|--ev-policy)
+      if [ ! -z "${EV_POLICY}" ]; then
+        usage "Cannot specify multiple EV policies."
+      fi
+      test_arg "$1" "$2"
+      shift
+      EV_POLICY="$1"
+      shift
+    ;;
+    -h|--ev-host)
+      if [ ! -z "${EV_HOST}" ]; then
+        usage "Cannot specify multiple hostnames."
+      fi
+      test_arg "$1" "$2"
+      shift
+      EV_HOST="$1"
       shift
     ;;
     -h|--help)
@@ -198,6 +250,13 @@ while [ $# -gt 0 ]; do
     ;;
   esac
 done
+
+if [ ! -z "${EV_POLICY}" ] && [ -z "${CA_CHAIN}" ]; then
+  usage "Must supply CA chain for EV policy testing."
+fi
+if [ ! -z "${EV_POLICY}" ] && [ -z "${EV_HOST}" ]; then
+  usage "Must supply hostname for EV policy testing."
+fi
 
 if [ -z "${X509_MODE}" ]; then
   usage "Must specify certificate type."
@@ -227,10 +286,16 @@ if [ ! -e "${CLINT_DIR}/bin/certlint" ]; then
   usage "Missing required binary (did you build it?): lints/certlint/bin/certlint"
 fi
 
-DER_FILE="/tmp/$(basename ${CERT}).der"
 PEM_FILE="/tmp/$(basename ${CERT}).pem"
-openssl x509 -outform der -in "${CERT}" -out "${DER_FILE}" > /dev/null 2>&1
+PEM_CHAIN_FILE="/tmp/$(basename ${CERT}).chain.pem"
 openssl x509 -outform pem -in "${CERT}" -out "${PEM_FILE}" > /dev/null 2>&1
+openssl x509 -outform pem -in "${CERT}" -out "${PEM_CHAIN_FILE}" > /dev/null 2>&1
+if [ ! -z "${CA_CHAIN}" ]; then
+cat "${CA_CHAIN}" >> "${PEM_CHAIN_FILE}"
+fi
+
+DER_FILE="/tmp/$(basename ${CERT}).der"
+openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
 pushd ${CLINT_DIR} > /dev/null 2>&1
 CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
@@ -245,13 +310,13 @@ echo "Checking certificate '${CERT}' ..."
 if [ ! -z "${CERTLINT}" ]; then
 echo "certlint:"
 echo "${CERTLINT}"
-echo
 EC=1
 else
 echo "certlint: certificate OK"
 fi
 
 if [ ! -z "${X509LINT}" ]; then
+echo
 echo "x509lint:"
 echo "${X509LINT}"
 echo
@@ -264,6 +329,12 @@ fi
 for lint in ${GOLANG_LINTS}; do
   go run $lint ${PEM_FILE}
 done
+
+if [ ! -z "${EV_POLICY}" ]; then
+  echo
+  echo "EV policy check:"
+  ${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST}
+fi
 
 rm ${DER_FILE} ${PEM_FILE}
 
