@@ -2,6 +2,10 @@
 #
 # [ 0x19e Networks ]
 
+hash openssl 2>/dev/null || { echo >&2 "You need to install OpenSSL (openssl). Aborting."; exit 1; }
+hash go 2>/dev/null || { echo >&2 "You need to install Golang (gccgo-go). Aborting."; exit 1; }
+hash git 2>/dev/null || { echo >&2 "You need to install Git (git). Aborting."; exit 1; }
+
 exit_script()
 {
   # Default exit code is 1
