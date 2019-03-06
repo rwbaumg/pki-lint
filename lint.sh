@@ -302,6 +302,14 @@ pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
 AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
 popd > /dev/null 2>&1
 
+pushd ${GS_CLINT_DIR} > /dev/null 2>&1
+if [ ! -z "${CA_CHAIN}" ]; then
+  GS_CERTLINT=$(./gs-certlint -issuer "${CA_CHAIN}" -cert "${PEM_FILE}")
+else
+  GS_CERTLINT=$(./gs-certlint -cert "${PEM_FILE}")
+fi
+popd > /dev/null 2>&1
+
 X509LINT=$(${X509_BIN} "${PEM_FILE}")
 
 EC=0
@@ -326,10 +334,18 @@ else
 echo "x509lint: certificate OK"
 fi
 
-#echo "Golang lints:"
 for lint in ${GOLANG_LINTS}; do
   go run $lint ${PEM_FILE}
 done
+
+if [ ! -z "${GS_CERTLINT}" ]; then
+echo
+echo "gs-certlint:"
+echo "${GS_CERTLINT}"
+EC=1
+else
+echo "gs-certlint: certificate OK"
+fi
 
 if [ ! -z "${EV_POLICY}" ]; then
   echo
