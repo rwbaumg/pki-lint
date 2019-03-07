@@ -1,8 +1,34 @@
-Certificate linting helper.
+# pki-lint
+```pki-lint``` is a simple Bash wrapper for a collection of x509 certificate and Public-key Infrastructure (PKI) checks. The script enables quick and easy identification of potential issues with generated x509 certificates.
 
-To initialize required modules, run: ./build.sh
+Libraries (eg. OpenSSL, GnuTLS, etc.), languages (eg. Golang, C++, Python, etc.) and applications (eg. cURL, Git, Firefox, Chrome, etc.) often have a variety of differences in x509 certificate handling, including differences in the way certificates are validated. Despite extensive standards documentation, it is not uncommon to find different interpretations of those standards, either.
 
-Uses code from the following repositories:
-- https://git.0x19e.net/security/certlint.git
-- https://git.0x19e.net/security/x509lint.git
-- https://git.0x19e.net/security/ev-checker.git
+The primary purpose of this project is to identify potential compatibility issues prior to deploying a Public-key Infrastructure to production.
+
+## Dependencies
+The following third-party linters are used by this project:
+- [aws-certlint](https://git.0x19e.net/security/aws-certlint.git)
+- [gs-certlint](https://git.0x19e.net/security/gs-certlint.git)
+- [x509lint](https://git.0x19e.net/security/x509lint.git)
+- [ev-checker](https://git.0x19e.net/security/ev-checker.git)
+
+## Installation
+To initialize required modules and compile dependencies, run:
+```bash
+./build.sh
+```
+
+## Usage
+To view usage information, run:
+```bash
+./lint.sh --help
+```
+
+## Contributing
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+## License
+[![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
+
+- **[MIT license](http://opensource.org/licenses/mit-license.php)**
+- Unpublished Copyright 2019 © Robert W. Baumgartner. All rights reserved.
