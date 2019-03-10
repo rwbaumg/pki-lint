@@ -28,11 +28,11 @@ bin:
 	ln -s -v ../ev-checker/ev-checker ${BIN_NAME}
 	ln -s -v ../gs-certlint/gs-certlint ${BIN_NAME}
 	ln -s -v ../go-cert/cmd/cert/cert ${BIN_NAME}/go-cert
-	ln -s -v ../aws-certlint/bin/certlint ${BIN_NAME}
-	ln -s -v ../aws-certlint/bin/cablint ${BIN_NAME}
-	ln -s -v ../aws-certlint/bin/cablint-ct ${BIN_NAME}
 	ln -s -v ../${PATH_GOPATH}/bin/zlint ${BIN_NAME}
 	ln -s -v ../${PATH_GOPATH}/bin/zlint-gtld-update ${BIN_NAME}
+	#ln -s -v ../aws-certlint/bin/certlint ${BIN_NAME}
+	#ln -s -v ../aws-certlint/bin/cablint ${BIN_NAME}
+	#ln -s -v ../aws-certlint/bin/cablint-ct ${BIN_NAME}
 
 zlint: ${PATH_GOPATH}/bin/zlint
 
