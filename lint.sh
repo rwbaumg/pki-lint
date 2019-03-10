@@ -169,6 +169,22 @@ test_file_arg()
   fi
 }
 
+test_oid_arg()
+{
+  local arg="$1"
+  local argv="$2"
+
+  test_arg "$arg" "$argv"
+
+  if [ -z "$argv" ]; then
+    argv="$arg"
+  fi
+
+  if ! echo $argv | grep -qPo '^([1-9][0-9]{0,8}|0)(\.([1-9][0-9]{0,8}|0)){5,16}$'; then
+    usage "Argument is not a valid object identifier: '$argv'"
+  fi
+}
+
 test_host_arg()
 {
   local arg="$1"
@@ -301,7 +317,7 @@ while [ $# -gt 0 ]; do
     ;;
     -e|--ev-policy)
       test_ev_policy
-      test_arg "$1" "$2"
+      test_oid_arg "$1" "$2"
       shift
       EV_POLICY="$1"
       shift
