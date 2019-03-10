@@ -15,3 +15,7 @@
 	path = lints/x509lint
 	url = https://git.0x19e.net/security/x509lint.git
 	branch = x19e-master
+[submodule "lints/zlint"]
+	path = lints/zlint
+	url = https://git.0x19e.net/security/zmap-zlint.git
+	branch = master

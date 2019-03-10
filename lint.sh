@@ -1,10 +1,77 @@
 #!/bin/bash
 #
-# [ 0x19e Networks ]
+# [0x19e Networks]
+# Copyright (c) 2019 Robert W. Baumgartner
+#
+# PROJECT : pki-lint x509 certificate linter
+# AUTHOR  : Robert W. Baumgartner <rwb@0x19e.net>
+# LICENSE : MIT License
+#
+## DESCRIPTION
+#
+# A simple Bash wrapper for a collection of x509 certificate
+# and Public-key Infrastructure (PKI) checks.
+#
+# The script enables quick and easy identification of potential
+# issues with generated x509 certificates.
+#
+## USAGE
+#
+# To initialize Git sub-modules and compile all certificate lints,
+# run the 'build.sh' script found in the root directory:
+# `./build.sh`
+#
+# Afterwards, you can run `./lint.sh --help` for usage information.
+#
+## LICENSE
+#
+# MIT License
+#
+# Copyright (c) 2019 Robert W. Baumgartner
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+VERBOSITY=0
+NO_COLOR="false"
 
 hash openssl 2>/dev/null || { echo >&2 "You need to install OpenSSL (openssl). Aborting."; exit 1; }
 hash go 2>/dev/null || { echo >&2 "You need to install Golang (gccgo-go). Aborting."; exit 1; }
 hash git 2>/dev/null || { echo >&2 "You need to install Git (git). Aborting."; exit 1; }
+
+# get the root directory this script is running from
+# if the script is called from a symlink, the link is
+# resolved to the absolute path.
+function get_root_dir()
+{
+  source="${BASH_SOURCE[0]}"
+  # resolve $source until the file is no longer a symlink
+  while [ -h "${source}" ]; do
+    dir=$( cd -P "$( dirname "${source}" )" && pwd )
+    source=$(readlink "${source}")
+    # if $source was a relative symlink, we need to resolve it
+    # relative to the path where the symlink file was located
+    [[ ${source} != /* ]] && source="${dir}/${source}"
+  done
+  dir="$( cd -P "$( dirname "${source}" )" && pwd )"
+  echo ${dir}
+  return
+}
 
 exit_script()
 {
@@ -97,88 +164,100 @@ test_file_arg()
   if ! [ -e "$argv" ]; then
     usage "File does not exist: '$argv'."
   fi
+  if [ -s "$argv" ]; then
+    usage "File is empty: '$argv'."
+  fi
 }
 
-NO_COLOR="false"
+test_host_arg()
+{
+  local arg="$1"
+  local argv="$2"
+
+  test_arg "$arg" "$argv"
+
+  if [ -z "$argv" ]; then
+    argv="$arg"
+  fi
+
+  host_regex='^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
+  if ! `echo "$argv" | grep -Po ${host_regex}`; then
+    usage "Invalid hostname: '${argv}'"
+  fi
+}
 
 print_green()
 {
-  if [ "${SILENT}" != "true" ]; then
   if [ "${NO_COLOR}" == "false" ]; then
   echo -e >&2 "\x1b[39;49;00m\x1b[32;01m${1}\x1b[39;49;00m"
   else
   echo >&2 "${1}"
   fi
-  fi
 }
 
 print_red()
 {
-  if [ "${SILENT}" != "true" ]; then
   if [ "${NO_COLOR}" == "false" ]; then
   echo -e >&2 "\x1b[39;49;00m\x1b[31;01m${1}\x1b[39;49;00m"
   else
   echo >&2 "${1}"
   fi
-  fi
 }
 
 print_yellow()
 {
-  if [ "${SILENT}" != "true" ]; then
   if [ "${NO_COLOR}" == "false" ]; then
   echo -e >&2 "\x1b[39;49;00m\x1b[33;01m${1}\x1b[39;49;00m"
   else
   echo >&2 "${1}"
   fi
-  fi
 }
 
 print_magenta()
 {
-  if [ "${SILENT}" != "true" ]; then
   if [ "${NO_COLOR}" == "false" ]; then
   echo -e >&2 "\x1b[39;49;00m\x1b[35;01m${1}\x1b[39;49;00m"
   else
   echo >&2 "${1}"
   fi
-  fi
 }
 
 print_cyan()
 {
-  if [ "${SILENT}" != "true" ]; then
   if [ "${NO_COLOR}" == "false" ]; then
   echo -e >&2 "\x1b[39;49;00m\x1b[36;01m${1}\x1b[39;49;00m"
   else
   echo >&2 "${1}"
   fi
+}
+
+DIR=$(get_root_dir)
+CERT=""
+X509_MODE=""
+CA_CHAIN=""
+EV_POLICY=""
+EV_HOST=""
+
+test_chain()
+{
+  if [ ! -z "${CA_CHAIN}" ]; then
+    usage "Cannot specify multiple chain files."
   fi
 }
 
-CERT=""
-VERBOSITY=0
-X509_MODE=""
+test_ev_host()
+{
+  if [ ! -z "${EV_HOST}" ]; then
+    usage "Cannot specify multiple hostnames."
+  fi
+}
 
-## Resolve root directory
-# DIR=`dirname $0`
-# DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-
-SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
-  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-  SOURCE="$(readlink "$SOURCE")"
-  # if $SOURCE was a relative symlink, we need to resolve it
-  # relative to the path where the symlink file was located
-  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
-done
-DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-
-#CERT="$1"
-#if [ ! -e "${CERT}" ]; then
-#  echo >&2 "Usage: $1 <certificate>"
-#  exit 1
-#fi
+test_cert()
+{
+  if [ ! -z "${CERT}" ]; then
+    usage "Cannot specify multiple search terms."
+  fi
+}
 
 test_mode()
 {
@@ -187,9 +266,12 @@ test_mode()
   fi
 }
 
-CA_CHAIN=""
-EV_POLICY=""
-EV_HOST=""
+test_ev_policy()
+{
+  if [ ! -z "${EV_POLICY}" ]; then
+    usage "Cannot specify multiple EV policies."
+  fi
+}
 
 # process arguments
 [ $# -gt 0 ] || usage
@@ -211,28 +293,22 @@ while [ $# -gt 0 ]; do
       shift
     ;;
     -c|--chain)
-      if [ ! -z "${CA_CHAIN}" ]; then
-        usage "Cannot specify multiple chain files."
-      fi
+      test_chain
       test_file_arg "$1" "$2"
       shift
       CA_CHAIN="$1"
       shift
     ;;
     -e|--ev-policy)
-      if [ ! -z "${EV_POLICY}" ]; then
-        usage "Cannot specify multiple EV policies."
-      fi
+      test_ev_policy
       test_arg "$1" "$2"
       shift
       EV_POLICY="$1"
       shift
     ;;
     -h|--ev-host)
-      if [ ! -z "${EV_HOST}" ]; then
-        usage "Cannot specify multiple hostnames."
-      fi
-      test_arg "$1" "$2"
+      test_ev_host
+      test_host_arg "$1" "$2"
       shift
       EV_HOST="$1"
       shift
@@ -245,10 +321,8 @@ while [ $# -gt 0 ]; do
       shift
     ;;
     *)
-      if [ ! -z "${CERT}" ]; then
-        usage "Cannot specify multiple search terms."
-      fi
-      test_arg "$1"
+      test_cert
+      test_file_arg "$1"
       CERT="$1"
       shift
     ;;
@@ -278,8 +352,6 @@ AWS_CLINT_DIR="${DIR}/lints/aws-certlint"
 GS_CLINT_DIR="${DIR}/lints/gs-certlint"
 EV_CHECK_BIN="${DIR}/lints/ev-checker/ev-checker"
 GOLANG_LINTS="${DIR}/lints/golang/*.go"
-
-# $(realpath --relative-to="$(pwd)" "${BIN}
 
 if [ ! -e "${X509_BIN}" ]; then
   usage "Missing required binary (did you build it?): lints/x509lint/${X509_MODE}"

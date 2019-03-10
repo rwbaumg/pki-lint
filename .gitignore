@@ -1,3 +1,5 @@
 *.tmp
 *.bak
-lints/.gpkg/
+lints/bin/
+lints/.go/
+lints/.gocache/
