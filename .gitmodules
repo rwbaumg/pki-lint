@@ -19,8 +19,3 @@
 	path = lints/zlint
 	url = https://git.0x19e.net/security/zmap-zlint.git
 	branch = master
-[submodule "lints/go-cert"]
-	path = lints/go-cert
-	url = https://git.0x19e.net/security/go-cert.git
-        branch = master
-	ignore = untracked
