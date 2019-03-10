@@ -164,7 +164,7 @@ test_file_arg()
   if ! [ -e "$argv" ]; then
     usage "File does not exist: '$argv'."
   fi
-  if [ -s "$argv" ]; then
+  if [ ! -s "$argv" ]; then
     usage "File is empty: '$argv'."
   fi
 }
@@ -348,6 +348,7 @@ if [ ! -e "${CERT}" ]; then
 fi
 
 X509_BIN="${DIR}/lints/x509lint/${X509_MODE}"
+ZLINT_BIN="${DIR}/lints/bin/zlint"
 AWS_CLINT_DIR="${DIR}/lints/aws-certlint"
 GS_CLINT_DIR="${DIR}/lints/gs-certlint"
 EV_CHECK_BIN="${DIR}/lints/ev-checker/ev-checker"
@@ -355,6 +356,9 @@ GOLANG_LINTS="${DIR}/lints/golang/*.go"
 
 if [ ! -e "${X509_BIN}" ]; then
   usage "Missing required binary (did you build it?): lints/x509lint/${X509_MODE}"
+fi
+if [ ! -e "${ZLINT_BIN}" ]; then
+  usage "Missing required binary (did you build it?): lints/bin/zlint"
 fi
 if [ ! -e "${EV_CHECK_BIN}" ]; then
   usage "Missing required binary (did you build it?): lints/ev-checker/ev-checker"
@@ -388,6 +392,8 @@ popd > /dev/null 2>&1
 
 X509LINT=$(${X509_BIN} "${PEM_FILE}")
 
+ZLINT=$(${ZLINT_BIN} -pretty "${PEM_FILE}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
+
 EC=0
 
 echo "Checking certificate '${CERT}' ..."
@@ -408,6 +414,16 @@ echo
 EC=1
 else
 echo "x509lint: certificate OK"
+fi
+
+if [ ! -z "${ZLINT}" ]; then
+echo
+echo "zlint:"
+echo "${ZLINT}"
+echo
+EC=1
+else
+echo "zlint: certificate OK"
 fi
 
 for lint in ${GOLANG_LINTS}; do
