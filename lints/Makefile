@@ -6,13 +6,15 @@ BIN_NAME=bin
 PATH_GOPATH=./.go
 PATH_GOCACHE=./.gocache
 
-all: zlint x509lint ev-checker aws-certlint gs-certlint bin
+all: zlint x509lint ev-checker aws-certlint gs-certlint go-cert bin
 
 clean:
 	pushd x509lint && ${MAKE} clean && popd;
 	pushd ev-checker && ${MAKE} clean && popd;
 	pushd aws-certlint/ext && ${MAKE} clean && popd;
 	pushd gs-certlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x -v && popd;
+	pushd go-cert && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x -v && popd;
+	pushd go-cert/cmd/cert && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x -v && popd;
 	pushd zlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x -v && \
 		GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) ${MAKE} clean && popd;
 	if [ -e "${PATH_GOPATH}" ]; then rm -rfv "${PATH_GOPATH}"; fi && if [ -e "${PATH_GOCACHE}" ]; then rm -rfv "${PATH_GOCACHE}"; fi;
@@ -25,6 +27,7 @@ bin:
 	ln -s -v ../x509lint/x509lint-sub ${BIN_NAME}
 	ln -s -v ../ev-checker/ev-checker ${BIN_NAME}
 	ln -s -v ../gs-certlint/gs-certlint ${BIN_NAME}
+	ln -s -v ../go-cert/cmd/cert/cert ${BIN_NAME}/go-cert
 	ln -s -v ../aws-certlint/bin/certlint ${BIN_NAME}
 	ln -s -v ../aws-certlint/bin/cablint ${BIN_NAME}
 	ln -s -v ../aws-certlint/bin/cablint-ct ${BIN_NAME}
@@ -41,6 +44,12 @@ gs-certlint: gs-certlint/gs-certlint
 
 aws-certlint: aws-certlint/ext/asn1validator.so
 
+go-cert: go-cert/cmd/cert/cert
+	pushd go-cert && \
+	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -u -v github.com/genkiroid/cert && \
+	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go build -a -x -v && \
+	popd;
+
 x509lint/x509lint-root:
 	pushd x509lint && ${MAKE} all && popd;
 
@@ -49,6 +58,12 @@ ev-checker/ev-checker:
 
 aws-certlint/ext/asn1validator.so:
 	pushd aws-certlint/ext && ruby extconf.rb && ${MAKE} all && popd;
+
+go-cert/cmd/cert/cert:
+	pushd go-cert/cmd/cert && \
+	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -u -v github.com/genkiroid/cert && \
+	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go build -a -x -v && \
+	popd;
 
 gs-certlint/gs-certlint:
 	pushd gs-certlint && \

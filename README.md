@@ -12,6 +12,7 @@ The following third-party linters are used by this project:
 - [x509lint](https://git.0x19e.net/security/x509lint.git)
 - [ev-checker](https://git.0x19e.net/security/ev-checker.git)
 - [zlint](https://git.0x19e.net/security/zmap-zlint.git)
+- [go-cert](https://git.0x19e.net/security/go-cert.git)
 
 ## Installation
 To initialize required modules and compile dependencies, run:
