@@ -45,6 +45,7 @@
 
 INSTALL_MISSING="true"
 NO_COLOR="false"
+VERBOSITY=0
 
 print_green()
 {
@@ -73,21 +74,108 @@ print_yellow()
   fi
 }
 
+exit_script()
+{
+  # Default exit code is 1
+  local exit_code=1
+  local re var
+
+  re='^([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$'
+  if echo "$1" | egrep -q "$re"; then
+    exit_code=$1
+    shift
+  fi
+
+  re='[[:alnum:]]'
+  if echo "$@" | egrep -iq "$re"; then
+    if [ $exit_code -eq 0 ]; then
+      print_green "INFO: $@"
+    else
+      print_red "ERROR: $@" 1>&2
+    fi
+  fi
+
+  # Print 'aborting' string if exit code is not 0
+  [ $exit_code -ne 0 ] && echo >&2 "Aborting script..."
+
+  exit $exit_code
+}
+
+usage()
+{
+    # Prints out usage and exit.
+    sed -e "s/^    //" -e "s|SCRIPT_NAME|$(basename $0)|" <<"    EOF"
+    USAGE
+
+    Install required packages and build all third-party certificate linters
+    used by the 'lint.sh' wrapper.
+
+    SYNTAX
+            SCRIPT_NAME [OPTIONS]
+
+    OPTIONS
+
+     -c, --clean             Clean all downloaded and compiled objects.
+
+     --no-install-missing    Do not install missing packages.
+
+     -v, --verbose           Make the script more verbose.
+     -h, --help              Prints this usage.
+
+    EOF
+
+    exit_script $@
+}
+
+test_arg()
+{
+  # Used to validate user input
+  local arg="$1"
+  local argv="$2"
+
+  if [ -z "$argv" ]; then
+    if echo "$arg" | egrep -q '^-'; then
+      usage "Null argument supplied for option $arg"
+    fi
+  fi
+
+  if echo "$argv" | egrep -q '^-'; then
+    usage "Argument for option $arg cannot start with '-'"
+  fi
+}
+
+# get the root directory this script is running from
+# if the script is called from a symlink, the link is
+# resolved to the absolute path.
+function get_root_dir()
+{
+  source="${BASH_SOURCE[0]}"
+  # resolve $source until the file is no longer a symlink
+  while [ -h "${source}" ]; do
+    dir=$( cd -P "$( dirname "${source}" )" && pwd )
+    source=$(readlink "${source}")
+    # if $source was a relative symlink, we need to resolve it
+    # relative to the path where the symlink file was located
+    [[ ${source} != /* ]] && source="${dir}/${source}"
+  done
+  dir="$( cd -P "$( dirname "${source}" )" && pwd )"
+  echo ${dir}
+  return
+}
+
 function install_pkg()
 {
   pkg_name="$1"
 
   if [ -z "${pkg_name}" ]; then
-    print_red "ERROR: Package name not provided to check script."
-    exit 1
+    exit_script 1 "Package name not provided to check script."
   fi
 
   sudo_cmd=""
   if [[ $EUID -ne 0 ]]; then
     if ! hash sudo 2>/dev/null; then
       print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
-      print_red "You need to install ${pkg_name}. Aborting."
-      exit 1
+      exit_script 1 "You need to install ${pkg_name}. Aborting."
     else
       sudo_cmd="sudo"
     fi
@@ -97,34 +185,63 @@ function install_pkg()
     if hash apt-get 2>/dev/null; then
       print_yellow "Installing missing package '${pkg_name}' via apt-get ..."
       if ! ${sudo_cmd} apt-get install -V -y ${pkg_name}; then
-        print_red "ERROR: Failed to install package '${pkg_name}'."
-        exit 1
+        exit_script 1 "Failed to install package '${pkg_name}'."
       fi
       return
     fi
   fi
 
-  print_red "You need to install ${pkg_name}. Aborting."
-  exit 1
+  exit_script 1 "You need to install ${pkg_name}. Aborting."
 }
 
+DIR=$(get_root_dir)
+MAKE_ARG="all"
+
+# process arguments
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -c|--clean)
+      MAKE_ARG="clean"
+      shift
+    ;;
+    --no-install-missing)
+      INSTALL_MISSING="false"
+      shift
+    ;;
+    -h|--help)
+      usage
+    ;;
+    -v|--verbose)
+      ((VERBOSITY++))
+      shift
+    ;;
+    *)
+      usage
+      shift
+    ;;
+  esac
+done
+
+if [ ${VERBOSITY} -gt 0 ]; then
+  MAKE_ARG="--debug=v ${MAKE_ARG}"
+fi
+
+# Check for missing packages
 hash openssl 2>/dev/null || { install_pkg "openssl"; }
 hash go 2>/dev/null || { install_pkg "golang-go"; }
 hash git 2>/dev/null || { install_pkg "git"; }
 
 # Update sub-modules
 if ! git submodule init; then
-  print_red "ERROR: Failed to initialize required modules."
-  exit 1
+  exit_script 1 "Failed to initialize required modules."
 fi
 if ! git submodule update --recursive; then
-  print_red "ERROR: Failed to update required modules."
-  exit 1
+  exit_script 1 "Failed to update required modules."
 fi
 
-if ! make; then
-  print_red "ERROR: Failed to build required modules."
-  exit 1
+# Build all modules
+if ! make ${MAKE_ARG}; then
+  exit_script 1 "Failed to build required modules."
 fi
 
-exit 0
+exit_script 0

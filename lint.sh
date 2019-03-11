@@ -50,9 +50,9 @@
 VERBOSITY=0
 NO_COLOR="false"
 
-hash openssl 2>/dev/null || { echo >&2 "You need to install OpenSSL (openssl). Aborting."; exit 1; }
-hash go 2>/dev/null || { echo >&2 "You need to install Golang (gccgo-go). Aborting."; exit 1; }
-hash git 2>/dev/null || { echo >&2 "You need to install Git (git). Aborting."; exit 1; }
+hash openssl 2>/dev/null || { echo >&2 "You need to install openssl. Aborting."; exit 1; }
+hash go 2>/dev/null || { echo >&2 "You need to install go. Aborting."; exit 1; }
+hash git 2>/dev/null || { echo >&2 "You need to install git. Aborting."; exit 1; }
 
 # get the root directory this script is running from
 # if the script is called from a symlink, the link is
@@ -123,7 +123,7 @@ usage()
 
      -c, --chain <file>      Specifies a CA chain file to use.
      -e, --ev-policy <oid>   Specifies an OID to test for EV compliance.
-     -h, --hostname <name>   Specifies the hostname for EV testing.
+     -n, --hostname <name>   Specifies the hostname for EV testing.
 
      -v, --verbose           Make the script more verbose.
      -h, --help              Prints this usage.
@@ -322,7 +322,7 @@ while [ $# -gt 0 ]; do
       EV_POLICY="$1"
       shift
     ;;
-    -h|--ev-host)
+    -n|--ev-host)
       test_ev_host
       test_host_arg "$1" "$2"
       shift
