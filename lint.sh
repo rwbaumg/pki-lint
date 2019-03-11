@@ -436,6 +436,24 @@ if [ ! -z "${ZLINT}" ]; then
 echo
 echo "zlint:"
 echo "${ZLINT}"
+
+# TODO: Parse json output from zlint
+echo "--"
+IFS=$'\n'; for x in ${ZLINT}; do
+  name=$(echo $x | grep -Po '(?<=\")[^\"]+(?=\"\:\s\{)')
+  result=$(echo $x | grep -Po '(?<=\"result\"\:\s\")[^\"]+(?=\")')
+
+  if [ ! -z "$name" ]; then
+    desc=$(${ZLINT_BIN} -list-lints-json | grep "$name" | grep -Po '(?<=\"description\"\:\")[^\"]+(?=\")')
+    ref=$(${ZLINT_BIN} -list-lints-json | grep "$name" | grep -Po '(?<=\"citation\"\:\")[^\"]+(?=\")')
+
+    echo "zlint: $name ($ref)"
+  fi
+  #if [ ! -z "$result" ]; then
+  #  echo "zlint res: $result"
+  #fi
+done
+
 echo
 EC=1
 else
