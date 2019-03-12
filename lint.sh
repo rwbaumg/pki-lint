@@ -378,14 +378,18 @@ GOLANG_LINTS="${DIR}/lints/golang/*.go"
 if [ ! -e "${X509_BIN}" ]; then
   usage "Missing required binary (did you build it?): lints/x509lint/${X509_MODE}"
 fi
-if [ ! -e "${ZLINT_BIN}" ]; then
-  usage "Missing required binary (did you build it?): lints/bin/zlint"
-fi
 if [ ! -e "${EV_CHECK_BIN}" ]; then
   usage "Missing required binary (did you build it?): lints/ev-checker/ev-checker"
 fi
 if [ ! -e "${AWS_CLINT_DIR}/bin/certlint" ]; then
   usage "Missing required binary (did you build it?): lints/aws-certlint/bin/certlint"
+fi
+#if [ ! -e "${ZLINT_BIN}" ]; then
+#  usage "Missing required binary (did you build it?): lints/bin/zlint"
+#fi
+if [ ! -e "${ZLINT_BIN}" ]; then
+  echo >&2 "WARNING: Missing zlint binary. Try running `make zlint` from the 'lints/' directory."
+  # usage "Missing required binary (did you build it?): lints/bin/zlint"
 fi
 
 PEM_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).pem"
@@ -401,7 +405,11 @@ openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
 pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
 AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
+#if ! [ $? -eq 0 ]; then
+#fi
 AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}")
+#if ! [ $? -eq 0 ]; then
+#fi
 popd > /dev/null 2>&1
 
 pushd ${GS_CLINT_DIR} > /dev/null 2>&1
@@ -414,7 +422,9 @@ popd > /dev/null 2>&1
 
 X509LINT=$(${X509_BIN} "${PEM_FILE}")
 
+if [ -e "${ZLINT_BIN}" ]; then
 ZLINT=$(${ZLINT_BIN} -pretty "${PEM_FILE}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
+fi
 
 EC=0
 

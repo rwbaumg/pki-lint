@@ -6,17 +6,18 @@ BIN_NAME=bin
 PATH_GOPATH=./.go
 PATH_GOCACHE=./.gocache
 
-all: zlint x509lint ev-checker aws-certlint gs-certlint bin
+all: x509lint ev-checker aws-certlint gs-certlint bin zlint
 
 clean:
+	if [ -e "./${PATH_GOPATH}" ]; then rm -rfv "${PATH_GOPATH}"; fi;
+	if [ -e "./${PATH_GOCACHE}" ]; then rm -rfv "${PATH_GOCACHE}"; fi;
+	if [ -e "./${BIN_NAME}" ]; then rm -rfv "./${BIN_NAME}"; fi;
 	pushd x509lint && ${MAKE} clean && popd;
 	pushd ev-checker && ${MAKE} clean && popd;
-	pushd aws-certlint/ext && ${MAKE} clean && popd;
 	pushd gs-certlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x -v && popd;
+	pushd aws-certlint/ext && ${MAKE} clean && popd;
 	pushd zlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x -v && \
 		GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) ${MAKE} clean && popd;
-	if [ -e "${PATH_GOPATH}" ]; then rm -rfv "${PATH_GOPATH}"; fi && if [ -e "${PATH_GOCACHE}" ]; then rm -rfv "${PATH_GOCACHE}"; fi;
-	if [ -e "./${BIN_NAME}" ]; then rm -rfv "./${BIN_NAME}"; fi;
 
 bin:
 	mkdir -v ./${BIN_NAME}
@@ -66,7 +67,7 @@ gs-certlint/gs-certlint:
 	popd;
 
 ${PATH_GOPATH}/bin/zlint:
-	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -v -t github.com/zmap/zlint;
+	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -v github.com/zmap/zlint;
 	pushd $(abspath ${PATH_GOPATH})/src/github.com/zmap/zlint/cmd/zlint && \
 	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go build -x -v -a && \
 	popd;

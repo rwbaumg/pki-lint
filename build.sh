@@ -163,6 +163,38 @@ function get_root_dir()
   return
 }
 
+function apt_add_golang_src()
+{
+  sudo_cmd=""
+  if [[ $EUID -ne 0 ]]; then
+    if ! hash sudo 2>/dev/null; then
+      print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
+      exit_script 1 "You need to install ${pkg_name}. Aborting."
+    else
+      sudo_cmd="sudo"
+    fi
+  fi
+
+  if [ "${INSTALL_MISSING}" == "true" ]; then
+    if hash apt-get 2>/dev/null; then
+      if [ ! -e "/etc/apt/sources.list.d/gophers-archive-trusty.list" ]; then
+        print_yellow "Configuring golang package source for apt-get ..."
+        if ! ${sudo_cmd} add-apt-repository ppa:gophers/archive; then
+          exit_script 1 "Failed to configure golang package source for apt command."
+        fi
+        # NOTE: For even newer golang, use ppa:longsleep/golang-backports
+        #if ! ${sudo_cmd} add-apt-repository ppa:longsleep/golang-backports; then
+        #  exit_script 1 "Failed to install package '${pkg_name}'."
+        #fi
+        if ! ${sudo_cmd} apt-get update; then
+          echo >&2 "WARNING: Failed to update apt cache."
+        fi
+      fi
+      return
+    fi
+  fi
+}
+
 function install_pkg()
 {
   pkg_name="$1"
@@ -227,9 +259,21 @@ if [ ${VERBOSITY} -gt 0 ]; then
 fi
 
 # Check for missing packages
+hash add-apt-repository 2>/dev/null || { install_pkg "software-properties-common"; }
+hash make 2>/dev/null || { install_pkg "make"; }
+hash gcc 2>/dev/null || { install_pkg "gcc"; }
+hash gnutls-cli 2>/dev/null || { install_pkg "gnutls-bin"; }
+hash nodejs 2>/dev/null || { install_pkg "nodejs"; }
+hash npm 2>/dev/null || { install_pkg "npm"; }
+hash clang++ 2>/dev/null || { install_pkg "clang"; }
 hash openssl 2>/dev/null || { install_pkg "openssl"; }
-hash go 2>/dev/null || { install_pkg "golang-go"; }
+hash go 2>/dev/null || { apt_add_golang_src; install_pkg "golang-go"; }
 hash git 2>/dev/null || { install_pkg "git"; }
+
+# Install required libraries
+install_pkg "ruby-dev"
+install_pkg "libnspr4-dev"
+install_pkg "libcurl4-openssl-dev"
 
 # Update sub-modules
 if ! git submodule init; then
