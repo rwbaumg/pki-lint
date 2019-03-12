@@ -363,6 +363,11 @@ if [ ! -e "${CERT}" ]; then
   usage "The specified certificate file does not exist."
 fi
 
+VERBOSE_FLAG=""
+if [ $VERBOSITY -gt 0 ]; then
+  VERBOSE_FLAG="-v"
+fi
+
 X509_BIN="${DIR}/lints/x509lint/${X509_MODE}"
 ZLINT_BIN="${DIR}/lints/bin/zlint"
 AWS_CLINT_DIR="${DIR}/lints/aws-certlint"
@@ -383,19 +388,20 @@ if [ ! -e "${AWS_CLINT_DIR}/bin/certlint" ]; then
   usage "Missing required binary (did you build it?): lints/aws-certlint/bin/certlint"
 fi
 
-PEM_FILE="/tmp/$(basename ${CERT}).pem"
-PEM_CHAIN_FILE="/tmp/$(basename ${CERT}).chain.pem"
+PEM_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).pem"
+PEM_CHAIN_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).chain.pem"
 openssl x509 -outform pem -in "${CERT}" -out "${PEM_FILE}" > /dev/null 2>&1
 openssl x509 -outform pem -in "${CERT}" -out "${PEM_CHAIN_FILE}" > /dev/null 2>&1
 if [ ! -z "${CA_CHAIN}" ]; then
 cat "${CA_CHAIN}" >> "${PEM_CHAIN_FILE}"
 fi
 
-DER_FILE="/tmp/$(basename ${CERT}).der"
+DER_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).der"
 openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
 pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
 AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
+AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}")
 popd > /dev/null 2>&1
 
 pushd ${GS_CLINT_DIR} > /dev/null 2>&1
@@ -417,6 +423,14 @@ echo "Checking certificate '${CERT}' ..."
 if [ ! -z "${AWS_CERTLINT}" ]; then
 echo "aws-certlint:"
 echo "${AWS_CERTLINT}"
+EC=1
+else
+echo "aws-certlint: certificate OK"
+fi
+
+if [ ! -z "${AWS_CABLINT}" ]; then
+echo "aws-cablint:"
+echo "${AWS_CABLINT}"
 EC=1
 else
 echo "aws-certlint: certificate OK"
@@ -479,6 +493,6 @@ if [ ! -z "${EV_POLICY}" ]; then
   ${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST}
 fi
 
-rm ${DER_FILE} ${PEM_FILE}
+rm ${VERBOSE_FLAG} ${DER_FILE} ${PEM_FILE}
 
-exit ${EC}
+exit_script ${EC}
