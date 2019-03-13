@@ -276,6 +276,46 @@ function check_installed()
   return 1
 }
 
+function install_gem()
+{
+  gem_name="$1"
+
+  if [ -z "${gem_name}" ]; then
+    exit_script 1 "No gem name provided to install function."
+  fi
+
+  if [ ! -z "$(gem list | grep ${gem_name})" ]; then
+    #print_green "Required Ruby gem '${gem_name}' is already installed."
+    return 0
+  fi
+
+  if ! check_installed "ruby"; then
+    exit_script 1 "The 'ruby' package is not installed; cannot install gem. Aborting..."
+  fi
+
+  sudo_cmd=""
+  if [[ $EUID -ne 0 ]]; then
+    if ! hash sudo 2>/dev/null; then
+      print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing gem."
+      exit_script 1 "You need to install the Ruby gem '${gem_name}'. Aborting."
+    else
+      sudo_cmd="sudo"
+    fi
+  fi
+
+  if [ "${INSTALL_MISSING}" == "true" ]; then
+    if hash gem 2>/dev/null; then
+      print_yellow "Installing Ruby gem '${gem_name}' ..."
+      if ! ${sudo_cmd} gem install ${gem_name}; then
+        exit_script 1 "Failed to install Ruby gem '${gem_name}'."
+      fi
+      return 0
+    fi
+  fi
+
+  exit_script 1 "You need to install Ruby gem '${gem_name}'. Aborting."
+}
+
 function install_pkg()
 {
   pkg_name="$1"
@@ -357,6 +397,7 @@ hash gnutls-cli 2>/dev/null || { install_pkg "gnutls-bin"; }
 hash clang++ 2>/dev/null || { install_pkg "clang"; }
 hash openssl 2>/dev/null || { install_pkg "openssl"; }
 hash git 2>/dev/null || { install_pkg "git"; }
+hash jq 2>/dev/null || { install_pkg "jq"; }
 hash go 2>/dev/null || { install_golang_v110; }
 
 # Install required libraries
@@ -365,6 +406,9 @@ install_pkg "libnspr4-dev"
 install_pkg "libcurl4-openssl-dev"
 install_pkg "libnss3-dev"
 install_pkg "libssl-dev"
+
+# Install Ruby gems
+install_gem "simpleidn"
 
 # Update sub-modules
 if ! git submodule init; then
