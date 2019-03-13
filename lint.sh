@@ -130,6 +130,7 @@ usage()
      -e, --ev-policy <oid>   Specifies an OID to test for EV compliance.
      -n, --hostname <name>   Specifies the hostname for EV testing.
 
+     -p, --print             Print the input certificate.
      -v, --verbose           Make the script more verbose.
      -h, --help              Prints this usage.
 
@@ -258,6 +259,7 @@ X509_MODE=""
 CA_CHAIN=""
 EV_POLICY=""
 EV_HOST=""
+PRINT_MODE=""
 
 test_chain()
 {
@@ -347,6 +349,10 @@ while [ $# -gt 0 ]; do
       EV_HOST="$1"
       shift
     ;;
+    -p|--print)
+      PRINT_MODE="true"
+      shift
+    ;;
     -h|--help)
       usage
     ;;
@@ -379,6 +385,10 @@ if [ -z "${CERT}" ]; then
 fi
 if [ ! -e "${CERT}" ]; then
   usage "The specified certificate file does not exist."
+fi
+
+if ! openssl x509 -text -noout -in "${CERT}" > /dev/null 2>&1; then
+  usage "The specified file is not a valid certificate."
 fi
 
 VERBOSE_FLAG=""
@@ -428,6 +438,12 @@ DER_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).der"
 openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
 echo "Checking certificate '${CERT}' ..."
+
+if [ "${PRINT_MODE}" == "true" ]; then
+  echo
+  openssl x509 -in "${PEM_FILE}" -noout -text
+  echo
+fi
 
 pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
 AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
