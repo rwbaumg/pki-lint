@@ -163,7 +163,10 @@ function get_root_dir()
   return
 }
 
-function apt_add_golang_src()
+# Adds a package source for Golang
+# This may be required if the distribution does not provide
+# a version of Golang >= v1.3
+function add_golang_src()
 {
   sudo_cmd=""
   if [[ $EUID -ne 0 ]]; then
@@ -195,12 +198,96 @@ function apt_add_golang_src()
   fi
 }
 
+# Attempts to install Golang v1.10
+function install_golang_v110()
+{
+  if hash go 2>/dev/null; then
+    print_green "Found Golang; 'go' command is in PATH."
+    return
+  fi
+
+  if [ "${INSTALL_MISSING}" != "true" ]; then
+    exit_script 1 "You need to install golang-go >= v1.3; aborting..."
+  fi
+
+  install_pkg "golang-1.10-go"
+
+  if [ ! -e "/usr/lib/go-1.10/bin/go" ]; then
+    print_red "Golang v1.10 installation failed: missing required file '/usr/lib/go-1.10/bin/go'."
+    exit_script 1 "You need to install golang-go >= v1.3; aborting..."
+  fi
+
+  if hash go 2>/dev/null; then
+    print_green "Found Golang v1.10 binaries; 'go' command is in PATH."
+    return
+  fi
+
+  if [ ! -e "/usr/bin/go" ] && [ ! -e "/usr/local/bin/go" ]; then
+    # Check if 'sudo' is required
+    sudo_cmd=""
+    if [[ $EUID -ne 0 ]]; then
+      if ! hash sudo 2>/dev/null; then
+        print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
+        exit_script 1 "You need to install ${pkg_name}. Aborting."
+      else
+        sudo_cmd="sudo"
+      fi
+    fi
+
+    # Create a symlink for 'go' command.
+    ln_args="-s"
+    if [ $VERBOSITY -gt 0 ]; then
+      ln_args="-v ${ln_args}"
+    fi
+
+    if ! ${sudo_cmd} ln ${ln_args} /usr/lib/go-1.10/bin/go /usr/bin/go; then
+      print_red "Failed to create /usr/bin symlink for /usr/lib/go-1.10/bin/go command."
+      exit_script 1 "The Golang 'go' command must be installed in the system PATH. Aborting."
+    fi
+
+    print_green "Created symlink: /usr/bin/go -> /usr/lib/go-1.10/bin/go"
+
+    if ! hash go 2>/dev/null; then
+      print_red "Golang 'go' command is still missing from PATH."
+      exit_script 1 "You need to install ${pkg_name}. Aborting."
+    fi
+
+    print_green "Found Golang v1.10 binaries; 'go' command is in PATH."
+    return
+  fi
+}
+
+function check_installed()
+{
+  pkg_name="$1"
+
+  if [ -z "${pkg_name}" ]; then
+    exit_script 1 "Package name not provided to check script."
+  fi
+
+  if hash apt-cache 2>/dev/null; then
+    if [ ! -z "$(apt-cache policy ${pkg_name} | grep -v '(none)' | grep Installed)" ]; then
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
 function install_pkg()
 {
   pkg_name="$1"
 
   if [ -z "${pkg_name}" ]; then
     exit_script 1 "Package name not provided to check script."
+  fi
+
+  if check_installed "${pkg_name}"; then
+    # package is already installed
+    if [ $VERBOSITY -gt 0 ]; then
+      echo "Package '${pkg_name}' is already installed."
+    fi
+    return 0
   fi
 
   sudo_cmd=""
@@ -219,7 +306,7 @@ function install_pkg()
       if ! ${sudo_cmd} apt-get install -V -y ${pkg_name}; then
         exit_script 1 "Failed to install package '${pkg_name}'."
       fi
-      return
+      return 0
     fi
   fi
 
@@ -259,21 +346,23 @@ if [ ${VERBOSITY} -gt 0 ]; then
 fi
 
 # Check for missing packages
-hash add-apt-repository 2>/dev/null || { install_pkg "software-properties-common"; }
+#hash add-apt-repository 2>/dev/null || { install_pkg "software-properties-common"; }
+#hash nodejs 2>/dev/null || { install_pkg "nodejs"; }
+#hash npm 2>/dev/null || { install_pkg "npm"; }
 hash make 2>/dev/null || { install_pkg "make"; }
 hash gcc 2>/dev/null || { install_pkg "gcc"; }
 hash gnutls-cli 2>/dev/null || { install_pkg "gnutls-bin"; }
-hash nodejs 2>/dev/null || { install_pkg "nodejs"; }
-hash npm 2>/dev/null || { install_pkg "npm"; }
 hash clang++ 2>/dev/null || { install_pkg "clang"; }
 hash openssl 2>/dev/null || { install_pkg "openssl"; }
-hash go 2>/dev/null || { apt_add_golang_src; install_pkg "golang-go"; }
 hash git 2>/dev/null || { install_pkg "git"; }
+hash go 2>/dev/null || { install_golang_v110; }
 
 # Install required libraries
 install_pkg "ruby-dev"
 install_pkg "libnspr4-dev"
 install_pkg "libcurl4-openssl-dev"
+install_pkg "libnss3-dev"
+install_pkg "libssl-dev"
 
 # Update sub-modules
 if ! git submodule init; then

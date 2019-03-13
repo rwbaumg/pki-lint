@@ -14,9 +14,9 @@ clean:
 	if [ -e "./${BIN_NAME}" ]; then rm -rfv "./${BIN_NAME}"; fi;
 	pushd x509lint && ${MAKE} clean && popd;
 	pushd ev-checker && ${MAKE} clean && popd;
-	pushd gs-certlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x -v && popd;
+	pushd gs-certlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x && popd;
 	pushd aws-certlint/ext && ${MAKE} clean && popd;
-	pushd zlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x -v && \
+	pushd zlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x && \
 		GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) ${MAKE} clean && popd;
 
 bin:

@@ -19,6 +19,11 @@ To initialize required modules and compile dependencies, run:
 ./build.sh
 ```
 
+If you encounter errors building module sources you can use ```--verbose``` to get some basic debugging information:
+```bash
+./build.sh --verbose
+```
+
 ## Usage
 To view usage information, run:
 ```bash
