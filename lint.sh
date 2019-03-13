@@ -423,6 +423,8 @@ if [ ! -e "${ZLINT_BIN}" ]; then
   usage "Missing required binary (did you build it?): lints/bin/zlint"
 fi
 
+CA_CHAIN_FULL_PATH=$(realpath "${CA_CHAIN}")
+
 PEM_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).pem"
 PEM_CHAIN_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).chain.pem"
 openssl x509 -outform pem -in "${CERT}" -out "${PEM_FILE}" > /dev/null 2>&1
@@ -459,7 +461,7 @@ popd > /dev/null 2>&1
 
 pushd ${GS_CLINT_DIR} > /dev/null 2>&1
 if [ ! -z "${CA_CHAIN}" ]; then
-  GS_CERTLINT=$(./gs-certlint -issuer "${CA_CHAIN}" -cert "${PEM_FILE}")
+  GS_CERTLINT=$(./gs-certlint -issuer "${CA_CHAIN_FULL_PATH}" -cert "${PEM_FILE}")
 else
   GS_CERTLINT=$(./gs-certlint -cert "${PEM_FILE}")
 fi
