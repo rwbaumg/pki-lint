@@ -6,7 +6,7 @@ BIN_NAME=bin
 PATH_GOPATH=./.go
 PATH_GOCACHE=./.gocache
 
-all: x509lint ev-checker aws-certlint gs-certlint bin zlint
+all: x509lint ev-checker aws-certlint gs-certlint zlint bin
 
 clean:
 	if [ -e "./${PATH_GOPATH}" ]; then rm -rfv "${PATH_GOPATH}"; fi;

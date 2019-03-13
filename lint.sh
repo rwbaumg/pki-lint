@@ -289,6 +289,19 @@ test_ev_policy()
   fi
 }
 
+declare -a zlint_names=();
+function add_zlint_lint()
+{
+  if [ -z "$1" ]; then
+    exit_script 1 "zlint lint name cannot be null."
+  fi
+  if echo ${alt_names[@]} | grep -q -w "$1"; then
+    exit_script 1 "zlint lint name processed twice."
+  fi
+  lint_name="$1"
+  zlint_names=("${zlint_names[@]}" "${lint_name}")
+}
+
 # process arguments
 [ $# -gt 0 ] || usage
 while [ $# -gt 0 ]; do
@@ -364,7 +377,7 @@ if [ ! -e "${CERT}" ]; then
 fi
 
 VERBOSE_FLAG=""
-if [ $VERBOSITY -gt 0 ]; then
+if [ $VERBOSITY -gt 1 ]; then
   VERBOSE_FLAG="-v"
 fi
 
@@ -384,17 +397,17 @@ fi
 if [ ! -e "${AWS_CLINT_DIR}/bin/certlint" ]; then
   usage "Missing required binary (did you build it?): lints/aws-certlint/bin/certlint"
 fi
-#if [ ! -e "${ZLINT_BIN}" ]; then
-#  usage "Missing required binary (did you build it?): lints/bin/zlint"
-#fi
 if [ ! -e "${ZLINT_BIN}" ]; then
-  echo >&2 "WARNING: Missing zlint binary. Try running `make zlint` from the 'lints/' directory."
-  # usage "Missing required binary (did you build it?): lints/bin/zlint"
+  usage "Missing required binary (did you build it?): lints/bin/zlint"
 fi
 
 PEM_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).pem"
 PEM_CHAIN_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).chain.pem"
 openssl x509 -outform pem -in "${CERT}" -out "${PEM_FILE}" > /dev/null 2>&1
+if ! [ $? -eq 0 ]; then
+  usage "Failed to parse input file '${CERT}' as PEM certificate."
+fi
+
 openssl x509 -outform pem -in "${CERT}" -out "${PEM_CHAIN_FILE}" > /dev/null 2>&1
 if [ ! -z "${CA_CHAIN}" ]; then
 cat "${CA_CHAIN}" >> "${PEM_CHAIN_FILE}"
@@ -403,13 +416,17 @@ fi
 DER_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).der"
 openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
+echo "Checking certificate '${CERT}' ..."
+
 pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
 AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
-#if ! [ $? -eq 0 ]; then
-#fi
+if ! [ $? -eq 0 ]; then
+  echo >&2 "WARNING: AWS certlint returned a non-zero exit code."
+fi
 AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}")
-#if ! [ $? -eq 0 ]; then
-#fi
+if ! [ $? -eq 0 ]; then
+  echo >&2 "WARNING: AWS cablint returned a non-zero exit code."
+fi
 popd > /dev/null 2>&1
 
 pushd ${GS_CLINT_DIR} > /dev/null 2>&1
@@ -418,36 +435,27 @@ if [ ! -z "${CA_CHAIN}" ]; then
 else
   GS_CERTLINT=$(./gs-certlint -cert "${PEM_FILE}")
 fi
+if ! [ $? -eq 0 ]; then
+  echo >&2 "WARNING: GlobalSign certlint returned a non-zero exit code."
+fi
 popd > /dev/null 2>&1
 
 X509LINT=$(${X509_BIN} "${PEM_FILE}")
+if ! [ $? -eq 0 ]; then
+  echo >&2 "WARNING: x509lint returned a non-zero exit code."
+fi
 
 if [ -e "${ZLINT_BIN}" ]; then
-ZLINT=$(${ZLINT_BIN} -pretty "${PEM_FILE}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
+ZLINT_RAW=$(${ZLINT_BIN} -pretty "${PEM_FILE}")
+ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
+if ! [ $? -eq 0 ]; then
+  echo >&2 "WARNING: zlint returned a non-zero exit code."
+fi
 fi
 
 EC=0
 
-echo "Checking certificate '${CERT}' ..."
-
-if [ ! -z "${AWS_CERTLINT}" ]; then
-echo "aws-certlint:"
-echo "${AWS_CERTLINT}"
-EC=1
-else
-echo "aws-certlint: certificate OK"
-fi
-
-if [ ! -z "${AWS_CABLINT}" ]; then
-echo "aws-cablint:"
-echo "${AWS_CABLINT}"
-EC=1
-else
-echo "aws-certlint: certificate OK"
-fi
-
 if [ ! -z "${X509LINT}" ]; then
-echo
 echo "x509lint:"
 echo "${X509LINT}"
 echo
@@ -456,26 +464,54 @@ else
 echo "x509lint: certificate OK"
 fi
 
-if [ ! -z "${ZLINT}" ]; then
+if [ ! -z "${AWS_CERTLINT}" ]; then
+echo "aws-certlint:"
+echo "${AWS_CERTLINT}"
 echo
-echo "zlint:"
-echo "${ZLINT}"
+EC=1
+else
+echo "aws-certlint: certificate OK"
+fi
 
-# TODO: Parse json output from zlint
+if [ ! -z "${AWS_CABLINT}" ]; then
+echo "aws-cablint:"
+echo "${AWS_CABLINT}"
+echo
+EC=1
+else
+echo "aws-certlint: certificate OK"
+fi
+
+if [ ! -z "${ZLINT}" ]; then
+echo "zlint results:"
 echo "--"
 IFS=$'\n'; for x in ${ZLINT}; do
   name=$(echo $x | grep -Po '(?<=\")[^\"]+(?=\"\:\s\{)')
-  result=$(echo $x | grep -Po '(?<=\"result\"\:\s\")[^\"]+(?=\")')
-
   if [ ! -z "$name" ]; then
-    desc=$(${ZLINT_BIN} -list-lints-json | grep "$name" | grep -Po '(?<=\"description\"\:\")[^\"]+(?=\")')
-    ref=$(${ZLINT_BIN} -list-lints-json | grep "$name" | grep -Po '(?<=\"citation\"\:\")[^\"]+(?=\")')
-
-    echo "zlint: $name ($ref)"
+    add_zlint_lint "$name"
   fi
-  #if [ ! -z "$result" ]; then
-  #  echo "zlint res: $result"
-  #fi
+done
+
+# parse zlint json results
+for ((idx=0;idx<=$((${#zlint_names[@]}-1));idx++)); do
+  zlint_name="${zlint_names[$idx]}"
+
+  details=$(echo "${ZLINT_RAW}" | jq -r ".${zlint_name}.details")
+  result=$(echo "${ZLINT_RAW}" | jq -r ".${zlint_name}.result")
+
+  desc=$(${ZLINT_BIN} -list-lints-json | grep "$zlint_name" | grep -Po '(?<=\"description\"\:\")[^\"]+(?=\")')
+  ref=$(${ZLINT_BIN} -list-lints-json | grep "$zlint_name" | grep -Po '(?<=\"citation\"\:\")[^\"]+(?=\")')
+
+  echo "zlint name  : $zlint_name"
+  echo "result      : ${result}"
+  if [ ! -z "${details}" ] && [ "${details}" != "null" ]; then
+  echo "details     : ${details}"
+  fi
+  if [ $VERBOSITY -gt 0 ]; then
+  echo "description : ${desc}"
+  fi
+  echo "reference   : ${ref}"
+  echo "---"
 done
 
 echo
@@ -501,8 +537,11 @@ if [ ! -z "${EV_POLICY}" ]; then
   echo
   echo "EV policy check:"
   ${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST}
+  if ! [ $? -eq 0 ]; then
+    echo >&2 "WARNING: ev-checker returned a non-zero exit code."
+  fi
 fi
 
 rm ${VERBOSE_FLAG} ${DER_FILE} ${PEM_FILE}
 
-exit_script ${EC}
+exit ${EC}
