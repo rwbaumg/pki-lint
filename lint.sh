@@ -48,11 +48,16 @@
 # SOFTWARE.
 
 VERBOSITY=0
+DEBUG_LEVEL=0
 NO_COLOR="false"
+CERTTOOL_MIN_VER="3.0.0"
 
 hash openssl 2>/dev/null || { echo >&2 "You need to install openssl. Aborting."; exit 1; }
 hash go 2>/dev/null || { echo >&2 "You need to install go. Aborting."; exit 1; }
 hash git 2>/dev/null || { echo >&2 "You need to install git. Aborting."; exit 1; }
+hash certtool 2>/dev/null || { echo >&2 "You need to install gnutls-bin. Aborting."; exit 1; }
+
+function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 
 # get the root directory this script is running from
 # if the script is called from a symlink, the link is
@@ -381,6 +386,12 @@ if [ $VERBOSITY -gt 1 ]; then
   VERBOSE_FLAG="-v"
 fi
 
+CERTTOOL_CAN_VERIFY="false"
+CERTTOOL_VERSION=$(certtool --version | head -n1 | grep -Po '(?<=\s)[0-9\.]+$')
+if version_gt $CERTTOOL_VERSION $CERTTOOL_MIN_VER; then
+  CERTTOOL_CAN_VERIFY="true"
+fi
+
 X509_BIN="${DIR}/lints/x509lint/${X509_MODE}"
 ZLINT_BIN="${DIR}/lints/bin/zlint"
 AWS_CLINT_DIR="${DIR}/lints/aws-certlint"
@@ -454,6 +465,65 @@ fi
 fi
 
 EC=0
+
+OPENSSL_ERR=0
+GNUTLS_ERR=0
+
+if [ $VERBOSITY -gt 1 ]; then
+  DEBUG_LEVEL=9999
+fi
+
+if [ ! -z "${CA_CHAIN}" ]; then
+  OPENSSL_OUT=$(openssl verify -verbose -x509_strict -policy_print -CAfile "${PEM_CHAIN_FILE}" "${PEM_FILE}" 2>&1)
+else
+  OPENSSL_OUT=$(openssl verify -verbose -x509_strict -policy_print "${PEM_FILE}" 2>&1)
+fi
+if ! [ $? -eq 0 ]; then
+  OPENSSL_ERR=1
+  echo >&2 "WARNING: OpenSSL verification returned a non-zero exit code."
+fi
+
+if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
+  DEBUG_ARG=""
+  if [ ${DEBUG_LEVEL} -gt 0 ]; then
+    DEBUG_ARG="-d ${DEBUG_LEVEL}"
+  fi
+  if [ ! -z "${CA_CHAIN}" ]; then
+  CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify --load-ca-certificate "${PEM_CHAIN_FILE}" 2>&1)
+  else
+  CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify 2>&1)
+  fi
+  if ! [ $? -eq 0 ]; then
+    GNUTLS_ERR=1
+    echo >&2 "WARNING: GnuTLS certtool returned a non-zero exit code."
+  fi
+else
+  echo >&2 "WARNING: GnuTLS certtool version ${CERTTOOL_VERSION} is too old for verification."
+fi
+
+echo
+echo "Results:"
+echo "---"
+
+if [ ${OPENSSL_ERR} -eq 1 ]; then
+  echo
+  echo "openssl verify:"
+  echo "${OPENSSL_OUT}"
+  echo
+  EC=1
+else
+  echo "openssl verify: certificate OK!"
+fi
+
+if [ ${GNUTLS_ERR} -eq 1 ]; then
+  echo
+  echo "GnuTLS certtool v${CERTTOOL_VERSION}:"
+  echo "${CERTTOOL_OUT}"
+  echo
+  EC=1
+else
+  echo "GnuTLS certtool v${CERTTOOL_VERSION}: certificate OK!"
+fi
 
 if [ ! -z "${X509LINT}" ]; then
 echo "x509lint:"
