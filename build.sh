@@ -234,6 +234,8 @@ function install_golang_v110()
       fi
     fi
 
+    print_yellow "Golang 'go' command is missing from PATH; installing symlink..."
+
     # Create a symlink for 'go' command.
     ln_args="-s"
     if [ $VERBOSITY -gt 0 ]; then
