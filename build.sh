@@ -43,6 +43,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+GO_MIN_VERSION=1.3
+RUBY_MIN_VERSION=2.1
 INSTALL_MISSING="true"
 NO_COLOR="false"
 VERBOSITY=0
@@ -163,48 +165,100 @@ function get_root_dir()
   return
 }
 
+function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+
+# Adds a package source for Ruby
+# This may be required if the distribution does not provide
+# a version of Ruby >= v2.1
+function add_ruby_src()
+{
+  # standard ruby: ppa:brightbox/ruby-ng
+  if hash apt-get 2>/dev/null; then
+    if add_apt_source "brightbox/ruby-ng"; then
+      return
+    fi
+  fi
+  exit_script 1 "Failed to configure Golang package source."
+}
+
 # Adds a package source for Golang
 # This may be required if the distribution does not provide
 # a version of Golang >= v1.3
 function add_golang_src()
 {
+  # standard golang: ppa:gophers/archive
+  # newest golang: ppa:longsleep/golang-backports
+  if hash apt-get 2>/dev/null; then
+    if add_apt_source "gophers/archive"; then
+      return
+    fi
+  fi
+  exit_script 1 "Failed to configure Golang package source."
+}
+
+# Adds a package source for the system to upgrade packages from
+function add_apt_source()
+{
+  ppa_name="$1"
+  if [ -z "${ppa_name}" ]; then
+    exit_script 1 "APT PPA name not provided."
+  fi
+
+  if [ "${INSTALL_MISSING}" != "true" ]; then
+    print_yellow "WARNING: Skipping package source configuration for '$ppa_name'."
+    return 1
+  fi
+
+  if ! hash apt-get 2>/dev/null; then
+    print_yellow "WARNING: Missing apt-get command; cannot configure PPA '$ppa_name'."
+    return 1
+  fi
+  if ! hash add-apt-repository 2>/dev/null; then
+    print_yellow "WARNING: Missing add-apt-repository command; cannot configure PPA '$ppa_name'."
+    return 1
+  fi
+
+  for f in /etc/apt/sources.list.d/*; do
+    if ! echo $f | grep -P '\.save$' > /dev/null 2>&1; then
+      if [ ! -z "$(grep -ni $ppa_name $f | grep -v -P '^([\s]+)?\#')" ]; then
+        print_green "Found custom PPA configuration for package source '$ppa_name'."
+        return 0
+      fi
+    fi
+  done
+
   sudo_cmd=""
   if [[ $EUID -ne 0 ]]; then
     if ! hash sudo 2>/dev/null; then
-      print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
-      exit_script 1 "You need to install ${pkg_name}. Aborting."
+      print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package source."
+      return 1
     else
       sudo_cmd="sudo"
     fi
   fi
 
-  if [ "${INSTALL_MISSING}" == "true" ]; then
-    if hash apt-get 2>/dev/null; then
-      if [ ! -e "/etc/apt/sources.list.d/gophers-archive-trusty.list" ]; then
-        print_yellow "Configuring golang package source for apt-get ..."
-        if ! ${sudo_cmd} add-apt-repository ppa:gophers/archive; then
-          exit_script 1 "Failed to configure golang package source for apt command."
-        fi
-        # NOTE: For even newer golang, use ppa:longsleep/golang-backports
-        #if ! ${sudo_cmd} add-apt-repository ppa:longsleep/golang-backports; then
-        #  exit_script 1 "Failed to install package '${pkg_name}'."
-        #fi
-        if ! ${sudo_cmd} apt-get update; then
-          echo >&2 "WARNING: Failed to update apt cache."
-        fi
-      fi
-      return
-    fi
+  if [ $VERBOSITY -gt 0 ]; then
+    print_yellow "Configuring '$ppa_name' package source for apt-get ..."
   fi
+
+  if ! ${sudo_cmd} add-apt-repository ppa:${ppa_name}; then
+    exit_script 1 "Failed to configure '$ppa_name' package source for apt command."
+  fi
+  if ! ${sudo_cmd} apt-get update; then
+    echo >&2 "WARNING: Failed to update apt cache."
+    return 1
+  fi
+  print_green "Added custom package source '$ppa_name' for apt-get."
+  return 0
 }
 
 # Attempts to install Golang v1.10
 function install_golang_v110()
 {
-  if hash go 2>/dev/null; then
-    print_green "Found Golang; 'go' command is in PATH."
-    return
-  fi
+  #if hash go 2>/dev/null; then
+  #  print_green "Found Golang; 'go' command is in PATH."
+  #  return
+  #fi
 
   if [ "${INSTALL_MISSING}" != "true" ]; then
     exit_script 1 "You need to install golang-go >= v1.3; aborting..."
@@ -217,24 +271,21 @@ function install_golang_v110()
     exit_script 1 "You need to install golang-go >= v1.3; aborting..."
   fi
 
-  if hash go 2>/dev/null; then
-    print_green "Found Golang v1.10 binaries; 'go' command is in PATH."
-    return
-  fi
-
-  if [ ! -e "/usr/bin/go" ] && [ ! -e "/usr/local/bin/go" ]; then
+  #if [ ! -e "/usr/bin/go" ] && [ ! -e "/usr/local/bin/go" ]; then
+  if [ ! -e "/usr/local/bin/go" ]; then
     # Check if 'sudo' is required
     sudo_cmd=""
     if [[ $EUID -ne 0 ]]; then
       if ! hash sudo 2>/dev/null; then
         print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
-        exit_script 1 "You need to install ${pkg_name}. Aborting."
+        exit_script 1 "You need to install sudo. Aborting."
       else
         sudo_cmd="sudo"
       fi
     fi
 
-    print_yellow "Golang 'go' command is missing from PATH; installing symlink..."
+    #print_yellow "Golang 'go' command is missing from PATH; installing symlink..."
+    print_yellow "Creating /usr/local/bin symling for Golang 'go' command ..."
 
     # Create a symlink for 'go' command.
     ln_args="-s"
@@ -242,12 +293,19 @@ function install_golang_v110()
       ln_args="-v ${ln_args}"
     fi
 
-    if ! ${sudo_cmd} ln ${ln_args} /usr/lib/go-1.10/bin/go /usr/bin/go; then
-      print_red "Failed to create /usr/bin symlink for /usr/lib/go-1.10/bin/go command."
+    # Symling in /usr/bin
+    #if ! ${sudo_cmd} ln ${ln_args} /usr/lib/go-1.10/bin/go /usr/bin/go; then
+    #  print_red "Failed to create /usr/bin symlink for /usr/lib/go-1.10/bin/go command."
+    #  exit_script 1 "The Golang 'go' command must be installed in the system PATH. Aborting."
+    #fi
+    #print_green "Created symlink: /usr/bin/go -> /usr/lib/go-1.10/bin/go"
+
+    # Symlink in /usr/local/bin
+    if ! ${sudo_cmd} ln ${ln_args} /usr/lib/go-1.10/bin/go /usr/local/bin/go; then
+      print_red "Failed to create /usr/local/bin symlink for /usr/lib/go-1.10/bin/go command."
       exit_script 1 "The Golang 'go' command must be installed in the system PATH. Aborting."
     fi
-
-    print_green "Created symlink: /usr/bin/go -> /usr/lib/go-1.10/bin/go"
+    print_green "Created symlink: /usr/local/bin/go -> /usr/lib/go-1.10/bin/go"
 
     if ! hash go 2>/dev/null; then
       print_red "Golang 'go' command is still missing from PATH."
@@ -255,6 +313,64 @@ function install_golang_v110()
     fi
 
     print_green "Found Golang v1.10 binaries; 'go' command is in PATH."
+    return
+  fi
+}
+
+# Attempts to install Ruby v2.20
+function install_ruby_v220()
+{
+  if [ "${INSTALL_MISSING}" != "true" ]; then
+    exit_script 1 "You need to install Ruby >= v2.1; aborting..."
+  fi
+
+  add_ruby_src
+  install_pkg "ruby2.2"
+  install_pkg "ruby2.2-dev"
+
+  if ! hash ruby2.2 2>/dev/null; then
+    print_red "Ruby v2.20 installation failed: 'ruby2.2' missing from PATH."
+    exit_script 1 "You need to install ruby >= v2.1; aborting..."
+  fi
+
+  if [ ! -e "/usr/local/bin/ruby" ]; then
+    # Check if 'sudo' is required
+    sudo_cmd=""
+    if [[ $EUID -ne 0 ]]; then
+      if ! hash sudo 2>/dev/null; then
+        print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
+        exit_script 1 "You need to install sudo. Aborting."
+      else
+        sudo_cmd="sudo"
+      fi
+    fi
+
+    RUBY22_PATH=$(which ruby2.2)
+    if [ -L "${RUBY22_PATH}" ]; then
+      exit_script 1 "The path '${RUBY22_PATH}' is already a symlink."
+    fi
+
+    print_yellow "Creating /usr/local/bin symling for '${RUBY22_PATH}' command ..."
+
+    # Create a symlink for 'ruby' command.
+    ln_args="-s"
+    if [ $VERBOSITY -gt 0 ]; then
+      ln_args="-v ${ln_args}"
+    fi
+
+    # Symlink in /usr/local/bin
+    if ! ${sudo_cmd} ln ${ln_args} ${RUBY22_PATH} /usr/local/bin/ruby; then
+      print_red "Failed to create /usr/local/bin symlink for ${RUBY22_PATH} command."
+      exit_script 1 "The 'ruby' command must be installed in the system PATH. Aborting."
+    fi
+    print_green "Created symlink: /usr/local/bin/ruby -> ${RUBY22_PATH}"
+
+    if ! hash ruby 2>/dev/null; then
+      print_red "The 'ruby' command is still missing from PATH."
+      exit_script 1 "You need to install Ruby >= 2.1. Aborting."
+    fi
+
+    print_green "Found Ruby binaries; 'ruby' command is in PATH."
     return
   fi
 }
@@ -336,7 +452,7 @@ function install_pkg()
   if [[ $EUID -ne 0 ]]; then
     if ! hash sudo 2>/dev/null; then
       print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
-      exit_script 1 "You need to install ${pkg_name}. Aborting."
+      exit_script 1 "You need to install sudo. Aborting."
     else
       sudo_cmd="sudo"
     fi
@@ -353,6 +469,32 @@ function install_pkg()
   fi
 
   exit_script 1 "You need to install ${pkg_name}. Aborting."
+}
+
+function check_golang_version()
+{
+  if hash go 2>/dev/null; then
+    GO_VERSION=$(go version | head -n1 | grep -Po '(?<=\sgo)[0-9\.]+(?=\s)')
+    if version_gt $GO_VERSION $GO_MIN_VERSION; then
+      return 0
+    fi
+  fi
+  print_yellow "WARNING: Missing Golang go >= ${GO_MIN_VERSION}; trying to install..."
+  # add_golang_src
+  install_golang_v110
+}
+
+function check_ruby_version()
+{
+  if hash ruby 2>/dev/null; then
+    RUBY_VERSION=$(ruby --version | head -n1 | grep -Po '(?<=\s)([1-9][0-9]{0,8}|0)(\.([1-9][0-9]{0,8}|0)){1,3}')
+    if version_gt $RUBY_VERSION $RUBY_MIN_VERSION; then
+      return 0
+    fi
+  fi
+  # add ruby 2.20 source and install it
+  print_yellow "WARNING: Missing Ruby >= ${RUBY_MIN_VERSION}; trying to install..."
+  install_ruby_v220
 }
 
 DIR=$(get_root_dir)
@@ -388,7 +530,7 @@ if [ ${VERBOSITY} -gt 0 ]; then
 fi
 
 # Check for missing packages
-#hash add-apt-repository 2>/dev/null || { install_pkg "software-properties-common"; }
+hash add-apt-repository 2>/dev/null || { install_pkg "software-properties-common"; }
 #hash nodejs 2>/dev/null || { install_pkg "nodejs"; }
 #hash npm 2>/dev/null || { install_pkg "npm"; }
 hash make 2>/dev/null || { install_pkg "make"; }
@@ -398,7 +540,8 @@ hash clang++ 2>/dev/null || { install_pkg "clang"; }
 hash openssl 2>/dev/null || { install_pkg "openssl"; }
 hash git 2>/dev/null || { install_pkg "git"; }
 hash jq 2>/dev/null || { install_pkg "jq"; }
-hash go 2>/dev/null || { install_golang_v110; }
+# hash go 2>/dev/null || { install_pkg "golang-go"; }
+# hash go 2>/dev/null || { install_golang_v110; }
 
 # Install required libraries
 install_pkg "ruby-dev"
@@ -407,8 +550,12 @@ install_pkg "libcurl4-openssl-dev"
 install_pkg "libnss3-dev"
 install_pkg "libssl-dev"
 
+check_ruby_version
+check_golang_version
+
 # Install Ruby gems
 install_gem "simpleidn"
+install_gem "public_suffix"
 
 # Update sub-modules
 if ! git submodule init; then

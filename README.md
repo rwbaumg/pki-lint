@@ -13,6 +13,14 @@ The following third-party linters are used by this project:
 - [ev-checker](https://git.0x19e.net/security/ev-checker.git)
 - [zlint](https://git.0x19e.net/security/zmap-zlint.git)
 
+The following packages are also required:
+- Golang ```go``` >= v1.3
+- Ruby ```ruby``` & ```ruby-dev``` >= v2.1, and
+- Ruby Gems ```simpleidn``` & ```public_suffix```
+
+Running the ```build.sh``` script will try to install missing dependencies for you.
+Note that only the Debian-based package manager APT is currently supported.
+
 ## Installation
 To initialize required modules and compile dependencies, run:
 ```bash
