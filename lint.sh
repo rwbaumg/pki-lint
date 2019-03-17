@@ -479,6 +479,7 @@ if [ -e "${ZLINT_BIN}" ]; then
 ZLINT_RAW=$(${ZLINT_BIN} -pretty "${PEM_FILE}")
 ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
 if ! [ $? -eq 0 ]; then
+  # NOTE: zlint appears to return a non-zero exit code even if no warnings are found
   echo >&2 "WARNING: zlint returned a non-zero exit code."
 fi
 fi

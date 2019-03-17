@@ -5,6 +5,7 @@ Libraries (eg. OpenSSL, GnuTLS, etc.), languages (eg. Golang, C++, Python, etc.)
 
 The primary purpose of this project is to identify potential compatibility issues prior to deploying a Public-key Infrastructure to production.
 
+
 ## Dependencies
 The following third-party linters are used by this project:
 - [aws-certlint](https://git.0x19e.net/security/aws-certlint.git)
@@ -14,12 +15,13 @@ The following third-party linters are used by this project:
 - [zlint](https://git.0x19e.net/security/zmap-zlint.git)
 
 The following packages are also required:
-- Golang ```go``` >= v1.3
-- Ruby ```ruby``` & ```ruby-dev``` >= v2.1, and
+- Golang ```go``` ≥ v1.3
+- Ruby ```ruby``` & ```ruby-dev``` ≥ v2.1, and
 - Ruby Gems ```simpleidn``` & ```public_suffix```
 
 Running the ```build.sh``` script will try to install missing dependencies for you.
 Note that only the Debian-based package manager APT is currently supported.
+
 
 ## Installation
 To initialize required modules and compile dependencies, run:
@@ -40,6 +42,7 @@ To view usage information, run:
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
 
 ## License
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
