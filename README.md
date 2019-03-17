@@ -34,9 +34,29 @@ If you encounter errors building module sources you can use ```--verbose``` to g
 ./build.sh --verbose
 ```
 
-Alternatively, you can call ```make``` directly:
+## Building sources manually
+To compile all of the dependencies and linting modules you can call ```make``` directly, so long as you have all of the required compilers and libraries installed on your system.
+
+For Debian or Debian-based distrobutions like Ubuntu with APT (Advanced Package Manager) installed, you could run the following to setup a build environment:
 ```bash
-make 
+sudo apt-get install make gcc clang gnutls-bin openssl git jq ruby-dev golang-go libnspr4-dev libcurl4-openssl-dev libnss3-dev libssl-dev && \
+sudo gem install simpleidn && \
+sudo gem install public_suffix
+```
+
+Since the ```Makefile``` included in the top-level directory simply calls to ```lints/Makefile```, so for more control over the process it's best to run ```make``` from within the ```lints/``` subdirectory:
+```bash
+cd lints/
+```
+
+To get a list of available ```Makefile``` targets, you can use the included ```list``` target:
+```bash
+make list
+```
+
+To run ```make``` with some additional debugging information, run:
+```bash
+make --debug=v all
 ```
 
 ## Usage
@@ -54,11 +74,11 @@ pki-lint
   |
   |- lints/
   |   |
-  |   ---- bin/
+  |   |--- bin/
   |   |
-  |   ---- golang/
+  |   |--- golang/
   |   |
-  |   |---- Makefile
+  |   |--- Makefile
   |
   |- Makefile
   |
@@ -74,6 +94,7 @@ The main files and directories are:
 - ```Makefile```: The ```make``` configuration for building linting sources.
 - ```build.sh```: The main build script for the project. Pulls down Git submodules and compiles all of the linting sources. This script will also try to resolve dependency packages for your system.
 - ```lint.sh```: The main linting script. Calls individual lints and reports on the results.
+
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.

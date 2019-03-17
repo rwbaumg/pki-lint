@@ -531,8 +531,6 @@ fi
 
 # Check for missing packages
 hash add-apt-repository 2>/dev/null || { install_pkg "software-properties-common"; }
-#hash nodejs 2>/dev/null || { install_pkg "nodejs"; }
-#hash npm 2>/dev/null || { install_pkg "npm"; }
 hash make 2>/dev/null || { install_pkg "make"; }
 hash gcc 2>/dev/null || { install_pkg "gcc"; }
 hash gnutls-cli 2>/dev/null || { install_pkg "gnutls-bin"; }
