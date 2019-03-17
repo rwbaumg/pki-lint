@@ -1,9 +1,11 @@
 # pki-lint
+
 ```pki-lint``` is a simple Bash wrapper for a collection of x509 certificate and Public-key Infrastructure (PKI) checks. The script enables quick and easy identification of potential issues with generated x509 certificates.
 
 Libraries (eg. OpenSSL, GnuTLS, etc.), languages (eg. Golang, C++, Python, etc.) and applications (eg. cURL, Git, Firefox, Chrome, etc.) often have a variety of differences in x509 certificate handling, including differences in the way certificates are validated. Despite extensive standards documentation, it is not uncommon to find different interpretations of those standards, either.
 
 The primary purpose of this project is to identify potential compatibility issues prior to deploying a Public-key Infrastructure to production. It also provides an easy framework for adding additional checks in the future.
+
 
 
 ## Dependencies
@@ -34,40 +36,6 @@ If you encounter errors building module sources you can use ```--verbose``` to g
 ./build.sh --verbose
 ```
 
-## Building sources manually
-To compile all of the dependencies and linting modules you can call ```make``` directly, so long as you have all of the required compilers and libraries installed on your system.
-
-First, you must pull down all of the Git submodules referenced by the ```.gitmodules``` file. To do so, run:
-```bash
-git submodule init && \
-git submodule update --recursive
-```
-
-For Debian and Debian-based distributions (e.g Ubuntu) with APT (Advanced Package Manager) installed, you can run the following commands to setup a build environment:
-```bash
-sudo apt-get install make gcc clang \
-   gnutls-bin openssl git jq \
-   ruby-dev golang-go libnspr4-dev \
-   libcurl4-openssl-dev libnss3-dev \
-   libssl-dev && \
-sudo gem install simpleidn && \
-sudo gem install public_suffix
-```
-
-Since the ```Makefile``` included in the top-level directory simply calls to ```lints/Makefile```, so for more control over the process it's best to run ```make``` from within the ```lints/``` subdirectory:
-```bash
-cd lints/
-```
-
-To get a list of available ```Makefile``` targets, you can use the included ```list``` target:
-```bash
-make list
-```
-
-To run ```make``` with some additional debugging information, run:
-```bash
-make --debug=v all
-```
 
 ## Usage
 To view usage information, run:
@@ -105,6 +73,41 @@ The main files and directories are:
 - ```build.sh```: The main build script for the project. Pulls down Git submodules and compiles all of the linting sources. This script will also try to resolve dependency packages for your system.
 - ```lint.sh```: The main linting script. Calls individual lints and reports on the results.
 
+
+## Building sources manually
+To compile all of the dependencies and linting modules you can call ```make``` directly, so long as you have all of the required compilers and libraries installed on your system.
+
+First, you must pull down all of the Git submodules referenced by the ```.gitmodules``` file. To do so, run:
+```bash
+git submodule init && \
+git submodule update --recursive
+```
+
+For Debian and Debian-based distributions (e.g Ubuntu) with APT (Advanced Package Manager) installed, you can run the following commands to setup a build environment:
+```bash
+sudo apt-get install make gcc clang \
+   gnutls-bin openssl git jq \
+   ruby-dev golang-go libnspr4-dev \
+   libcurl4-openssl-dev libnss3-dev \
+   libssl-dev && \
+sudo gem install simpleidn && \
+sudo gem install public_suffix
+```
+
+Since the ```Makefile``` included in the top-level directory simply calls to ```lints/Makefile```, so for more control over the process it's best to run ```make``` from within the ```lints/``` subdirectory:
+```bash
+cd lints/
+```
+
+To get a list of available ```Makefile``` targets, you can use the included ```list``` target:
+```bash
+make list
+```
+
+To run ```make``` with some additional debugging information, run:
+```bash
+make --debug=v all
+```
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
