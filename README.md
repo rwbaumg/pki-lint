@@ -39,9 +39,11 @@ To compile all of the dependencies and linting modules you can call ```make``` d
 
 For Debian and Debian-based distributions like Ubuntu with APT (Advanced Package Manager) installed, you can run the following commands to setup a build environment:
 ```bash
-sudo apt-get install make gcc clang gnutls-bin openssl git \
-                     jq ruby-dev golang-go libnspr4-dev \
-                     libcurl4-openssl-dev libnss3-dev libssl-dev && \
+sudo apt-get install make gcc clang \
+   gnutls-bin openssl git jq \
+   ruby-dev golang-go libnspr4-dev \
+   libcurl4-openssl-dev libnss3-dev \
+   libssl-dev && \
 sudo gem install simpleidn && \
 sudo gem install public_suffix
 ```
