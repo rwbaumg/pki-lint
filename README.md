@@ -37,7 +37,13 @@ If you encounter errors building module sources you can use ```--verbose``` to g
 ## Building sources manually
 To compile all of the dependencies and linting modules you can call ```make``` directly, so long as you have all of the required compilers and libraries installed on your system.
 
-For Debian and Debian-based distributions like Ubuntu with APT (Advanced Package Manager) installed, you can run the following commands to setup a build environment:
+First, you must pull down all of the Git submodules referenced by the ```.gitmodules``` file. To do so, run:
+```bash
+git submodule init && \
+git submodule update --recursive
+```
+
+For Debian and Debian-based distributions (e.g Ubuntu) with APT (Advanced Package Manager) installed, you can run the following commands to setup a build environment:
 ```bash
 sudo apt-get install make gcc clang \
    gnutls-bin openssl git jq \
