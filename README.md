@@ -3,7 +3,7 @@
 
 Libraries (eg. OpenSSL, GnuTLS, etc.), languages (eg. Golang, C++, Python, etc.) and applications (eg. cURL, Git, Firefox, Chrome, etc.) often have a variety of differences in x509 certificate handling, including differences in the way certificates are validated. Despite extensive standards documentation, it is not uncommon to find different interpretations of those standards, either.
 
-The primary purpose of this project is to identify potential compatibility issues prior to deploying a Public-key Infrastructure to production.
+The primary purpose of this project is to identify potential compatibility issues prior to deploying a Public-key Infrastructure to production. It also provides an easy framework for adding additional checks in the future.
 
 
 ## Dependencies
@@ -34,11 +34,46 @@ If you encounter errors building module sources you can use ```--verbose``` to g
 ./build.sh --verbose
 ```
 
+Alternatively, you can call ```make``` directly:
+```bash
+make 
+```
+
 ## Usage
 To view usage information, run:
 ```bash
 ./lint.sh --help
 ```
+
+## Lints
+The collections of checks and thid-party modules used by this linter can be found in the ```lints/``` folder.
+
+The basic folder structure for this project is shown in the diagram below:
+```
+pki-lint
+  |
+  |- lints/
+  |   |
+  |   ---- bin/
+  |   |
+  |   ---- golang/
+  |   |
+  |   |---- Makefile
+  |
+  |- Makefile
+  |
+  |- build.sh
+  |
+  |- lint.sh
+```
+
+The main files and directories are:
+- ```lints/```: The top-level directory for all checks and thid-party modules.
+- ```bin/```: Directory containing symlinks to compiled linting tools.
+- ```golang```: Go / Golang scripts for performing simple compatibility checks. Each ```.go``` script in this directory is run by ```lint.sh```.
+- ```Makefile```: The ```make``` configuration for building linting sources.
+- ```build.sh```: The main build script for the project. Pulls down Git submodules and compiles all of the linting sources. This script will also try to resolve dependency packages for your system.
+- ```lint.sh```: The main linting script. Calls individual lints and reports on the results.
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
