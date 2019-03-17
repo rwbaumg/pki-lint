@@ -1,3 +1,3 @@
 - [ ] Cleanup dependency package handling in build.sh script.
 - [ ] Add Ruby and Golang version checks to lint.sh script.
-- [ ] Update README.md to include more detailed information.
+- [x] Update README.md to include more detailed information.
