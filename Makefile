@@ -8,3 +8,5 @@ all:
 	pushd ${LINTS_DIR} && ${MAKE} all && popd
 clean:
 	pushd ${LINTS_DIR} && ${MAKE} clean && popd
+list:
+	@grep '^[^#[:space:]|SHELL|PATH|$$].*:' Makefile

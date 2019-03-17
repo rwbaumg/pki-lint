@@ -8,6 +8,9 @@ PATH_GOCACHE=./.gocache
 
 all: x509lint ev-checker aws-certlint gs-certlint zlint bin
 
+list:
+	@grep '^[^#[:space:]|SHELL|PATH|$$].*:' Makefile
+
 clean:
 	if [ -e "./${PATH_GOPATH}" ]; then rm -rfv "${PATH_GOPATH}"; fi;
 	if [ -e "./${PATH_GOCACHE}" ]; then rm -rfv "${PATH_GOCACHE}"; fi;
