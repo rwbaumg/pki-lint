@@ -125,6 +125,7 @@ usage()
      -h, --help              Prints this usage.
 
     EOF
+    ## End of usage information (")
 
     exit_script $@
 }
@@ -178,7 +179,7 @@ function add_ruby_src()
       return
     fi
   fi
-  exit_script 1 "Failed to configure Golang package source."
+  exit_script 1 "Failed to configure Ruby package source."
 }
 
 # Adds a package source for Golang
@@ -285,7 +286,7 @@ function install_golang_v110()
     fi
 
     #print_yellow "Golang 'go' command is missing from PATH; installing symlink..."
-    print_yellow "Creating /usr/local/bin symling for Golang 'go' command ..."
+    print_yellow "Creating /usr/local/bin symlink for Golang 'go' command ..."
 
     # Create a symlink for 'go' command.
     ln_args="-s"
@@ -315,6 +316,8 @@ function install_golang_v110()
     print_green "Found Golang v1.10 binaries; 'go' command is in PATH."
     return
   fi
+
+  return
 }
 
 # Attempts to install Ruby v2.20
@@ -350,7 +353,7 @@ function install_ruby_v220()
       exit_script 1 "The path '${RUBY22_PATH}' is already a symlink."
     fi
 
-    print_yellow "Creating /usr/local/bin symling for '${RUBY22_PATH}' command ..."
+    print_yellow "Creating /usr/local/bin symlink for '${RUBY22_PATH}' command ..."
 
     # Create a symlink for 'ruby' command.
     ln_args="-s"
@@ -373,6 +376,8 @@ function install_ruby_v220()
     print_green "Found Ruby binaries; 'ruby' command is in PATH."
     return
   fi
+
+  return
 }
 
 function check_installed()
@@ -421,8 +426,12 @@ function install_gem()
 
   if [ "${INSTALL_MISSING}" == "true" ]; then
     if hash gem 2>/dev/null; then
+      gem_args=""
+      if [ $VERBOSITY -gt 0 ]; then
+        gem_args="--verbose $gem_args"
+      fi
       print_yellow "Installing Ruby gem '${gem_name}' ..."
-      if ! ${sudo_cmd} gem install ${gem_name}; then
+      if ! ${sudo_cmd} gem install ${gem_args} ${gem_name}; then
         exit_script 1 "Failed to install Ruby gem '${gem_name}'."
       fi
       return 0
@@ -538,18 +547,17 @@ hash clang++ 2>/dev/null || { install_pkg "clang"; }
 hash openssl 2>/dev/null || { install_pkg "openssl"; }
 hash git 2>/dev/null || { install_pkg "git"; }
 hash jq 2>/dev/null || { install_pkg "jq"; }
-# hash go 2>/dev/null || { install_pkg "golang-go"; }
-# hash go 2>/dev/null || { install_golang_v110; }
+
+# Install Golang and Ruby
+#install_pkg "ruby-dev";
+check_ruby_version
+check_golang_version
 
 # Install required libraries
-install_pkg "ruby-dev"
 install_pkg "libnspr4-dev"
 install_pkg "libcurl4-openssl-dev"
 install_pkg "libnss3-dev"
 install_pkg "libssl-dev"
-
-check_ruby_version
-check_golang_version
 
 # Install Ruby gems
 install_gem "simpleidn"

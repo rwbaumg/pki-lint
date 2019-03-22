@@ -47,16 +47,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-VERBOSITY=0
-DEBUG_LEVEL=0
 NO_COLOR="false"
 CERTTOOL_MIN_VER="3.0.0"
+VERBOSITY=0
+DEBUG_LEVEL=0
 
 hash openssl 2>/dev/null || { echo >&2 "You need to install openssl. Aborting."; exit 1; }
 hash go 2>/dev/null || { echo >&2 "You need to install go. Aborting."; exit 1; }
 hash git 2>/dev/null || { echo >&2 "You need to install git. Aborting."; exit 1; }
 hash certtool 2>/dev/null || { echo >&2 "You need to install gnutls-bin. Aborting."; exit 1; }
 hash jq 2>/dev/null || { echo >&2 "You need to install jq. Aborting."; exit 1; }
+hash ruby 2>/dev/null || { echo >&2 "You need to install ruby-dev. Aborting."; exit 1; }
 
 function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 
@@ -136,6 +137,7 @@ usage()
      -h, --help              Prints this usage.
 
     EOF
+    ## End of usage information (")
 
     exit_script $@
 }
@@ -423,7 +425,10 @@ if [ ! -e "${ZLINT_BIN}" ]; then
   usage "Missing required binary (did you build it?): lints/bin/zlint"
 fi
 
-CA_CHAIN_FULL_PATH=$(realpath "${CA_CHAIN}")
+CA_CHAIN_FULL_PATH=""
+if [ ! -z "${CA_CHAIN}" ]; then
+  CA_CHAIN_FULL_PATH=$(realpath "${CA_CHAIN}")
+fi
 
 PEM_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).pem"
 PEM_CHAIN_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).chain.pem"
