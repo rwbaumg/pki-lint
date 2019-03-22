@@ -137,7 +137,6 @@ usage()
      -h, --help              Prints this usage.
 
     EOF
-    ## End of usage information (")
 
     exit_script $@
 }
