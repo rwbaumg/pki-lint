@@ -6,8 +6,31 @@ import (
   "io/ioutil"
   "log"
   "crypto/x509"
+  "crypto/tls"
   "encoding/pem"
 )
+
+func loadPemChain(chainInput string) tls.Certificate {
+  var cert tls.Certificate
+
+  chainData, err := ioutil.ReadFile(chainInput)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  certPEMBlock := []byte(chainData)
+  var certDERBlock *pem.Block
+  for {
+    certDERBlock, certPEMBlock = pem.Decode(certPEMBlock)
+    if certDERBlock == nil {
+      break
+    }
+    if certDERBlock.Type == "CERTIFICATE" {
+      cert.Certificate = append(cert.Certificate, certDERBlock.Bytes)
+    }
+  }
+  return cert
+}
 
 func main() {
   // Read and parse the PEM certificate file
@@ -17,7 +40,7 @@ func main() {
   }
 
   file := os.Args[1]
-  //chain := os.Args[2]
+  chain := os.Args[2]
 
   pemData, err := ioutil.ReadFile(file)
   if err != nil {
@@ -36,6 +59,17 @@ func main() {
 
   opts := x509.VerifyOptions{Roots: x509.NewCertPool()}
   opts.Roots.AddCert(cert)
+
+  if len(chain) > 0 {
+    certChain := loadPemChain(chain)
+    for _, cert := range certChain.Certificate {
+      x509Cert, err := x509.ParseCertificate(cert)
+      if err != nil {
+        panic(err)
+      }
+      opts.Roots.AddCert(x509Cert)
+    }
+  }
 
   _, err = cert.Verify(opts)
   if err != nil {

@@ -615,7 +615,7 @@ echo "zlint: certificate OK"
 fi
 
 for lint in ${GOLANG_LINTS}; do
-  go run $lint ${PEM_FILE}
+  go run $lint ${PEM_FILE} ${PEM_CHAIN_FILE}
 done
 
 if [ ! -z "${GS_CERTLINT}" ]; then
