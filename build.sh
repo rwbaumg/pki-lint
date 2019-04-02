@@ -556,6 +556,7 @@ check_golang_version
 install_pkg "libnspr4-dev"
 install_pkg "libcurl4-openssl-dev"
 install_pkg "libnss3-dev"
+install_pkg "libnss3-tools"
 install_pkg "libssl-dev"
 
 # Install Ruby gems

@@ -107,7 +107,7 @@ sudo apt-get install make gcc clang \
    gnutls-bin openssl git jq \
    ruby-dev golang-go libnspr4-dev \
    libcurl4-openssl-dev libnss3-dev \
-   libssl-dev && \
+   libnss3-tools libssl-dev && \
 sudo gem install simpleidn && \
 sudo gem install public_suffix
 ```
