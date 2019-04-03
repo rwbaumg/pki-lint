@@ -58,7 +58,7 @@ hash git 2>/dev/null || { echo >&2 "You need to install git. Aborting."; exit 1;
 hash certtool 2>/dev/null || { echo >&2 "You need to install gnutls-bin. Aborting."; exit 1; }
 hash jq 2>/dev/null || { echo >&2 "You need to install jq. Aborting."; exit 1; }
 hash ruby 2>/dev/null || { echo >&2 "You need to install ruby-dev. Aborting."; exit 1; }
-hash vrfychain 2>/dev/null || { echo >&2 "You need to install libnss3-tools. Aborting."; exit 1; }
+hash vfychain 2>/dev/null || { echo >&2 "You need to install libnss3-tools. Aborting."; exit 1; }
 
 function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 
