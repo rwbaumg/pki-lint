@@ -14,14 +14,14 @@ The following security levels are defined for OpenSSL certificate verification (
 
 For example, to verify a certificate security at Level 2, you could run:
 ```bash
-openssl verify -x509strict -auth_level 2 /path/to/cert.crt 2>&1
+openssl verify -x509_strict -auth_level 2 /path/to/cert.crt 2>&1
 ```
 
 To perform a more complete verification, you could run something like:
 ```bash
 openssl verify -verbose \
                -show_chain \
-               -x509strict \
+               -x509_strict \
                -auth_level 2 \
                -verify_name default \
                -purpose sslserver \
@@ -145,6 +145,9 @@ cat /path/to/chain.pem | certtool --verify-chain
 ```
 
 Note that you can use ```--infile <file>``` instead of piping the certificate to ```certtool```. The debug level can be between 0-9999, and controls how much debugging output is printed out.
+
+== Name Constraints
+Note that if a certificate contains the emailProtection EKU along with the Name Constraints extension, at least one permitted email must be specified in order to be technically constrained (according to the Mozilla Root Store Policy).
 
 == References
 The following resources provide relavent standards documentation and examples for PKI testing:
