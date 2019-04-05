@@ -3,6 +3,7 @@ package main
 import (
   "os"
   "fmt"
+  //"strconv"
   "io/ioutil"
   "log"
   "crypto/x509"
@@ -51,9 +52,10 @@ func main() {
   }
 
   if len(os.Args) >= 4 {
-    var i interface{} = os.Args[3]
-    kp, _ := i.(x509.ExtKeyUsage)
-    purpose = kp
+    i, _ := strconv.Atoi(os.Args[3])
+    //fmt.Printf("Go: Got raw purpose arg %d\n", i)
+    purpose = x509.ExtKeyUsage(i)
+    //fmt.Printf("Go: Using purpose %s\n", purpose)
   }
   */
 

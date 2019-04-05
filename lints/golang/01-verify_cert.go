@@ -3,6 +3,7 @@ package main
 import (
   "os"
   "fmt"
+  "strconv"
   "io/ioutil"
   "log"
   "crypto/x509"
@@ -50,9 +51,10 @@ func main() {
   }
 
   if len(os.Args) >= 4 {
-    var i interface{} = os.Args[3]
-    kp, _ := i.(x509.ExtKeyUsage)
-    purpose = kp
+    i, _ := strconv.Atoi(os.Args[3])
+    //fmt.Printf("Go: Got raw purpose arg %d\n", i)
+    purpose = x509.ExtKeyUsage(i)
+    //fmt.Printf("Go: Using purpose %s\n", purpose)
   }
 
   pemData, err := ioutil.ReadFile(file)
@@ -72,6 +74,7 @@ func main() {
 
   if purpose == 0 {
     purpose=x509.ExtKeyUsageServerAuth
+    //fmt.Printf("Go: Using default purpose %s\n", purpose)
   }
 
   opts := x509.VerifyOptions{
@@ -93,11 +96,13 @@ func main() {
     if len(chainCerts) > 0 {
       var rootCert *x509.Certificate = chainCerts[len(chainCerts)-1]
       opts.Roots.AddCert(rootCert)
+      //fmt.Printf("Go: Added root CA %s\n", rootCert.Subject)
 
       var intCA *x509.Certificate
       for i := 1; i < len(chainCerts)-1; i = i + 1 {
         intCA = chainCerts[i]
         opts.Intermediates.AddCert(intCA)
+        //fmt.Printf("Go: Added int CA %s\n", intCA.Subject)
       }
     }
   }
