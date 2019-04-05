@@ -6,18 +6,56 @@ import (
   "io/ioutil"
   "log"
   "crypto/x509"
+  "crypto/tls"
   "encoding/pem"
 )
+
+func loadPemChain(chainInput string) tls.Certificate {
+  var cert tls.Certificate
+
+  chainData, err := ioutil.ReadFile(chainInput)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  certPEMBlock := []byte(chainData)
+  var certDERBlock *pem.Block
+  for {
+    certDERBlock, certPEMBlock = pem.Decode(certPEMBlock)
+    if certDERBlock == nil {
+      break
+    }
+    if certDERBlock.Type == "CERTIFICATE" {
+      cert.Certificate = append(cert.Certificate, certDERBlock.Bytes)
+    }
+  }
+  return cert
+}
 
 func main() {
   // Read and parse the PEM certificate file
   if len(os.Args) < 2 {
-    fmt.Println("Usage: script.go <cert>")
+    fmt.Println("Usage: script.go <cert> [chain] [purpose]")
     return
   }
 
-  file := os.Args[1]
-  //chain := os.Args[2]
+  var file string
+  file = os.Args[1]
+
+  /*
+  var chain string
+  var purpose x509.ExtKeyUsage
+
+  if len(os.Args) >= 3 {
+    chain = os.Args[2]
+  }
+
+  if len(os.Args) >= 4 {
+    var i interface{} = os.Args[3]
+    kp, _ := i.(x509.ExtKeyUsage)
+    purpose = kp
+  }
+  */
 
   pemData, err := ioutil.ReadFile(file)
   if err != nil {
