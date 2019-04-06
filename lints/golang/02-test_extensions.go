@@ -1,15 +1,40 @@
+/*
+ * [  0x19e Networks  ]
+ * [ http://0x19e.net ]
+ *
+ * Golang x509 certificate verification test
+ * Usage: script.go <cert> [chain] [purpose] [hostname]
+ * Author: Robert W. Baumgartner <rwb@0x19e.net>
+ */
+
 package main
 
 import (
   "os"
   "fmt"
-  //"strconv"
+  "strconv"
   "io/ioutil"
   "log"
   "crypto/x509"
   "crypto/tls"
   "encoding/pem"
 )
+
+func printDebug(level int, format string, a ...interface{}) (int, error) {
+  verbose, _ := strconv.Atoi(os.Getenv("VERBOSITY"))
+
+  // add debug level to arguments array
+  args := a
+  args = append(args, 0)
+  copy(args[1:], args[0:])
+  args[0] = level
+
+  if (verbose >= level) {
+    return fmt.Printf("Go: Debug(%d): " + format + "\n", args...)
+  }
+
+  return 0, nil
+}
 
 func loadPemChain(chainInput string) tls.Certificate {
   var cert tls.Certificate
@@ -36,7 +61,7 @@ func loadPemChain(chainInput string) tls.Certificate {
 func main() {
   // Read and parse the PEM certificate file
   if len(os.Args) < 2 {
-    fmt.Println("Usage: script.go <cert> [chain] [purpose]")
+    fmt.Println("Usage: script.go <cert> [chain] [purpose] [hostname]")
     return
   }
 
@@ -45,17 +70,23 @@ func main() {
 
   /*
   var chain string
-  var purpose x509.ExtKeyUsage
-
   if len(os.Args) >= 3 {
     chain = os.Args[2]
   }
 
+  var purpose x509.ExtKeyUsage
   if len(os.Args) >= 4 {
     i, _ := strconv.Atoi(os.Args[3])
-    //fmt.Printf("Go: Got raw purpose arg %d\n", i)
     purpose = x509.ExtKeyUsage(i)
-    //fmt.Printf("Go: Using purpose %s\n", purpose)
+    printDebug(2, "Checking EKU purpose ID: %d", purpose)
+  }
+
+  var dns_name string
+  if len(os.Args) >= 5 {
+    dns_name = os.Args[4]
+    if len(dns_name) > 0 {
+      printDebug(2, "Checking DNS Name: %s", dns_name)
+    }
   }
   */
 
@@ -66,7 +97,7 @@ func main() {
 
   block, rest := pem.Decode([]byte(pemData))
   if block == nil || len(rest) > 0 {
-    log.Fatal("Certificate decoding error")
+    log.Fatal("Go: Certificate decoding error")
   }
 
   cert, err := x509.ParseCertificate(block.Bytes)
