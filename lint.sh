@@ -47,10 +47,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-NO_COLOR="false"
+NO_COLOR="true"
 CERTTOOL_MIN_VER="3.0.0"
 VERBOSITY=0
 DEBUG_LEVEL=0
+NSS_VERIFY_CHAIN="false"
 OPENSSL_ARGS="-verbose -x509_strict -policy_print -auth_level 2 -show_chain"
 
 hash openssl 2>/dev/null || { echo >&2 "You need to install openssl. Aborting."; exit 1; }
@@ -123,7 +124,7 @@ usage()
     sed -e "s/^    //" -e "s|SCRIPT_NAME|$(basename $0)|" <<"    EOF"
     USAGE
 
-    Performs various linting tests against the speficied X.509 certificate.
+    Performs various linting tests against the specified X.509 certificate.
 
     SYNTAX
             SCRIPT_NAME [OPTIONS] ARGUMENTS
@@ -139,8 +140,8 @@ usage()
      -s, --subscriber        Certificate is for an end-entity.
 
      -c, --chain <file>      Specifies a CA chain file to use.
-     -e, --ev-policy <oid>   Specifies an OID to test for EV compliance.
-     -n, --hostname <name>   Specifies the hostname for EV testing.
+     -o, --policy <oid>      Specifies an OID of a policy to test.
+     -n, --hostname <name>   Specifies the hostname for validation.
 
      -u, --usage <purpose>   Specifies the certificate purpose to test for.
                              Supported options are:
@@ -150,6 +151,8 @@ usage()
                              - 3=mailencrypt
                              - 4=ocsp
                              - 5=anyCA
+
+     --colors                Print colorful output.
 
      -p, --print             Print the input certificate.
      -v, --verbose           Make the script more verbose.
@@ -224,7 +227,7 @@ test_host_arg()
   fi
 
   host_regex='^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
-  if ! `echo "$argv" | grep -Po ${host_regex}`; then
+  if ! `echo "$argv" | grep -qPo ${host_regex}`; then
     usage "Invalid hostname: '${argv}'"
   fi
 }
@@ -232,45 +235,45 @@ test_host_arg()
 print_green()
 {
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e >&2 "\x1b[39;49;00m\x1b[32;01m${1}\x1b[39;49;00m"
+  echo -e "\x1b[39;49;00m\x1b[32;01m${1}\x1b[39;49;00m"
   else
-  echo >&2 "${1}"
+  echo "${1}"
   fi
 }
 
 print_red()
 {
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e >&2 "\x1b[39;49;00m\x1b[31;01m${1}\x1b[39;49;00m"
+  echo -e "\x1b[39;49;00m\x1b[31;01m${1}\x1b[39;49;00m"
   else
-  echo >&2 "${1}"
+  echo "${1}"
   fi
 }
 
 print_yellow()
 {
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e >&2 "\x1b[39;49;00m\x1b[33;01m${1}\x1b[39;49;00m"
+  echo -e "\x1b[39;49;00m\x1b[33;01m${1}\x1b[39;49;00m"
   else
-  echo >&2 "${1}"
+  echo "${1}"
   fi
 }
 
 print_magenta()
 {
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e >&2 "\x1b[39;49;00m\x1b[35;01m${1}\x1b[39;49;00m"
+  echo -e "\x1b[39;49;00m\x1b[35;01m${1}\x1b[39;49;00m"
   else
-  echo >&2 "${1}"
+  echo "${1}"
   fi
 }
 
 print_cyan()
 {
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e >&2 "\x1b[39;49;00m\x1b[36;01m${1}\x1b[39;49;00m"
+  echo -e "\x1b[39;49;00m\x1b[36;01m${1}\x1b[39;49;00m"
   else
-  echo >&2 "${1}"
+  echo "${1}"
   fi
 }
 
@@ -357,14 +360,14 @@ while [ $# -gt 0 ]; do
       CA_CHAIN="$1"
       shift
     ;;
-    -e|--ev-policy)
+    -o|--policy)
       test_ev_policy
       test_oid_arg "$1" "$2"
       shift
       EV_POLICY="$1"
       shift
     ;;
-    -n|--ev-host)
+    -n|--hostname)
       test_ev_host
       test_host_arg "$1" "$2"
       shift
@@ -397,6 +400,10 @@ while [ $# -gt 0 ]; do
       OPT_PURPOSE="$temp"
       shift
     ;;
+    --colors)
+      NO_COLOR="false"
+      shift
+    ;;
     -h|--help)
       usage
     ;;
@@ -419,9 +426,9 @@ export VERBOSITY=$VERBOSITY
 if [ ! -z "${EV_POLICY}" ] && [ -z "${CA_CHAIN}" ]; then
   usage "Must supply CA chain for EV policy testing."
 fi
-if [ ! -z "${EV_POLICY}" ] && [ -z "${EV_HOST}" ]; then
-  usage "Must supply hostname for EV policy testing."
-fi
+#if [ ! -z "${EV_POLICY}" ] && [ -z "${EV_HOST}" ]; then
+#  usage "Must supply hostname for EV policy testing."
+#fi
 
 KU_GOLANG=0
 KU_OPENSSL=""
@@ -478,13 +485,13 @@ if [ ! -z "${OPT_PURPOSE}" ]; then
   esac
 fi
 
-if [ $VERBOSITY -gt 1 ]; then
-echo "OpenSSL Purpose ID  : '${KU_OPENSSL}'"
-echo "vfychain Purpose ID : '${KU_VFYCHAIN}'"
-echo "certutil Purpose ID : '${KU_CERTUTIL}'"
-echo "golang Purpose ID   : '${KU_GOLANG}'"
-echo "gnutls Purpose ID   : '${KU_GNUTLS}'"
-fi
+#if [ $VERBOSITY -gt 1 ]; then
+#echo "OpenSSL Purpose ID  : '${KU_OPENSSL}'"
+#echo "vfychain Purpose ID : '${KU_VFYCHAIN}'"
+#echo "certutil Purpose ID : '${KU_CERTUTIL}'"
+#echo "golang Purpose ID   : '${KU_GOLANG}'"
+#echo "gnutls Purpose ID   : '${KU_GNUTLS}'"
+#fi
 
 if [ -z "${X509_MODE}" ]; then
   usage "Must specify certificate type."
@@ -552,7 +559,7 @@ fi
 DER_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).der"
 openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
-echo "Checking certificate '${CERT}' ..."
+print_magenta "Checking certificate '${CERT}' ..."
 
 if [ "${PRINT_MODE}" == "true" ]; then
   echo
@@ -565,18 +572,18 @@ ZLINT_RAW=$(${ZLINT_BIN} -pretty "${PEM_FILE}")
 ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
 if ! [ $? -eq 0 ]; then
   # NOTE: zlint appears to return a non-zero exit code even if no warnings are found
-  echo >&2 "INFO: zlint returned a non-zero exit code."
+  print_cyan "INFO: zlint returned a non-zero exit code."
 fi
 fi
 
 pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
 AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
 if ! [ $? -eq 0 ]; then
-  echo >&2 "WARNING: AWS certlint returned a non-zero exit code."
+  print_yellow "WARNING: AWS certlint returned a non-zero exit code." >&2
 fi
 AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}")
 if ! [ $? -eq 0 ]; then
-  echo >&2 "WARNING: AWS cablint returned a non-zero exit code."
+  print_yellow "WARNING: AWS cablint returned a non-zero exit code." >&2
 fi
 popd > /dev/null 2>&1
 
@@ -587,13 +594,13 @@ else
   GS_CERTLINT=$(./gs-certlint -cert "${PEM_FILE}")
 fi
 if ! [ $? -eq 0 ]; then
-  echo >&2 "WARNING: GlobalSign certlint returned a non-zero exit code."
+  print_yellow "WARNING: GlobalSign certlint returned a non-zero exit code." >&2
 fi
 popd > /dev/null 2>&1
 
 X509LINT=$(${X509_BIN} "${PEM_FILE}")
 if ! [ $? -eq 0 ]; then
-  echo >&2 "WARNING: x509lint returned a non-zero exit code."
+  print_yellow "WARNING: x509lint returned a non-zero exit code." >&2
 fi
 
 EC=0
@@ -626,7 +633,7 @@ else
 fi
 if ! [ $? -eq 0 ]; then
   OPENSSL_ERR=1
-  echo >&2 "WARNING: OpenSSL verification returned a non-zero exit code."
+  print_yellow "WARNING: OpenSSL verification returned a non-zero exit code." >&2
 fi
 
 if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
@@ -641,66 +648,94 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
   fi
   if ! [ $? -eq 0 ]; then
     GNUTLS_ERR=1
-    echo >&2 "WARNING: GnuTLS certtool returned a non-zero exit code."
+    print_yellow "WARNING: GnuTLS certtool returned a non-zero exit code." >&2
   fi
 else
-  echo >&2 "WARNING: GnuTLS certtool version ${CERTTOOL_VERSION} is too old for verification."
+  print_yellow "WARNING: GnuTLS certtool version ${CERTTOOL_VERSION} is too old for verification." >&2
 fi
 
-echo
-echo "Results:"
-echo "---"
+#echo
+#print_yellow "Results:"
+#print_magenta "---"
+
+################## OpenSSL
 
 if [ ${OPENSSL_ERR} -eq 1 ]; then
+  if [ $EC -eq 0 ]; then
   echo
-  echo "openssl verify:"
-  echo "${OPENSSL_OUT}"
+  fi
+  print_magenta "openssl verify:"
+  print_red "${OPENSSL_OUT}"
   echo
   EC=1
 else
-  echo "openssl verify: certificate OK!"
+  print_green "openssl verify: certificate OK!"
 fi
+
+################## GnuTLS
 
 if [ ${GNUTLS_ERR} -eq 1 ]; then
+  if [ $EC -eq 0 ]; then
   echo
-  echo "GnuTLS certtool v${CERTTOOL_VERSION}:"
-  echo "${CERTTOOL_OUT}"
+  fi
+  print_magenta "GnuTLS certtool v${CERTTOOL_VERSION}:"
+  print_red "${CERTTOOL_OUT}"
   echo
   EC=1
 else
-  echo "GnuTLS certtool v${CERTTOOL_VERSION}: certificate OK!"
+  print_green "GnuTLS certtool v${CERTTOOL_VERSION}: certificate OK!"
 fi
+
+################## z509lint
 
 if [ ! -z "${X509LINT}" ]; then
-echo "x509lint:"
-echo "${X509LINT}"
+if [ $EC -eq 0 ]; then
+echo
+fi
+print_magenta "x509lint:"
+print_red "${X509LINT}"
 echo
 EC=1
 else
-echo "x509lint: certificate OK"
+print_green "x509lint: certificate OK"
 fi
+
+################## aws-certlint
 
 if [ ! -z "${AWS_CERTLINT}" ]; then
-echo "aws-certlint:"
-echo "${AWS_CERTLINT}"
+if [ $EC -eq 0 ]; then
+echo
+fi
+print_magenta "aws-certlint:"
+print_red "${AWS_CERTLINT}"
 echo
 EC=1
 else
-echo "aws-certlint: certificate OK"
+print_green "aws-certlint: certificate OK"
 fi
+
+################## aws-cablint
 
 if [ ! -z "${AWS_CABLINT}" ]; then
-echo "aws-cablint:"
-echo "${AWS_CABLINT}"
+if [ $EC -eq 0 ]; then
+echo
+fi
+print_magenta "aws-cablint:"
+print_red "${AWS_CABLINT}"
 echo
 EC=1
 else
-echo "aws-certlint: certificate OK"
+print_green "aws-certlint: certificate OK"
 fi
 
+################## zlint
+
 if [ ! -z "${ZLINT}" ]; then
-echo "zlint results:"
-echo "--"
+if [ $EC -eq 0 ]; then
+echo
+fi
+print_magenta "zlint results:"
+print_magenta "--"
 IFS=$'\n'; for x in ${ZLINT}; do
   name=$(echo $x | grep -Po '(?<=\")[^\"]+(?=\"\:\s\{)')
   if [ ! -z "$name" ]; then
@@ -718,43 +753,150 @@ for ((idx=0;idx<=$((${#zlint_names[@]}-1));idx++)); do
   desc=$(${ZLINT_BIN} -list-lints-json | grep "$zlint_name" | grep -Po '(?<=\"description\"\:\")[^\"]+(?=\")')
   ref=$(${ZLINT_BIN} -list-lints-json | grep "$zlint_name" | grep -Po '(?<=\"citation\"\:\")[^\"]+(?=\")')
 
-  echo "zlint name  : $zlint_name"
-  echo "result      : ${result}"
+  print_yellow "zlint name  : $zlint_name"
+  print_yellow "result      : ${result}"
   if [ ! -z "${details}" ] && [ "${details}" != "null" ]; then
-  echo "details     : ${details}"
+  print_yellow "details     : ${details}"
   fi
   if [ $VERBOSITY -gt 0 ]; then
-  echo "description : ${desc}"
+  print_yellow "description : ${desc}"
   fi
-  echo "reference   : ${ref}"
-  echo "---"
+  print_yellow "reference   : ${ref}"
+  print_magenta "---"
 done
-
 echo
 EC=1
 else
-echo "zlint: certificate OK"
+print_green "zlint: certificate OK"
 fi
+
+################## Golang
 
 for lint in ${GOLANG_LINTS}; do
-  go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}"
+  result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}")
+  print_cyan "${result}"
 done
+echo
+
+################## gs-certlint
 
 if [ ! -z "${GS_CERTLINT}" ]; then
-echo
-echo "gs-certlint:"
-echo "${GS_CERTLINT}"
+print_magenta "gs-certlint:"
+print_red "${GS_CERTLINT}"
 EC=1
 else
-echo "gs-certlint: certificate OK"
+print_green "gs-certlint: certificate OK"
 fi
 
-if [ ! -z "${EV_POLICY}" ]; then
+################## NSS
+
+if [ ! -z "${KU_CERTUTIL}" ]; then
+
+echo
+print_magenta "Mozilla Network Security Service (NSS):"
+
+DB_PATH=$(mktemp -t -d nssdb.XXXXXXXXXX)
+
+cp ${PEM_FILE} ${DB_PATH}/cert.crt
+
+if [ ! -z "${PEM_CHAIN_FILE}" ]; then
+  cp ${PEM_CHAIN_FILE} ${DB_PATH}/chain.tmp
+else
+  touch ${DB_PATH}/chain.tmp
+fi
+
+# create temp. database
+certutil -N -d ${DB_PATH} --empty-password
+
+if [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
+  if [ $VERBOSITY -gt 0 ]; then
+    echo "Checking CA certificate chain..."
+  fi
+fi
+
+# all all certificates from chain
+ca_count=0
+pushd ${DB_PATH} > /dev/null 2>&1
+awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "ca-cert." c ".pem"}' < chain.tmp
+popd > /dev/null 2>&1
+for c in ${DB_PATH}/*.pem; do
+  ca_count=$((ca_count+1))
+
+  crt_common_name=$(openssl x509 -noout -subject -nameopt multiline -in "${c}" | grep commonName | sed -n 's/ *commonName *= //p')
+
+  if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i "${c}" -t C,C,C; then
+    ec=1
+  elif [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
+    result=$(certutil -V -n "${crt_common_name}" -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} 2>&1)
+    if [ $? -ne 0 ]; then
+      EC=1
+      print_red "CA ERROR : ${result}"
+    else
+      print_green "Valid CA : ${crt_common_name}: ${result}"
+    fi
+  fi
+done
+
+if [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
+  if [ $VERBOSITY -gt 0 ]; then
+  echo "Finished processing CA chain."
+  fi
   echo
-  echo "EV policy check:"
-  ${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST}
-  if ! [ $? -eq 0 ]; then
-    echo >&2 "WARNING: ev-checker returned a non-zero exit code."
+fi
+
+# add entity certificate
+crt_common_name=$(openssl x509 -noout -subject -nameopt multiline -in "${DB_PATH}/cert.crt" | grep commonName | sed -n 's/ *commonName *= //p')
+if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i ${DB_PATH}/cert.crt -t P,P,P; then
+  EC=1
+fi
+
+# check end-entity certificate
+result=$(certutil -V -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} -n "${crt_common_name}" 2>&1)
+if [ $? -ne 0 ]; then
+  EC=1
+  print_red "NSS certutil FAILED:"
+  print_red "${result}"
+else
+  print_green "NSS certutil OK: ${crt_common_name}: ${result}"
+fi
+
+if [ ! -z "${KU_VFYCHAIN}" ]; then
+  if [ ! -z "${EV_POLICY}" ]; then
+    result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -o ${EV_POLICY} -d ${DB_PATH} "${crt_common_name}" 2>&1)
+  else
+    result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -d ${DB_PATH} "${crt_common_name}" 2>&1)
+  fi
+  if [ $? -ne 0 ]; then
+    if [ $EC -ne 0 ]; then
+    echo
+    fi
+    EC=1
+    print_red "vfychain FAILED: ${result}"
+  else
+    print_green "vfychain OK: ${result}"
+  fi
+fi
+
+if [ -e "${DB_PATH}" ]; then
+rm -rf ${VERBOSE_FLAG} ${DB_PATH}
+fi
+
+fi
+
+################## ev-checker
+
+if [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ]; then
+  if [ $EC -ne 0 ]; then
+  echo
+  fi
+  print_magenta "EV policy check:"
+  result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1)
+  if [ $? -ne 0 ]; then
+    EC=1
+    print_red "ev-checker FAILED:"
+    print_red "${result}"
+  else
+    print_green "ev-checker OK: ${result}"
   fi
 fi
 
