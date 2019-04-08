@@ -51,6 +51,7 @@ NO_COLOR="false"
 CERTTOOL_MIN_VER="3.0.0"
 VERBOSITY=0
 DEBUG_LEVEL=0
+OPENSSL_ARGS="-verbose -x509_strict -policy_print -auth_level 2 -show_chain"
 
 hash openssl 2>/dev/null || { echo >&2 "You need to install openssl. Aborting."; exit 1; }
 hash go 2>/dev/null || { echo >&2 "You need to install go. Aborting."; exit 1; }
@@ -59,6 +60,14 @@ hash certtool 2>/dev/null || { echo >&2 "You need to install gnutls-bin. Abortin
 hash jq 2>/dev/null || { echo >&2 "You need to install jq. Aborting."; exit 1; }
 hash ruby 2>/dev/null || { echo >&2 "You need to install ruby-dev. Aborting."; exit 1; }
 hash vfychain 2>/dev/null || { echo >&2 "You need to install libnss3-tools. Aborting."; exit 1; }
+
+# define table of EKU purpose arguments for various tools
+certPurposes=([0]=client [1]=server [2]=mailsign [3]=mailencrypt [4]=ocsp [5]=anyCA)
+opensslk_opts=([0]=sslclient [1]=sslserver [2]=smimesign [3]=smimeencrypt [4]= [5]=)
+vfychain_opts=([0]=0 [1]=1 [2]=4 [3]=5 [4]=10 [5]=11)
+certutil_opts=([0]=C [1]=V [2]=S [3]=R [4]=O [5]=A)
+golangku_opts=([0]=2 [1]=1 [2]=4 [3]=4 [4]=9 [5]=)
+gnutlsku_opts=([0]=1.3.6.1.5.5.7.3.2 [1]=1.3.6.1.5.5.7.3.1 [2]=1.3.6.1.5.5.7.3.4 [3]=1.3.6.1.5.5.7.3.4 [4]=1.3.6.1.5.5.7.3.9 [5]=)
 
 function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 
@@ -132,6 +141,15 @@ usage()
      -c, --chain <file>      Specifies a CA chain file to use.
      -e, --ev-policy <oid>   Specifies an OID to test for EV compliance.
      -n, --hostname <name>   Specifies the hostname for EV testing.
+
+     -u, --usage <purpose>   Specifies the certificate purpose to test for.
+                             Supported options are:
+                             - 0=client
+                             - 1=server
+                             - 2=mailsign
+                             - 3=mailencrypt
+                             - 4=ocsp
+                             - 5=anyCA
 
      -p, --print             Print the input certificate.
      -v, --verbose           Make the script more verbose.
@@ -263,6 +281,7 @@ CA_CHAIN=""
 EV_POLICY=""
 EV_HOST=""
 PRINT_MODE=""
+OPT_PURPOSE=""
 
 test_chain()
 {
@@ -356,6 +375,28 @@ while [ $# -gt 0 ]; do
       PRINT_MODE="true"
       shift
     ;;
+    -u|--usage)
+      if [ ! -z "${OPT_PURPOSE}" ]; then
+        usage "Cannot specify multiple purposes."
+      fi
+      test_arg "$1" "$2"
+      shift
+      # try to convert argument to purpose
+      temp=$1
+      re='^[0-9]+$'
+      if [[ $temp =~ $re ]] ; then
+        temp="${certPurposes[temp]}"
+        if [ -z "${temp}" ]; then
+          usage "'$1' is not mapped to a known purpose."
+        fi
+      fi
+      if ! echo ${certPurposes[@]} | grep -q -w "$temp"; then
+        usage "'$temp' is not a valid purpose."
+      fi
+      # store result
+      OPT_PURPOSE="$temp"
+      shift
+    ;;
     -h|--help)
       usage
     ;;
@@ -372,11 +413,77 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# export verbosity as an environment variable
+export VERBOSITY=$VERBOSITY
+
 if [ ! -z "${EV_POLICY}" ] && [ -z "${CA_CHAIN}" ]; then
   usage "Must supply CA chain for EV policy testing."
 fi
 if [ ! -z "${EV_POLICY}" ] && [ -z "${EV_HOST}" ]; then
   usage "Must supply hostname for EV policy testing."
+fi
+
+KU_GOLANG=0
+KU_OPENSSL=""
+KU_VFYCHAIN=""
+KU_CERTUTIL=""
+KU_GNUTLS=""
+if [ ! -z "${OPT_PURPOSE}" ]; then
+  case "${OPT_PURPOSE}" in
+    client)
+      KU_OPENSSL="${opensslk_opts[0]}"
+      KU_VFYCHAIN="${vfychain_opts[0]}"
+      KU_CERTUTIL="${certutil_opts[0]}"
+      KU_GOLANG="${golangku_opts[0]}"
+      KU_GNUTLS="${gnutlsku_opts[0]}"
+    ;;
+    server)
+      KU_OPENSSL="${opensslk_opts[1]}"
+      KU_VFYCHAIN="${vfychain_opts[1]}"
+      KU_CERTUTIL="${certutil_opts[1]}"
+      KU_GOLANG="${golangku_opts[1]}"
+      KU_GNUTLS="${gnutlsku_opts[1]}"
+    ;;
+    mailsign)
+      KU_OPENSSL="${opensslk_opts[2]}"
+      KU_VFYCHAIN="${vfychain_opts[2]}"
+      KU_CERTUTIL="${certutil_opts[2]}"
+      KU_GOLANG="${golangku_opts[2]}"
+      KU_GNUTLS="${gnutlsku_opts[2]}"
+    ;;
+    mailencrypt)
+      KU_OPENSSL="${opensslk_opts[3]}"
+      KU_VFYCHAIN="${vfychain_opts[3]}"
+      KU_CERTUTIL="${certutil_opts[3]}"
+      KU_GOLANG="${golangku_opts[3]}"
+      KU_GNUTLS="${gnutlsku_opts[3]}"
+    ;;
+    ocsp)
+      KU_OPENSSL="${opensslk_opts[4]}"
+      KU_VFYCHAIN="${vfychain_opts[4]}"
+      KU_CERTUTIL="${certutil_opts[4]}"
+      KU_GOLANG="${golangku_opts[4]}"
+      KU_GNUTLS="${gnutlsku_opts[4]}"
+    ;;
+    anyCA)
+      KU_OPENSSL="${opensslk_opts[5]}"
+      KU_VFYCHAIN="${vfychain_opts[5]}"
+      KU_CERTUTIL="${certutil_opts[5]}"
+      KU_GOLANG="${golangku_opts[5]}"
+      KU_GNUTLS="${gnutlsku_opts[5]}"
+    ;;
+    *)
+      usage "Unsupported certificate purpose: '${}'"
+    ;;
+  esac
+fi
+
+if [ $VERBOSITY -gt 1 ]; then
+echo "OpenSSL Purpose ID  : '${KU_OPENSSL}'"
+echo "vfychain Purpose ID : '${KU_VFYCHAIN}'"
+echo "certutil Purpose ID : '${KU_CERTUTIL}'"
+echo "golang Purpose ID   : '${KU_GOLANG}'"
+echo "gnutls Purpose ID   : '${KU_GNUTLS}'"
 fi
 
 if [ -z "${X509_MODE}" ]; then
@@ -453,6 +560,15 @@ if [ "${PRINT_MODE}" == "true" ]; then
   echo
 fi
 
+if [ -e "${ZLINT_BIN}" ]; then
+ZLINT_RAW=$(${ZLINT_BIN} -pretty "${PEM_FILE}")
+ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
+if ! [ $? -eq 0 ]; then
+  # NOTE: zlint appears to return a non-zero exit code even if no warnings are found
+  echo >&2 "INFO: zlint returned a non-zero exit code."
+fi
+fi
+
 pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
 AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
 if ! [ $? -eq 0 ]; then
@@ -480,15 +596,6 @@ if ! [ $? -eq 0 ]; then
   echo >&2 "WARNING: x509lint returned a non-zero exit code."
 fi
 
-if [ -e "${ZLINT_BIN}" ]; then
-ZLINT_RAW=$(${ZLINT_BIN} -pretty "${PEM_FILE}")
-ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
-if ! [ $? -eq 0 ]; then
-  # NOTE: zlint appears to return a non-zero exit code even if no warnings are found
-  echo >&2 "WARNING: zlint returned a non-zero exit code."
-fi
-fi
-
 EC=0
 
 OPENSSL_ERR=0
@@ -498,10 +605,24 @@ if [ $VERBOSITY -gt 1 ]; then
   DEBUG_LEVEL=9999
 fi
 
+OPENSSL_EXTRA=""
+GNUTLS_EXTRA=""
+if [ ! -z "${EV_POLICY}" ]; then
+  OPENSSL_EXTRA="${OPENSSL_EXTRA} -policy ${EV_POLICY}"
+fi
+if [ ! -z "${EV_HOST}" ]; then
+  GNUTLS_EXTRA="${GNUTLS_EXTRA} --verify-hostname='${EV_HOST}'"
+  OPENSSL_EXTRA="${OPENSSL_EXTRA} -verify_hostname ${EV_HOST}"
+fi
+
+if [ ! -z "${KU_GNUTLS}" ]; then
+  GNUTLS_EXTRA="${GNUTLS_EXTRA} --verify-purpose='${KU_GNUTLS}'"
+fi
+
 if [ ! -z "${CA_CHAIN}" ]; then
-  OPENSSL_OUT=$(openssl verify -verbose -x509_strict -policy_print -CAfile "${PEM_CHAIN_FILE}" "${PEM_FILE}" 2>&1)
+  OPENSSL_OUT=$(openssl verify ${OPENSSL_ARGS} ${OPENSSL_EXTRA} -CAfile "${PEM_CHAIN_FILE}" "${PEM_FILE}" 2>&1)
 else
-  OPENSSL_OUT=$(openssl verify -verbose -x509_strict -policy_print "${PEM_FILE}" 2>&1)
+  OPENSSL_OUT=$(openssl verify ${OPENSSL_ARGS} ${OPENSSL_EXTRA} "${PEM_FILE}" 2>&1)
 fi
 if ! [ $? -eq 0 ]; then
   OPENSSL_ERR=1
@@ -514,9 +635,9 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
     DEBUG_ARG="-d ${DEBUG_LEVEL}"
   fi
   if [ ! -z "${CA_CHAIN}" ]; then
-  CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify --load-ca-certificate "${PEM_CHAIN_FILE}" 2>&1)
+  CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} --load-ca-certificate "${PEM_CHAIN_FILE}" 2>&1)
   else
-  CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify 2>&1)
+  CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} 2>&1)
   fi
   if ! [ $? -eq 0 ]; then
     GNUTLS_ERR=1
@@ -616,7 +737,7 @@ echo "zlint: certificate OK"
 fi
 
 for lint in ${GOLANG_LINTS}; do
-  go run $lint ${PEM_FILE} ${PEM_CHAIN_FILE}
+  go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}"
 done
 
 if [ ! -z "${GS_CERTLINT}" ]; then
