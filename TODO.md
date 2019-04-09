@@ -1,3 +1,6 @@
+# pki-lint TODO list
+
+- [ ] Update all third-party linting modules to latest versions.
 - [ ] Update README.md to document added arguments.
 - [ ] Add argument to specify OpenSSL validation auth_level
 - [x] Fix lints/README.md markdown formatting.
