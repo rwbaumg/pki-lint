@@ -49,8 +49,36 @@ The ```-verify_name``` option is used to set default verification policies, and 
 
 == Key Purposes
 Some possible Extended Key Usage (EKU) OIDs are listed below:
-- TLS WWW : ```1.3.6.1.5.5.7.3.1```
-- E-mail  : ```1.3.6.1.5.5.7.3.4```
+
+- anyEKU             : ```2.5.29.37.0```
+- serverAuth         : ```1.3.6.1.5.5.7.3.1```
+- clientAuth         : ```1.3.6.1.5.5.7.3.2```
+- codeSigning        : ```1.3.6.1.5.5.7.3.3```
+- emailProtection    : ```1.3.6.1.5.5.7.3.4```
+- timeStamping       : ```1.3.6.1.5.5.7.3.8```
+- OCSPSigning        : ```1.3.6.1.5.5.7.3.9```
+- msKernelCode       : ```1.3.6.1.4.1.311.61.1.1```
+- msCodeInd          : ```1.3.6.1.4.1.311.2.1.21```
+- msCodeCom          : ```1.3.6.1.4.1.311.2.1.22```
+- id-kp-dvcs         : ```1.3.6.1.5.5.7.3.10```
+- secureShellClient  : ```1.3.6.1.5.5.7.3.21```
+- secureShellServer  : ```1.3.6.1.5.5.7.3.22```
+- msDocSigning       : ```1.3.6.1.4.1.311.10.3.12```
+- msSmartcardLogin   : ```1.3.6.1.4.1.311.20.2.2```
+- msTimestamp        : ```1.3.6.1.4.1.311.10.3.2```
+- BitLocker          : ```1.3.6.1.4.1.311.67.1.1```
+- msEFS              : ```1.3.6.1.4.1.311.10.3.4```
+- msEFSRecovery      : ```1.3.6.1.4.1.311.10.3.4.1```
+- msDigitalRights    : ```1.3.6.1.4.1.311.10.5.1```
+- msCTLSign          : ```1.3.6.1.4.1.311.10.3.1```
+- scvpServer         : ```1.3.6.1.5.5.7.3.15```
+- scvpClient         : ```1.3.6.1.5.5.7.3.16```
+- EAPOVRPPP          : ```1.3.6.1.5.5.7.3.13```
+- EAPOVRLAN          : ```1.3.6.1.5.5.7.3.14```
+- adobePDFSigning    : ```1.2.840.113583.1.1.5```
+- intelAMT           : ```2.16.840.1.113741.1.2.3```
+- etsi-tslSigning    : ```0.4.0.2231.3.0```
+
 
 == Mozilla NSS
 The Mozilla Network Security Service (NSS) provides the following tools for certificate validation:
