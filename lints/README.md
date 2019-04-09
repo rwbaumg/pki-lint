@@ -1,10 +1,10 @@
-= Certificate Lints
+# Certificate Lints
 
-== Description
+## Description
 This directory contains linting modules used by the ```lint.sh``` wrapper to validate X.509 certificates.
 This directory is populated in part through Git submodules configured in the ```../.gitmodules``` file, while others represent static tests.
 
-== Building
+## Building
 You can build all of the submodules in this folder by running ```make```:
 ```bash
 make all
@@ -20,7 +20,7 @@ To run ```make``` with some additional debugging information, run:
 make --debug=v all
 ```
 
-== zlint
+## zlint
 The ```lint.sh``` script uses a few tricks to parse the json-formatted output from the ```zlint``` linting module.
 
 After building the ```zlint``` module a symlink is created under ```./bin/zlint``` for easy reference.
