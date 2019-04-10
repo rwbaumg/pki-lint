@@ -683,7 +683,11 @@ if [ ${GNUTLS_ERR} -eq 1 ]; then
   echo
   EC=1
 else
-  print_green "GnuTLS certtool v${CERTTOOL_VERSION}: certificate OK!"
+  if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
+    print_green "GnuTLS certtool v${CERTTOOL_VERSION}: certificate OK!"
+  else
+    print_yellow "GnuTLS certtool is too old; unable to validate certificate."
+  fi
 fi
 
 ################## z509lint
