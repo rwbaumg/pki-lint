@@ -55,6 +55,7 @@ The ```-verify_name``` option is used to set default verification policies, and 
 - ```ssl_client```
 - ```ssl_server```
 
+
 ## Key Purposes
 Some possible Extended Key Usage (EKU) OIDs are listed below:
 
@@ -134,6 +135,7 @@ The following certificate purposes are supported by the ```certutil``` tool via 
 | OCSP Responder  | ```O```     |
 | Object Signer   | ```J```     |
 
+
 ## Golang
 Golang uses its own implementation for [X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509) certificate validation.
 
@@ -153,6 +155,7 @@ ExtKeyUsageNetscapeServerGatedCrypto = 11
 ExtKeyUsageMicrosoftCommercialCodeSigning = 12
 ExtKeyUsageMicrosoftKernelCodeSigning = 13
 ```
+
 
 ## GnuTLS
 The ```certtool``` utility provided by GnuTLS can be used to validate certificates.
@@ -192,6 +195,7 @@ cat /path/to/chain.pem | certtool --verify-chain
 
 Note that you can use ```--infile <file>``` instead of piping the certificate to ```certtool```. The debug level can be between 0-9999, and controls how much debugging output is printed out.
 
+
 ## Technical Constraints
 For a certificate to be technically constrained, it *MUST* contain an ```extendedKeyUsage``` extension defining the purposes for which it may be used. When an EKU extension is added to a Subordinate CA, the CA is restricted in which purposes it may issue certificates for.
 
@@ -208,6 +212,7 @@ The [Mozilla Root Store Policy, section 5.3.1](https://github.com/mozilla/pkipol
 > - If the certificate includes the ```id-kp-serverAuth``` extended key usage, then to be considered technically constrained, the certificate *MUST* be Name Constrained.
 > - If the certificate includes the ```id-kp-emailProtection``` extended key usage, then to be considered technically constrained, it *MUST* include the Name Constraints X.509v3 extension with constraints on ```rfc822Name```, with at least one name in ```permittedSubtrees```, each such name having its ownership validated according to [section 3.2.2.4 of the Baseline Requirements](https://github.com/cabforum/documents/blob/master/docs/BR.md#3224-validation-of-domain-authorization-or-control).
 > - The ```anyExtendedKeyUsage``` KeyPurposeId *MUST NOT* appear within the EKU extension.
+
 
 ## References
 The following resources provide relavent standards documentation and examples for PKI testing:
