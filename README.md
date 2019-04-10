@@ -2,7 +2,7 @@
 X.509 certificate linter
 
 ## Introduction
-The ```pki-lint``` utility is a framework and wrapper for the linting of Public-key Infrastructure (PKI) [X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509) certificates. The included GNU/Linux Bash script, ```lint.sh```, enables quick and easy identification of potential issues with generated x509 certificates. The ```lint.sh``` script also doubles as a wrapper for a number of third-party certificate linters, and enables running a large number of compliance checks with a single command.
+The ```pki-lint``` utility is a framework and wrapper for the linting of Public-key Infrastructure (PKI) [X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509) certificates. The included GNU/Linux Bash script, ```lint.sh```, enables quick and easy identification of potential issues with generated [X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509) certificates. The ```lint.sh``` script also doubles as a wrapper for a number of third-party certificate linters, and enables running a large number of compliance checks with a single command.
 
 Libraries (eg. [OpenSSL](https://www.openssl.org/), [GnuTLS](https://www.gnutls.org/), etc.), languages (eg. [Golang](https://golang.org), [C++](https://isocpp.org/), etc.) and applications (eg. [cURL](https://curl.haxx.se/), [Git](https://git-scm.com/), [Firefox](https://www.mozilla.org/), [Chrome](https://www.google.com/chrome/), etc.) often have a variety of differences in [X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509) certificate handling, including differences in the way certificates are validated. Despite extensive standards documentation, it is not uncommon to find different interpretations of those standards, either.
 
@@ -24,7 +24,7 @@ The following extra packages are also required
 - Ruby Gems ```simpleidn``` & ```public_suffix```
 
 Running the ```build.sh``` script will try to install missing dependencies for you.
-Note that only the Debian-based package manager APT is currently supported.
+Note that only the [Debian](https://www.debian.org)-based package manager APT is currently supported.
 
 
 ## Installation
