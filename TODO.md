@@ -1,8 +1,8 @@
 # pki-lint TODO list
 
 - [ ] Update all third-party linting modules to latest versions.
-- [ ] Update ```README.md``` to document added arguments.
 - [ ] Add argument to specify OpenSSL validation ```auth_level```
+- [x] Update ```README.md``` to document added arguments.
 - [x] Fix ```NOTES.md``` markdown.
 - [x] Fix ```lints/README.md``` markdown formatting.
 - [x] Cleanup dependency package handling in ```build.sh``` script.

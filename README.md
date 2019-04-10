@@ -60,6 +60,30 @@ To view extended usage information, run:
 ./lint.sh --help
 ```
 
+To validate a certificate's intended purpose, you can use the ```-u```/```--usage``` argument. The supported options are:
+| ID      | Name              |
+| :---:   | :----:            |
+| ```0``` | ```client```      |
+| ```1``` | ```server```      |
+| ```2``` | ```mailsign```    |
+| ```3``` | ```mailencrypt``` |
+| ```4``` | ```ocsp```        |
+| ```5``` | ```anyCA```       |
+
+Certificate usage can be specified either by name or by numeric ID. For example, to validate an SSL server certificate:
+```bash
+# both commands are the same
+./lint.sh --subscriber /path/to/certificate.pem --u 1
+./lint.sh --subscriber /path/to/certificate.pem --usage server
+```
+
+Other useful validation arguments are:
+- ```-c```/```--chain```: Specifies a CA chain file to use.
+- ```-o```/```--policy```: Specifies an OID of a policy to test.
+- ```-n```/```--hostname```: Specifies the hostname for validation.
+
+Extended-validation certificate testing is performed whenever the supplied options enable doing so.
+If the certificate being tested is not an EV certificate, EV test results can be safely ignored.
 
 ## Lints
 The collection of checks and third-party modules used by ```lint.sh``` linter can be found in the ```lints/``` folder.
