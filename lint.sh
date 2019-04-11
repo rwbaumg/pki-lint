@@ -583,9 +583,9 @@ if [ ! -z "${SECURITY_LEVEL}" ]; then
   esac
 fi
 
-if [ ! -z "${EV_POLICY}" ] && [ -z "${CA_CHAIN}" ]; then
-  usage "Must supply CA chain for EV policy testing."
-fi
+#if [ ! -z "${EV_POLICY}" ] && [ -z "${CA_CHAIN}" ]; then
+#  usage "Must supply CA chain for EV policy testing."
+#fi
 #if [ ! -z "${EV_POLICY}" ] && [ -z "${EV_HOST}" ]; then
 #  usage "Must supply hostname for EV policy testing."
 #fi
@@ -742,15 +742,17 @@ if [ ! -z "${CA_CHAIN}" ]; then
 fi
 
 PEM_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).pem"
-PEM_CHAIN_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).chain.pem"
 openssl x509 -outform pem -in "${CERT}" -out "${PEM_FILE}" > /dev/null 2>&1
 if ! [ $? -eq 0 ]; then
   usage "Failed to parse input file '${CERT}' as PEM certificate."
 fi
 
+if [ ! -z "${CA_CHAIN}" ]; then
+PEM_CHAIN_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).chain.pem"
 openssl x509 -outform pem -in "${CERT}" -out "${PEM_CHAIN_FILE}" > /dev/null 2>&1
 if [ ! -z "${CA_CHAIN}" ]; then
 cat "${CA_CHAIN}" >> "${PEM_CHAIN_FILE}"
+fi
 fi
 
 DER_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).der"
@@ -910,7 +912,7 @@ fi
 
 if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
   print_magenta "openssl CRL verify:"
-  print_red "${OPENSSL_CRLCHECK}"
+  print_yellow "${OPENSSL_CRLCHECK}"
   EC=1
   lec=1
 else
@@ -1074,7 +1076,7 @@ fi
 
 ################## NSS
 
-if [ ! -z "${KU_CERTUTIL}" ]; then
+if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
 
 if [ $lec -ne 0 ]; then
   echo
@@ -1151,7 +1153,7 @@ else
   print_green "NSS certutil OK: ${crt_common_name}: ${result}"
 fi
 
-if [ ! -z "${KU_VFYCHAIN}" ]; then
+if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
   if [ $lec -ne 0 ]; then
     echo
   fi
@@ -1180,7 +1182,7 @@ fi
 
 ################## ev-checker
 
-if [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ]; then
+if [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
   if [ $lec -ne 0 ]; then
     echo
   fi
