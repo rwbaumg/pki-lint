@@ -61,6 +61,7 @@ To view extended usage information, run:
 ```
 
 To validate a certificate's intended purpose, you can use the ```-u```/```--usage``` argument. The supported options are:
+
 | ID      | Name              |
 | :---:   | :----:            |
 | ```0``` | ```client```      |
@@ -78,13 +79,25 @@ Certificate usage can be specified either by name or by numeric ID. For example,
 ```
 
 Other useful validation arguments are:
-- ```-c```/```--chain```: Specifies a CA chain file to use.
-- ```-o```/```--policy```: Specifies an OID of a policy to test.
-- ```-n```/```--hostname```: Specifies the hostname for validation.
-- ```-l```/```--level```: Specifies the required security level.
+
+| Argument                  | Description                            |
+| :---:                     | :----:                                 |
+| ```-c```/```--chain```    | Specifies a CA chain file to use.      |
+| ```-o```/```--policy```   | Specifies an OID of a policy to test.  |
+| ```-n```/```--hostname``` | Specifies the hostname for validation. |
+| ```-l```/```--level```    | Specifies the required security level. |
+
+Available security levels are:
+| Security Level           | Bits of security | Min. RSA bits | Min. ECC bits |
+| :---:                    | :----:           | :----:        | :----:        |
+| ```minimum``` (```0```)  | 112 bits         | >= 2048  bits | >= 224 bits   |
+| ```medium```  (```1```)  | 128 bits         | >= 3072  bits | >= 256 bits   |
+| ```high```    (```2```)  | 192 bits         | >= 7680  bits | >= 384 bits   |
+| ```extreme``` (```3```)  | 256 bits         | >= 15360 bits | >= 512 bits   |
 
 Extended-validation certificate testing is performed whenever the supplied options enable doing so.
 If the certificate being tested is not an EV certificate, EV test results can be safely ignored.
+
 
 ## Lints
 The collection of checks and third-party modules used by ```lint.sh``` linter can be found in the ```lints/``` folder.
