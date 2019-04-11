@@ -81,6 +81,7 @@ Other useful validation arguments are:
 - ```-c```/```--chain```: Specifies a CA chain file to use.
 - ```-o```/```--policy```: Specifies an OID of a policy to test.
 - ```-n```/```--hostname```: Specifies the hostname for validation.
+- ```-l```/```--level```: Specifies the required security level.
 
 Extended-validation certificate testing is performed whenever the supplied options enable doing so.
 If the certificate being tested is not an EV certificate, EV test results can be safely ignored.
