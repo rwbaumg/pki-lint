@@ -693,10 +693,10 @@ OPENSSL_VERSION_NUM=$(openssl version | grep -Po '(?<=OpenSSL\s)\d\.\d\.\d(?=[a-
 OPENSSL_VERSION_EXT=$(openssl version | grep -Po '(?<=OpenSSL\s\d\.\d\.\d)[a-z](?=\s)')
 OPENSSL_FULLVERSION="${OPENSSL_VERSION_NUM}${OPENSSL_VERSION_EXT}"
 OPENSSL_REQ_VERSION="${OPENSSL_MIN_VERSION_NUM}${OPENSSL_MIN_VERSION_EXT}"
-if version_gt $OPENSSL_VERSION_NUM $OPENSSL_MIN_VERSION_NUM; then
+if [ "$OPENSSL_VERSION_NUM" == "$OPENSSL_MIN_VERSION_NUM" ] || version_gt $OPENSSL_VERSION_NUM $OPENSSL_MIN_VERSION_NUM; then
   REQ_EXT_NUMBER=$(printf '%d' "'$OPENSSL_MIN_VERSION_EXT")
   CUR_EXT_NUMBER=$(printf '%d' "'$OPENSSL_VERSION_EXT")
-  if [ ${CUR_EXT_NUMBER} -gt ${REQ_EXT_NUMBER} ]; then
+  if [ ${CUR_EXT_NUMBER} -ge ${REQ_EXT_NUMBER} ]; then
     OPENSSL_IS_OLD="false"
   fi
 fi
