@@ -164,12 +164,12 @@ usage()
                              - 4=ocsp
                              - 5=anyCA
 
-     -l, --level <level>     Specify the required OpenSSL security level.
-                             The minimum supported level is '2'; available
-                             security levels are:
-                             - 1=standard
-                             - 2=high
-                             - 3=extreme
+     -l, --level <level>     Specify the required certificate security level.
+                             Supported options are:
+                             - 0=minimum (>= 112 bits) (default)
+                             - 1=medium  (>= 128 bits)
+                             - 2=high    (>= 192 bits)
+                             - 3=extreme (>= 256 bits)
 
      -p, --print             Print the input certificate.
      -b, --colors            Print colorful output.
@@ -650,13 +650,13 @@ if [ ! -z "${OPT_PURPOSE}" ]; then
   esac
 fi
 
-#if [ $VERBOSITY -gt 1 ]; then
-#echo "OpenSSL Purpose ID  : '${KU_OPENSSL}'"
-#echo "vfychain Purpose ID : '${KU_VFYCHAIN}'"
-#echo "certutil Purpose ID : '${KU_CERTUTIL}'"
-#echo "golang Purpose ID   : '${KU_GOLANG}'"
-#echo "gnutls Purpose ID   : '${KU_GNUTLS}'"
-#fi
+if [ $VERBOSITY -gt 2 ]; then
+print_cyan >&2 "OpenSSL Purpose ID  : '${KU_OPENSSL}'"
+print_cyan >&2 "vfychain Purpose ID : '${KU_VFYCHAIN}'"
+print_cyan >&2 "certutil Purpose ID : '${KU_CERTUTIL}'"
+print_cyan >&2 "golang Purpose ID   : '${KU_GOLANG}'"
+print_cyan >&2 "gnutls Purpose ID   : '${KU_GNUTLS}'"
+fi
 
 if [ -z "${X509_MODE}" ]; then
   usage "Must specify certificate type."
@@ -927,12 +927,8 @@ fi
 ################## GnuTLS
 
 if [ ${GNUTLS_ERR} -eq 1 ]; then
-  #if [ $EC -eq 0 ]; then
-  #echo
-  #fi
   print_magenta "GnuTLS certtool v${CERTTOOL_VERSION}:"
   print_red "${CERTTOOL_OUT}"
-  #echo
   EC=1
   lec=1
 else
@@ -951,10 +947,8 @@ if [ $lec -ne 0 ]; then
 fi
 
 if [ ! -z "${X509LINT}" ]; then
-#echo
 print_magenta "x509lint:"
 print_red "${X509LINT}"
-#echo
 EC=1
 lec=1
 else
@@ -969,12 +963,8 @@ if [ $lec -ne 0 ]; then
 fi
 
 if [ ! -z "${AWS_CERTLINT}" ]; then
-#if [ $EC -eq 0 ]; then
-#echo
-#fi
 print_magenta "aws-certlint:"
 print_red "${AWS_CERTLINT}"
-#echo
 EC=1
 lec=1
 else
@@ -989,12 +979,8 @@ if [ $lec -ne 0 ]; then
 fi
 
 if [ ! -z "${AWS_CABLINT}" ]; then
-#if [ $EC -eq 0 ]; then
-#echo
-#fi
 print_magenta "aws-cablint:"
 print_red "${AWS_CABLINT}"
-#echo
 EC=1
 lec=1
 else
@@ -1009,9 +995,6 @@ if [ $lec -ne 0 ]; then
 fi
 
 if [ ! -z "${ZLINT}" ]; then
-#if [ $EC -eq 0 ]; then
-#echo
-#fi
 print_magenta "zlint results:"
 print_magenta "--"
 IFS=$'\n'; for x in ${ZLINT}; do
@@ -1042,7 +1025,6 @@ for ((idx=0;idx<=$((${#zlint_names[@]}-1));idx++)); do
   print_yellow "reference   : ${ref}"
   print_magenta "---"
 done
-#echo
 EC=1
 lec=1
 else
@@ -1164,9 +1146,6 @@ if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
     result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -d ${DB_PATH} "${crt_common_name}" 2>&1)
   fi
   if [ $? -ne 0 ]; then
-    #if [ $EC -ne 0 ]; then
-    #echo
-    #fi
     EC=1
     print_red "vfychain FAILED: ${result}"
   else
@@ -1186,9 +1165,6 @@ if [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ] && [ ! -z "${PEM_CHAIN_FILE}
   if [ $lec -ne 0 ]; then
     echo
   fi
-  #if [ $EC -ne 0 ]; then
-  #echo
-  #fi
   print_magenta "EV policy check:"
   result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1)
   if [ $? -ne 0 ]; then
