@@ -215,10 +215,18 @@ The [Mozilla Root Store Policy, section 5.3.1](https://github.com/mozilla/pkipol
 
 
 ## References
+Relevant source code repositories are listed below:
+- [OpenSSL](https://github.com/openssl/openssl)
+- [GnuTLS](https://gitlab.com/gnutls/gnutls)
+- [Mozilla NSS](https://dxr.mozilla.org/mozilla-central/source/security/nss) ([GitHub Mirror](https://github.com/nss-dev/nss))
+- [Go](https://github.com/golang/go)
+- [Google Certificate Transparency](https://github.com/google/certificate-transparency)
+
 The following resources provide relavent standards documentation and examples for PKI testing:
 - [ITU-T X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509)
 - [NIST Public Key Infrastructure Testing](https://csrc.nist.gov/projects/pki-testing)
 - [Mozilla Root Store Policy](https://github.com/mozilla/pkipolicy/blob/master/rootstore/policy.md)
+- [Mozilla PKI Project](http://mozilla.org/projects/security/pki/)
 - [CA/Browser Forum: Baseline Requirements](https://github.com/cabforum/documents/blob/master/docs/BR.md)
 - [CA/Browser Forum: Extended-Validation Guidelines](https://github.com/cabforum/documents/blob/master/docs/EVG.md)
 - [RFC 5280: Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile](https://tools.ietf.org/html/rfc5280)

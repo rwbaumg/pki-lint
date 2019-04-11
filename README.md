@@ -48,13 +48,13 @@ In order to select the appropriate tests, you must specify the type of the certi
 Certificate type switches for ```lint.sh``` are listed below:
 
 | Type switch                   | Certificate type                            |
-| :---:                         | :----:                                      |
+| :---                          | :----                                       |
 | ```-r```/```--root```         | Root CA / trust-anchor certificate.         |
 | ```-i```/```--intermediate``` | Intermediate / Subordinate CA certificate.  |
 | ```-s```/```--subscriber```   | Subscriber / end-entity certificate.        |
 
 
-To check an end-entity certificate, pass the full path to the PEM-encoded certificate file along with the appropriate type switch (ie. ```--subscriber```):
+To check an end-entity certificate, pass the full path to the PEM-encoded certificate file along with the appropriate type switch (eg. ```--subscriber```):
 ```bash
 ./lint.sh --subscriber /path/to/certificate.pem
 ```
@@ -106,6 +106,7 @@ Available security levels are:
 | ```extreme``` (```3```)  | 256 bits         | >= 15360 bits | >= 512 bits   |
 
 **Extended-validation certificate testing is performed whenever the supplied options enable doing so.**
+
 EV certificate testing requires a policy OID and hostname, at a minimum.
 If the certificate being tested is not an EV certificate, EV test results can be safely ignored.
 

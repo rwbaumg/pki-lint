@@ -22,6 +22,7 @@ To run ```make``` with some additional debugging information, run:
 make --debug=v all
 ```
 
+---
 
 ## zlint
 The ```lint.sh``` script uses a few tricks to parse the json-formatted output from the ```zlint``` linting module.
@@ -43,3 +44,7 @@ A few example ```zlint``` commands are shown below:
   | while read x; do echo $x \
   | grep -Po '(?<=description\"\:\")[^\"]+(?=\"\,\")'; done
 ```
+
+---
+
+Unpublished Copyright 2019 © Robert W. Baumgartner. All rights reserved.
