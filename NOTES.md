@@ -5,7 +5,7 @@ OpenSSL provides the ```openssl verify``` command for validating X.509 certifica
 
 The following security levels are defined by OpenSSL for certificate verification (taken from ```man SSL_CTX_set_security_level```).
 
-**Certificates must be equivalent to Level 2 or greater security in order to meet baseline requirements for certificate issuance.**
+**Certificates must be equivalent to *Level 2* or greater security in order to meet baseline requirements for certificate issuance.**
 
 | Level   | Details       |
 | :-----  | :----         |
@@ -41,14 +41,14 @@ openssl verify -verbose \
 
 **Note that the ```auth_level``` argument is only available with newer versions of ```openssl```**
 
-The following ```-purpose``` strings are currently supported:
+The following ```-purpose``` strings are supported by ```openssl verify```:
 - ```sslclient```
 - ```sslserver```
 - ```nssslserver```
 - ```smimesign```
 - ```smimeencrypt```
 
-The ```-verify_name``` option is used to set default verification policies, and is inferred from ```-purpose``` when not specified (making them functionally equivalent). The following names are currently supported:
+The ```-verify_name``` option is used to set default verification policies, and is inferred from ```-purpose``` when not specified (making them functionally equivalent). The following names are supported:
 - ```default```
 - ```pkcs7```
 - ```smime_sign```
@@ -160,7 +160,7 @@ ExtKeyUsageMicrosoftKernelCodeSigning = 13
 ## GnuTLS
 The ```certtool``` utility provided by GnuTLS can be used to validate certificates.
 
-**Note that ```certtool``` version below 3.0.0 do not support certificate validation.**
+**Note that ```certtool``` version below ```3.0.0``` do not support certificate validation.**
 
 To display a certificate:
 ```bash
@@ -202,13 +202,13 @@ For a certificate to be technically constrained, it *MUST* contain an ```extende
 According to the [CA/Browser Forum Baseline Requirements, section 7.1.5](https://github.com/cabforum/documents/blob/master/docs/BR.md#715-name-constraints):
 > If the Subordinate CA Certificate includes the id-kp-serverAuth extended key usage, then the Subordinate CA Certificate MUST include the Name Constraints X.509v3 extension with constraints on dNSName, iPAddress and DirectoryName.
 
-The [Mozilla Root Store Policy, section 5.3](https://github.com/mozilla/pkipolicy/blob/master/rootstore/policy.md#53-intermediate-certificates) also states the following:
+The [Mozilla Root Store Policy, section 5.3](https://github.com/mozilla/pkipolicy/blob/master/rootstore/policy.md#53-intermediate-certificates) states the following:
 > Intermediate certificates created after January 1, 2019, with the exception of cross-certificates that share a private key with a corresponding root certificate:
 > - *MUST* contain an EKU extension; and,
 > - *MUST NOT* include the ```anyExtendedKeyUsage``` KeyPurposeId; and,
 > - *MUST NOT* include both the ```id-kp-serverAuth``` and ```id-kp-emailProtection``` KeyPurposeIds in the same certificate.
 
-The [Mozilla Root Store Policy, section 5.3.1](https://github.com/mozilla/pkipolicy/blob/master/rootstore/policy.md#531-technically-constrained) also states:
+The [Mozilla Root Store Policy, section 5.3.1](https://github.com/mozilla/pkipolicy/blob/master/rootstore/policy.md#531-technically-constrained) states:
 > - If the certificate includes the ```id-kp-serverAuth``` extended key usage, then to be considered technically constrained, the certificate *MUST* be Name Constrained.
 > - If the certificate includes the ```id-kp-emailProtection``` extended key usage, then to be considered technically constrained, it *MUST* include the Name Constraints X.509v3 extension with constraints on ```rfc822Name```, with at least one name in ```permittedSubtrees```, each such name having its ownership validated according to [section 3.2.2.4 of the Baseline Requirements](https://github.com/cabforum/documents/blob/master/docs/BR.md#3224-validation-of-domain-authorization-or-control).
 > - The ```anyExtendedKeyUsage``` KeyPurposeId *MUST NOT* appear within the EKU extension.

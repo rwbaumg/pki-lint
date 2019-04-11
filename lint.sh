@@ -103,6 +103,51 @@ function get_root_dir()
   return
 }
 
+print_green()
+{
+  if [ "${NO_COLOR}" == "false" ]; then
+  echo -e "\x1b[39;49;00m\x1b[32;01m${1}\x1b[39;49;00m"
+  else
+  echo "${1}"
+  fi
+}
+
+print_red()
+{
+  if [ "${NO_COLOR}" == "false" ]; then
+  echo -e "\x1b[39;49;00m\x1b[31;01m${1}\x1b[39;49;00m"
+  else
+  echo "${1}"
+  fi
+}
+
+print_yellow()
+{
+  if [ "${NO_COLOR}" == "false" ]; then
+  echo -e "\x1b[39;49;00m\x1b[33;01m${1}\x1b[39;49;00m"
+  else
+  echo "${1}"
+  fi
+}
+
+print_magenta()
+{
+  if [ "${NO_COLOR}" == "false" ]; then
+  echo -e "\x1b[39;49;00m\x1b[35;01m${1}\x1b[39;49;00m"
+  else
+  echo "${1}"
+  fi
+}
+
+print_cyan()
+{
+  if [ "${NO_COLOR}" == "false" ]; then
+  echo -e "\x1b[39;49;00m\x1b[36;01m${1}\x1b[39;49;00m"
+  else
+  echo "${1}"
+  fi
+}
+
 exit_script()
 {
   # Default exit code is 1
@@ -118,9 +163,9 @@ exit_script()
   re='[[:alnum:]]'
   if echo "$@" | egrep -iq "$re"; then
     if [ $exit_code -eq 0 ]; then
-      echo >&2 "INFO: $@"
+      print_green >&2 "INFO: $@"
     else
-      echo "ERROR: $@" 1>&2
+      print_red       "ERROR: $@" 1>&2
     fi
   fi
 
@@ -267,51 +312,6 @@ test_host_arg()
   fi
 }
 
-print_green()
-{
-  if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\x1b[39;49;00m\x1b[32;01m${1}\x1b[39;49;00m"
-  else
-  echo "${1}"
-  fi
-}
-
-print_red()
-{
-  if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\x1b[39;49;00m\x1b[31;01m${1}\x1b[39;49;00m"
-  else
-  echo "${1}"
-  fi
-}
-
-print_yellow()
-{
-  if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\x1b[39;49;00m\x1b[33;01m${1}\x1b[39;49;00m"
-  else
-  echo "${1}"
-  fi
-}
-
-print_magenta()
-{
-  if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\x1b[39;49;00m\x1b[35;01m${1}\x1b[39;49;00m"
-  else
-  echo "${1}"
-  fi
-}
-
-print_cyan()
-{
-  if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\x1b[39;49;00m\x1b[36;01m${1}\x1b[39;49;00m"
-  else
-  echo "${1}"
-  fi
-}
-
 DIR=$(get_root_dir)
 CERT=""
 CA_CERT="false"
@@ -443,7 +443,6 @@ function get_openssl_seclvl()
 
   for i in "${!securityLevels[@]}"; do
     if [[ "${securityLevels[$i]}" = "${value}" ]]; then
-      #temp="${opensslSecLevels[$i]}"
       temp=$i
       break;
     fi
@@ -530,6 +529,9 @@ while [ $# -gt 0 ]; do
       shift
     ;;
     *)
+      if [ ! -z "${CERT}" ]; then
+        usage "Cannot specify multiple input certificates."
+      fi
       test_cert
       test_file_arg "$1"
       CERT="$1"
@@ -821,7 +823,6 @@ fi
 if [ ! -z "${EV_HOST}" ]; then
   GNUTLS_EXTRA="${GNUTLS_EXTRA} --verify-hostname=${EV_HOST}"
 
-  # TODO: Only supported by newer OpenSSL versions
   if [ "${OPENSSL_IS_OLD}" == "false" ]; then
     OPENSSL_EXTRA="${OPENSSL_EXTRA} -verify_hostname ${EV_HOST}"
     if [ ! -z "${OPENSSL_SECLVL}" ]; then
@@ -1085,7 +1086,7 @@ if [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
   fi
 fi
 
-# all all certificates from chain
+# add all certificates from chain
 ca_count=0
 pushd ${DB_PATH} > /dev/null 2>&1
 awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "ca-cert." c ".pem"}' < chain.tmp
