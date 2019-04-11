@@ -314,6 +314,7 @@ print_cyan()
 
 DIR=$(get_root_dir)
 CERT=""
+CA_CERT="false"
 X509_MODE=""
 CA_CHAIN=""
 EV_POLICY=""
@@ -457,11 +458,13 @@ while [ $# -gt 0 ]; do
   case "$1" in
     -r|--root)
       test_mode
+      CA_CERT="true"
       X509_MODE="x509lint-root"
       shift
     ;;
     -i|--intermediate)
       test_mode
+      CA_CERT="true"
       X509_MODE="x509lint-int"
       shift
     ;;
@@ -592,6 +595,11 @@ KU_OPENSSL=""
 KU_VFYCHAIN=""
 KU_CERTUTIL=""
 KU_GNUTLS=""
+if [ -z "${OPT_PURPOSE}" ]; then
+  if [ "${CA_CERT}" == "true" ]; then
+    OPT_PURPOSE="anyCA"
+  fi
+fi
 if [ ! -z "${OPT_PURPOSE}" ]; then
   case "${OPT_PURPOSE}" in
     client)
