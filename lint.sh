@@ -52,7 +52,12 @@ CERTTOOL_MIN_VER="3.0.0"
 VERBOSITY=0
 DEBUG_LEVEL=0
 NSS_VERIFY_CHAIN="false"
-OPENSSL_ARGS="-verbose -x509_strict -policy_print -auth_level 2 -show_chain"
+SECURITY_LEVEL=0
+OPENSSL_SECLVL=2
+OPENSSL_ARGS="-verbose -x509_strict -policy_print -policy_check"
+
+OPENSSL_MIN_VERSION_NUM="1.1.0"
+OPENSSL_MIN_VERSION_EXT="g"
 
 hash openssl 2>/dev/null || { echo >&2 "You need to install openssl. Aborting."; exit 1; }
 hash go 2>/dev/null || { echo >&2 "You need to install go. Aborting."; exit 1; }
@@ -61,6 +66,13 @@ hash certtool 2>/dev/null || { echo >&2 "You need to install gnutls-bin. Abortin
 hash jq 2>/dev/null || { echo >&2 "You need to install jq. Aborting."; exit 1; }
 hash ruby 2>/dev/null || { echo >&2 "You need to install ruby-dev. Aborting."; exit 1; }
 hash vfychain 2>/dev/null || { echo >&2 "You need to install libnss3-tools. Aborting."; exit 1; }
+
+# define supported security levels
+# level 0: 112 bits (RSA >= 2048  bits ; ECC >= 224 bits)
+# level 1: 128 bits (RSA >= 3072  bits ; ECC >= 256 bits)
+# level 2: 192 bits (RSA >= 7680  bits ; ECC >= 384 bits)
+# level 3: 256 bits (RSA >= 15360 bits ; ECC >= 512 bits)
+securityLevels=([0]=minimum [1]=medium [2]=high [3]=extreme)
 
 # define table of EKU purpose arguments for various tools
 certPurposes=([0]=client [1]=server [2]=mailsign [3]=mailencrypt [4]=ocsp [5]=anyCA)
@@ -152,9 +164,15 @@ usage()
                              - 4=ocsp
                              - 5=anyCA
 
-     --colors                Print colorful output.
+     -l, --level <level>     Specify the required OpenSSL security level.
+                             The minimum supported level is '2'; available
+                             security levels are:
+                             - 1=standard
+                             - 2=high
+                             - 3=extreme
 
      -p, --print             Print the input certificate.
+     -b, --colors            Print colorful output.
      -v, --verbose           Make the script more verbose.
      -h, --help              Prints this usage.
 
@@ -177,6 +195,23 @@ test_arg()
 
   if echo "$argv" | egrep -q '^-'; then
     usage "Argument for option $arg cannot start with '-'"
+  fi
+}
+
+test_number_arg()
+{
+  local arg="$1"
+  local argv="$2"
+
+  test_arg "$arg" "$argv"
+
+  if [ -z "$argv" ]; then
+    argv="$arg"
+  fi
+
+  re='^[0-9]+$'
+  if ! [[ $argv =~ $re ]]; then
+    usage "Value is not a valid number: '$argv'."
   fi
 }
 
@@ -285,6 +320,7 @@ EV_POLICY=""
 EV_HOST=""
 PRINT_MODE=""
 OPT_PURPOSE=""
+OPT_LEVEL=""
 
 test_chain()
 {
@@ -332,6 +368,87 @@ function add_zlint_lint()
   fi
   lint_name="$1"
   zlint_names=("${zlint_names[@]}" "${lint_name}")
+}
+
+function get_purpose()
+{
+  if [ -z "$1" ]; then
+    exit_script 1 "Purpose cannot be null."
+  fi
+
+  temp=$1
+  re='^[0-9]+$'
+  if [[ $temp =~ $re ]] ; then
+    temp="${certPurposes[temp]}"
+    if [ -z "${temp}" ]; then
+      usage "'$1' is not mapped to a known purpose."
+    fi
+  fi
+  if ! echo ${certPurposes[@]} | grep -q -w "$temp"; then
+    usage "'$temp' is not a valid purpose."
+  fi
+
+  echo ${temp}
+}
+
+function get_level()
+{
+  if [ -z "$1" ]; then
+    exit_script 1 "Security level cannot be null."
+  fi
+
+  temp=$1
+  re='^[0-9]+$'
+  if [[ $temp =~ $re ]] ; then
+    temp="${securityLevels[temp]}"
+    if [ -z "${temp}" ]; then
+      usage "'$1' is not mapped to a known security level."
+    fi
+  fi
+  if ! echo ${securityLevels[@]} | grep -q -w "$temp"; then
+    usage "'$temp' is not a valid security level."
+  fi
+
+  echo ${temp}
+}
+
+function get_seclvl()
+{
+  if [ -z "$1" ]; then
+    exit_script 1 "Security level cannot be null."
+  fi
+
+  value="$1"
+  temp="0"
+
+  for i in "${!securityLevels[@]}"; do
+    if [[ "${securityLevels[$i]}" = "${value}" ]]; then
+      temp=$i
+      break;
+    fi
+  done
+
+  echo "${temp}"
+}
+
+function get_openssl_seclvl()
+{
+  if [ -z "$1" ]; then
+    exit_script 1 "Security level cannot be null."
+  fi
+
+  value="$1"
+  temp=""
+
+  for i in "${!securityLevels[@]}"; do
+    if [[ "${securityLevels[$i]}" = "${value}" ]]; then
+      #temp="${opensslSecLevels[$i]}"
+      temp=$i
+      break;
+    fi
+  done
+
+  echo "$((${temp}+2))"
 }
 
 # process arguments
@@ -385,22 +502,20 @@ while [ $# -gt 0 ]; do
       test_arg "$1" "$2"
       shift
       # try to convert argument to purpose
-      temp=$1
-      re='^[0-9]+$'
-      if [[ $temp =~ $re ]] ; then
-        temp="${certPurposes[temp]}"
-        if [ -z "${temp}" ]; then
-          usage "'$1' is not mapped to a known purpose."
-        fi
-      fi
-      if ! echo ${certPurposes[@]} | grep -q -w "$temp"; then
-        usage "'$temp' is not a valid purpose."
-      fi
-      # store result
-      OPT_PURPOSE="$temp"
+      OPT_PURPOSE=`get_purpose "$1"`
       shift
     ;;
-    --colors)
+    -l|--level)
+      if [ ! -z "${OPT_LEVEL}" ]; then
+        usage "Cannot specify multiple security levels."
+      fi
+      test_arg "$1" "$2"
+      shift
+      # try to convert argument to security level
+      OPT_LEVEL=`get_level "$1"`
+      shift
+    ;;
+    -b|--colors)
       NO_COLOR="false"
       shift
     ;;
@@ -422,6 +537,48 @@ done
 
 # export verbosity as an environment variable
 export VERBOSITY=$VERBOSITY
+
+if [ ! -z "${OPT_LEVEL}" ]; then
+  SECURITY_LEVEL="${OPT_LEVEL}"
+fi
+if [ ! -z "${SECURITY_LEVEL}" ]; then
+  SECURITY_LEVEL=$(get_level "${SECURITY_LEVEL}")
+  OPENSSL_SECLVL=$(get_openssl_seclvl "${SECURITY_LEVEL}")
+
+  if [ $VERBOSITY -gt 1 ]; then
+    print_cyan "INFO: Security level '${SECURITY_LEVEL}' (OpenSSL auth_level ${OPENSSL_SECLVL})"
+  fi
+fi
+
+# level 0: 112 bits (RSA >= 2048  bits ; ECC >= 224 bits)
+# level 1: 128 bits (RSA >= 3072  bits ; ECC >= 256 bits)
+# level 2: 192 bits (RSA >= 7680  bits ; ECC >= 384 bits)
+# level 3: 256 bits (RSA >= 15360 bits ; ECC >= 512 bits)
+RSA_MIN_BITS=2048
+ECC_MIN_BITS=224
+if [ ! -z "${SECURITY_LEVEL}" ]; then
+  case "${SECURITY_LEVEL}" in
+    minimum)
+      RSA_MIN_BITS=2048
+      ECC_MIN_BITS=224
+    ;;
+    medium)
+      RSA_MIN_BITS=3072
+      ECC_MIN_BITS=256
+    ;;
+    high)
+      RSA_MIN_BITS=7680
+      ECC_MIN_BITS=384
+    ;;
+    extreme)
+      RSA_MIN_BITS=15360
+      ECC_MIN_BITS=512
+    ;;
+    *)
+       exit_script 1 "Invalid security level: '${SECURITY_LEVEL}'"
+    ;;
+  esac
+fi
 
 if [ ! -z "${EV_POLICY}" ] && [ -z "${CA_CHAIN}" ]; then
   usage "Must supply CA chain for EV policy testing."
@@ -480,7 +637,7 @@ if [ ! -z "${OPT_PURPOSE}" ]; then
       KU_GNUTLS="${gnutlsku_opts[5]}"
     ;;
     *)
-      usage "Unsupported certificate purpose: '${}'"
+      usage "Unsupported certificate purpose '${OPT_PURPOSE}'."
     ;;
   esac
 fi
@@ -517,6 +674,38 @@ CERTTOOL_CAN_VERIFY="false"
 CERTTOOL_VERSION=$(certtool --version | head -n1 | grep -Po '(?<=\s)[0-9\.]+$')
 if version_gt $CERTTOOL_VERSION $CERTTOOL_MIN_VER; then
   CERTTOOL_CAN_VERIFY="true"
+fi
+
+if [ $VERBOSITY -gt 1 ]; then
+  print_cyan "INFO: Detected certtool version ${CERTTOOL_VERSION}"
+fi
+
+OPENSSL_IS_OLD="true"
+OPENSSL_VERSION_NUM=$(openssl version | grep -Po '(?<=OpenSSL\s)\d\.\d\.\d(?=[a-z]\s)')
+OPENSSL_VERSION_EXT=$(openssl version | grep -Po '(?<=OpenSSL\s\d\.\d\.\d)[a-z](?=\s)')
+OPENSSL_FULLVERSION="${OPENSSL_VERSION_NUM}${OPENSSL_VERSION_EXT}"
+OPENSSL_REQ_VERSION="${OPENSSL_MIN_VERSION_NUM}${OPENSSL_MIN_VERSION_EXT}"
+if version_gt $OPENSSL_VERSION_NUM $OPENSSL_MIN_VERSION_NUM; then
+  REQ_EXT_NUMBER=$(printf '%d' "'$OPENSSL_MIN_VERSION_EXT")
+  CUR_EXT_NUMBER=$(printf '%d' "'$OPENSSL_VERSION_EXT")
+  if [ ${CUR_EXT_NUMBER} -gt ${REQ_EXT_NUMBER} ]; then
+    OPENSSL_IS_OLD="false"
+  fi
+fi
+
+if [ $VERBOSITY -gt 1 ]; then
+  print_cyan "INFO: Detected OpenSSL version ${OPENSSL_FULLVERSION}"
+fi
+
+if [ "${OPENSSL_IS_OLD}" == "true" ]; then
+  print_yellow "WARNING: OpenSSL version ${OPENSSL_FULLVERSION} is too old to perform some validation methods."
+  if [ ! -z "${EV_HOST}" ] || [ ! -z "${OPENSSL_SECLVL}" ]; then
+    print_yellow "WARNING: OpenSSL ${OPENSSL_FULLVERSION} does not support security level or hostname validation."
+  fi
+fi
+
+if [ "${CERTTOOL_CAN_VERIFY}" != "true" ]; then
+  print_yellow "WARNING: GnuTLS certtool version ${CERTTOOL_VERSION} is too old for verification."
 fi
 
 X509_BIN="${DIR}/lints/x509lint/${X509_MODE}"
@@ -559,6 +748,7 @@ fi
 DER_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).der"
 openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
+lec=0
 print_magenta "Checking certificate '${CERT}' ..."
 
 if [ "${PRINT_MODE}" == "true" ]; then
@@ -606,6 +796,7 @@ fi
 EC=0
 
 OPENSSL_ERR=0
+OPENSSL_CRL_ERR=0
 GNUTLS_ERR=0
 
 if [ $VERBOSITY -gt 1 ]; then
@@ -619,7 +810,14 @@ if [ ! -z "${EV_POLICY}" ]; then
 fi
 if [ ! -z "${EV_HOST}" ]; then
   GNUTLS_EXTRA="${GNUTLS_EXTRA} --verify-hostname='${EV_HOST}'"
-  OPENSSL_EXTRA="${OPENSSL_EXTRA} -verify_hostname ${EV_HOST}"
+
+  # TODO: Only supported by newer OpenSSL versions
+  if [ "${OPENSSL_IS_OLD}" == "false" ]; then
+    OPENSSL_EXTRA="${OPENSSL_EXTRA} -verify_hostname ${EV_HOST}"
+    if [ ! -z "${OPENSSL_SECLVL}" ]; then
+      OPENSSL_EXTRA="${OPENSSL_EXTRA} -auth_level ${OPENSSL_SECLVL}"
+    fi
+  fi
 fi
 
 if [ ! -z "${KU_GNUTLS}" ]; then
@@ -636,6 +834,15 @@ if ! [ $? -eq 0 ]; then
   print_yellow "WARNING: OpenSSL verification returned a non-zero exit code." >&2
 fi
 
+if [ ! -z "${CA_CHAIN}" ]; then
+  OPENSSL_CRLCHECK=$(openssl verify -crl_check_all -CAfile "${PEM_CHAIN_FILE}" "${PEM_FILE}" 2>&1)
+else
+  OPENSSL_CRLCHECK=$(openssl verify -crl_check_all "${PEM_FILE}" 2>&1)
+fi
+if ! [ $? -eq 0 ]; then
+  OPENSSL_CRL_ERR=1
+fi
+
 if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
   DEBUG_ARG=""
   if [ ${DEBUG_LEVEL} -gt 0 ]; then
@@ -650,8 +857,6 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
     GNUTLS_ERR=1
     print_yellow "WARNING: GnuTLS certtool returned a non-zero exit code." >&2
   fi
-else
-  print_yellow "WARNING: GnuTLS certtool version ${CERTTOOL_VERSION} is too old for verification." >&2
 fi
 
 #echo
@@ -660,29 +865,68 @@ fi
 
 ################## OpenSSL
 
-if [ ${OPENSSL_ERR} -eq 1 ]; then
-  if [ $EC -eq 0 ]; then
+# Peform security level checks
+CERT_BITS=$(openssl x509 -in "${PEM_FILE}" -text -noout | grep -Po '(?<=Public-Key:\s\()[0-9]+(?=\sbit\))')
+CERT_ALGO=$(openssl x509 -in "${PEM_FILE}" -text -noout | grep -Po '(?<=Public\sKey\sAlgorithm:\s)([a-zA-Z]+)$')
+if [ ! -z "${SECURITY_LEVEL}" ] && [ ! -z "${CERT_ALGO}" ] && [ ! -z "${CERT_BITS}" ]; then
+  case "${CERT_ALGO}" in
+    rsaEncryption)
+      if [ $CERT_BITS -lt $RSA_MIN_BITS ]; then
+        lec=1
+        print_red "ERROR: Security level '${SECURITY_LEVEL}' requires an RSA key of at least ${RSA_MIN_BITS} bits (certificate: ${CERT_BITS} bits)."
+      else
+        lec=0
+        print_green "OK: RSA certificate key length of ${CERT_BITS} bits (minimum for '${SECURITY_LEVEL}' security level: ${RSA_MIN_BITS} bits)."
+      fi
+    ;;
+  esac
+fi
+
+if [ $lec -ne 0 ]; then
   echo
-  fi
+fi
+
+if [ ${OPENSSL_ERR} -eq 1 ]; then
   print_magenta "openssl verify:"
   print_red "${OPENSSL_OUT}"
-  echo
   EC=1
+  lec=1
 else
+  lec=0
   print_green "openssl verify: certificate OK!"
+fi
+
+if [ $lec -ne 0 ]; then
+  echo
+fi
+
+if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
+  print_magenta "openssl CRL verify:"
+  print_red "${OPENSSL_CRLCHECK}"
+  EC=1
+  lec=1
+else
+  lec=0
+  print_green "openssl verify: certificate CRL check OK!"
+fi
+
+if [ $lec -ne 0 ]; then
+  echo
 fi
 
 ################## GnuTLS
 
 if [ ${GNUTLS_ERR} -eq 1 ]; then
-  if [ $EC -eq 0 ]; then
-  echo
-  fi
+  #if [ $EC -eq 0 ]; then
+  #echo
+  #fi
   print_magenta "GnuTLS certtool v${CERTTOOL_VERSION}:"
   print_red "${CERTTOOL_OUT}"
-  echo
+  #echo
   EC=1
+  lec=1
 else
+  lec=0
   if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
     print_green "GnuTLS certtool v${CERTTOOL_VERSION}: certificate OK!"
   else
@@ -692,52 +936,72 @@ fi
 
 ################## z509lint
 
-if [ ! -z "${X509LINT}" ]; then
-if [ $EC -eq 0 ]; then
-echo
+if [ $lec -ne 0 ]; then
+  echo
 fi
+
+if [ ! -z "${X509LINT}" ]; then
+#echo
 print_magenta "x509lint:"
 print_red "${X509LINT}"
-echo
+#echo
 EC=1
+lec=1
 else
+lec=0
 print_green "x509lint: certificate OK"
 fi
 
 ################## aws-certlint
 
-if [ ! -z "${AWS_CERTLINT}" ]; then
-if [ $EC -eq 0 ]; then
-echo
+if [ $lec -ne 0 ]; then
+  echo
 fi
+
+if [ ! -z "${AWS_CERTLINT}" ]; then
+#if [ $EC -eq 0 ]; then
+#echo
+#fi
 print_magenta "aws-certlint:"
 print_red "${AWS_CERTLINT}"
-echo
+#echo
 EC=1
+lec=1
 else
+lec=0
 print_green "aws-certlint: certificate OK"
 fi
 
 ################## aws-cablint
 
-if [ ! -z "${AWS_CABLINT}" ]; then
-if [ $EC -eq 0 ]; then
-echo
+if [ $lec -ne 0 ]; then
+  echo
 fi
+
+if [ ! -z "${AWS_CABLINT}" ]; then
+#if [ $EC -eq 0 ]; then
+#echo
+#fi
 print_magenta "aws-cablint:"
 print_red "${AWS_CABLINT}"
-echo
+#echo
 EC=1
+lec=1
 else
+lec=0
 print_green "aws-certlint: certificate OK"
 fi
 
 ################## zlint
 
-if [ ! -z "${ZLINT}" ]; then
-if [ $EC -eq 0 ]; then
-echo
+if [ $lec -ne 0 ]; then
+  echo
 fi
+
+if [ ! -z "${ZLINT}" ]; then
+#if [ $EC -eq 0 ]; then
+#echo
+#fi
 print_magenta "zlint results:"
 print_magenta "--"
 IFS=$'\n'; for x in ${ZLINT}; do
@@ -768,27 +1032,35 @@ for ((idx=0;idx<=$((${#zlint_names[@]}-1));idx++)); do
   print_yellow "reference   : ${ref}"
   print_magenta "---"
 done
-echo
+#echo
 EC=1
+lec=1
 else
+lec=0
 print_green "zlint: certificate OK"
 fi
 
 ################## Golang
 
+if [ $lec -ne 0 ]; then
+  echo
+fi
+
 for lint in ${GOLANG_LINTS}; do
   result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}")
   print_cyan "${result}"
 done
-echo
 
 ################## gs-certlint
 
+echo
 if [ ! -z "${GS_CERTLINT}" ]; then
 print_magenta "gs-certlint:"
 print_red "${GS_CERTLINT}"
 EC=1
+lec=1
 else
+lec=0
 print_green "gs-certlint: certificate OK"
 fi
 
@@ -796,7 +1068,10 @@ fi
 
 if [ ! -z "${KU_CERTUTIL}" ]; then
 
-echo
+if [ $lec -ne 0 ]; then
+  echo
+fi
+
 print_magenta "Mozilla Network Security Service (NSS):"
 
 DB_PATH=$(mktemp -t -d nssdb.XXXXXXXXXX)
@@ -834,8 +1109,10 @@ for c in ${DB_PATH}/*.pem; do
     result=$(certutil -V -n "${crt_common_name}" -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} 2>&1)
     if [ $? -ne 0 ]; then
       EC=1
+      lec=1
       print_red "CA ERROR : ${result}"
     else
+      lec=0
       print_green "Valid CA : ${crt_common_name}: ${result}"
     fi
   fi
@@ -858,22 +1135,28 @@ fi
 result=$(certutil -V -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} -n "${crt_common_name}" 2>&1)
 if [ $? -ne 0 ]; then
   EC=1
+  lec=1
   print_red "NSS certutil FAILED:"
   print_red "${result}"
 else
+  lec=0
   print_green "NSS certutil OK: ${crt_common_name}: ${result}"
 fi
 
 if [ ! -z "${KU_VFYCHAIN}" ]; then
+  if [ $lec -ne 0 ]; then
+    echo
+  fi
+
   if [ ! -z "${EV_POLICY}" ]; then
     result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -o ${EV_POLICY} -d ${DB_PATH} "${crt_common_name}" 2>&1)
   else
     result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -d ${DB_PATH} "${crt_common_name}" 2>&1)
   fi
   if [ $? -ne 0 ]; then
-    if [ $EC -ne 0 ]; then
-    echo
-    fi
+    #if [ $EC -ne 0 ]; then
+    #echo
+    #fi
     EC=1
     print_red "vfychain FAILED: ${result}"
   else
@@ -890,16 +1173,21 @@ fi
 ################## ev-checker
 
 if [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ]; then
-  if [ $EC -ne 0 ]; then
-  echo
+  if [ $lec -ne 0 ]; then
+    echo
   fi
+  #if [ $EC -ne 0 ]; then
+  #echo
+  #fi
   print_magenta "EV policy check:"
   result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1)
   if [ $? -ne 0 ]; then
     EC=1
+    lec=1
     print_red "ev-checker FAILED:"
     print_red "${result}"
   else
+    lec=0
     print_green "ev-checker OK: ${result}"
   fi
 fi
