@@ -70,7 +70,7 @@ gs-certlint/gs-certlint:
 	popd;
 
 ${PATH_GOPATH}/bin/zlint:
-	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -v github.com/zmap/zlint;
+	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -u -v github.com/zmap/zlint;
 	pushd $(abspath ${PATH_GOPATH})/src/github.com/zmap/zlint/cmd/zlint && \
 	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go build -x -v -a && \
 	popd;
