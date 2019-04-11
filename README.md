@@ -88,6 +88,7 @@ Other useful validation arguments are:
 | ```-l```/```--level```    | Specifies the required security level. |
 
 Available security levels are:
+
 | Security Level           | Bits of security | Min. RSA bits | Min. ECC bits |
 | :---:                    | :----:           | :----:        | :----:        |
 | ```minimum``` (```0```)  | 112 bits         | >= 2048  bits | >= 224 bits   |
