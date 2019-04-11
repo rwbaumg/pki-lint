@@ -819,7 +819,7 @@ if [ ! -z "${EV_POLICY}" ]; then
   OPENSSL_EXTRA="${OPENSSL_EXTRA} -policy ${EV_POLICY}"
 fi
 if [ ! -z "${EV_HOST}" ]; then
-  GNUTLS_EXTRA="${GNUTLS_EXTRA} --verify-hostname='${EV_HOST}'"
+  GNUTLS_EXTRA="${GNUTLS_EXTRA} --verify-hostname=${EV_HOST}"
 
   # TODO: Only supported by newer OpenSSL versions
   if [ "${OPENSSL_IS_OLD}" == "false" ]; then
@@ -831,7 +831,7 @@ if [ ! -z "${EV_HOST}" ]; then
 fi
 
 if [ ! -z "${KU_GNUTLS}" ]; then
-  GNUTLS_EXTRA="${GNUTLS_EXTRA} --verify-purpose='${KU_GNUTLS}'"
+  GNUTLS_EXTRA="${GNUTLS_EXTRA} --verify-purpose=${KU_GNUTLS}"
 fi
 
 if [ ! -z "${CA_CHAIN}" ]; then
@@ -859,7 +859,7 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
     DEBUG_ARG="-d ${DEBUG_LEVEL}"
   fi
   if [ ! -z "${CA_CHAIN}" ]; then
-  CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} --load-ca-certificate "${PEM_CHAIN_FILE}" 2>&1)
+  CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} --load-ca-certificate "${CA_CHAIN}" 2>&1)
   else
   CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} 2>&1)
   fi
