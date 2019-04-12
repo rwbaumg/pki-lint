@@ -494,6 +494,9 @@ function check_golang_version()
 
 function check_ruby_version()
 {
+  # always install base ruby-dev package
+  install_pkg "ruby-dev"
+
   if hash ruby 2>/dev/null; then
     RUBY_VERSION=$(ruby --version | head -n1 | grep -Po '(?<=\s)([1-9][0-9]{0,8}|0)(\.([1-9][0-9]{0,8}|0)){1,3}')
     if version_gt $RUBY_VERSION $RUBY_MIN_VERSION; then
@@ -548,7 +551,6 @@ hash git 2>/dev/null || { install_pkg "git"; }
 hash jq 2>/dev/null || { install_pkg "jq"; }
 
 # Install Golang and Ruby
-#install_pkg "ruby-dev";
 check_ruby_version
 check_golang_version
 
