@@ -1,6 +1,8 @@
 # pki-lint
 X.509 certificate linter
 
+[![Build Status](https://travis-ci.org/rwbaumg/pki-lint.svg?branch=github)](https://travis-ci.org/rwbaumg/pki-lint)
+
 ## Introduction
 The ```pki-lint``` utility is a framework and wrapper for the linting of Public-key Infrastructure (PKI) [X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509) certificates. The included GNU/Linux Bash script, ```lint.sh```, enables quick and easy identification of potential issues with generated [X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509) certificates. The ```lint.sh``` script also doubles as a wrapper for a number of third-party certificate linters, and enables running a large number of compliance checks with a single command.
 
