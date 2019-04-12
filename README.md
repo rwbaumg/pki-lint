@@ -17,11 +17,11 @@ The following third-party linting tools are used by this project:
 
 | Module                                                          | Upstream source          |
 | :---                                                            | :----                    |
-| [aws-certlint](https://git.0x19e.net/security/aws-certlint.git) | [awslabs/certlint](https://github.com/awslabs/certlint) |
-| [gs-certlint](https://git.0x19e.net/security/gs-certlint.git)   | [globalsign/certlint](https://github.com/globalsign/certlint) |
-| [x509lint](https://git.0x19e.net/security/x509lint.git)         | [kroeckx/x509lint](https://github.com/kroeckx/x509lint) |
-| [ev-checker](https://git.0x19e.net/security/ev-checker.git)     | [mozkeeler/ev-checker](https://github.com/mozkeeler/ev-checker) |
-| [zlint](https://git.0x19e.net/security/zmap-zlint.git)          | [zmap/zlint](https://github.com/zmap/zlint) |
+| [aws-certlint](https://github.com/rwbaumg/aws-certlint.git)     | [awslabs/certlint](https://github.com/awslabs/certlint) |
+| [gs-certlint](https://github.com/rwbaumg/gs-certlint.git)       | [globalsign/certlint](https://github.com/globalsign/certlint) |
+| [x509lint](https://github.com/rwbaumg/x509lint.git)             | [kroeckx/x509lint](https://github.com/kroeckx/x509lint) |
+| [ev-checker](https://github.com/rwbaumg/ev-checker.git)         | [mozkeeler/ev-checker](https://github.com/mozkeeler/ev-checker) |
+| [zlint](https://github.com/rwbaumg/zlint.git)                   | [zmap/zlint](https://github.com/zmap/zlint) |
 
 The following extra packages are also required
 - Golang ```go``` ≥ v1.3

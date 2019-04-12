@@ -1,25 +1,25 @@
 [submodule "lints/aws-certlint"]
 	path = lints/aws-certlint
-	url = https://git.0x19e.net/security/aws-certlint.git
+	url = https://github.com/rwbaumg/aws-certlint.git
 	branch = master
 	ignore = untracked
 [submodule "lints/gs-certlint"]
 	path = lints/gs-certlint
-	url = https://git.0x19e.net/security/gs-certlint.git
+	url = https://github.com/rwbaumg/gs-certlint.git
 	branch = master
 	ignore = untracked
 [submodule "lints/ev-checker"]
 	path = lints/ev-checker
-	url = https://git.0x19e.net/security/ev-checker.git
+	url = https://github.com/rwbaumg/ev-checker.git
 	branch = master
 	ignore = untracked
 [submodule "lints/x509lint"]
 	path = lints/x509lint
-	url = https://git.0x19e.net/security/x509lint.git
+	url = https://github.com/rwbaumg/x509lint.git
 	branch = x19e-master
 	ignore = untracked
 [submodule "lints/zlint"]
 	path = lints/zlint
-	url = https://git.0x19e.net/security/zmap-zlint.git
+	url = https://github.com/rwbaumg/zlint.git
 	branch = master
 	ignore = untracked
