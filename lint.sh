@@ -103,69 +103,204 @@ function get_root_dir()
   return
 }
 
-print_green()
+function is_number()
 {
-  clr=2
+  if [ -z "${1}" ]; then
+    return 1
+  fi
+
+  re='^[0-9]+$'
+  if [[ ${1} =~ $re ]]; then
+    return 0
+  fi
+
+  return 1
+}
+
+function print_ex()
+{
+  st=0
+  fg=39
+  bg=49
   str="${1}"
+
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\e[0m\e[0;3${clr}m${str}\e[0m"
+
+  if [ ! -z "${2}" ]; then
+    if ! is_number "${2}"; then
+      echo >&2 "ERROR: Invalid argument passed to function: '${2}' is not a valid number."
+      exit 1
+    fi
+    st="${2}"
+  fi
+  if [ ! -z "${3}" ]; then
+    if ! is_number "${3}"; then
+      echo >&2 "ERROR: Invalid argument passed to function: '${3}' is not a valid number."
+      exit 1
+    fi
+    fg="${3}"
+  fi
+  if [ ! -z "${4}" ]; then
+    if ! is_number "${4}"; then
+      echo >&2 "ERROR: Invalid argument passed to function: '${4}' is not a valid number."
+      exit 1
+    fi
+    bg="${4}"
+  fi
+
+  echo -e "\e[0m\e[${st};${bg};${fg}m${str}\e[0m"
   else
   echo "${1}"
   fi
 }
 
-print_red()
+function print_ex_tagged()
 {
-  clr=1
-  str="${1}"
+  st=0
+  fg=39
+  bg=49
+  hdr="${1}"
+  str="${2}"
+
+  if [ -z "${hdr}" ]; then
+    hdr="INFO"
+  fi
+
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\e[0m\e[0;3${clr}m${str}\e[0m"
+
+  if [ ! -z "${3}" ]; then
+    if ! is_number "${3}"; then
+      echo >&2 "ERROR: Invalid argument passed to function: '${3}' is not a valid number."
+      exit 1
+    fi
+    st="${3}"
+  fi
+  if [ ! -z "${4}" ]; then
+    if ! is_number "${4}"; then
+      echo >&2 "ERROR: Invalid argument passed to function: '${4}' is not a valid number."
+      exit 1
+    fi
+    fg="${4}"
+  fi
+  if [ ! -z "${5}" ]; then
+    if ! is_number "${5}"; then
+      echo >&2 "ERROR: Invalid argument passed to function: '${5}' is not a valid number."
+      exit 1
+    fi
+    bg="${5}"
+  fi
+
+  echo -e "\e[0m\e[1;${bg};${fg}m${1}:\e[0m\e[${st};${bg};${fg}m ${str}\e[0m"
   else
-  echo "${1}"
+  echo "${1}: ${2}"
   fi
 }
 
-print_yellow()
+function print_normal()
 {
-  clr=3
+  fg=39
+  bg=49
   str="${1}"
-  if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\e[0m\e[0;3${clr}m${str}\e[0m"
-  else
-  echo "${1}"
+
+  if [ ! -z "${2}" ]; then
+    fg="${2}"
   fi
+  if [ ! -z "${3}" ]; then
+    bg="${3}"
+  fi
+
+  print_ex "${str}" 0 ${fg} ${bg}
 }
 
-print_header()
+function print_bold()
 {
-  # print bold
+  fg=39
+  bg=49
   str="${1}"
-  echo -e "\e[0m\e[3m${str}\e[0m"
+
+  if [ ! -z "${2}" ]; then
+    fg="${2}"
+  fi
+  if [ ! -z "${3}" ]; then
+    bg="${3}"
+  fi
+
+  print_ex "${str}" 1 ${fg} ${bg}
 }
 
-print_normal()
+function print_ul()
 {
-  echo "${1}"
+  fg=39
+  bg=49
+  str="${1}"
+
+  if [ ! -z "${2}" ]; then
+    fg="${2}"
+  fi
+  if [ ! -z "${3}" ]; then
+    bg="${3}"
+  fi
+
+  print_ex "${str}" 4 ${fg} ${bg}
 }
 
-print_info()
+function print_tagged()
 {
-  print_normal "$1"
+  fg=39
+  bg=49
+  tag="${1}"
+  str="${2}"
+
+  if [ ! -z "${3}" ]; then
+    fg="${3}"
+  fi
+  if [ ! -z "${4}" ]; then
+    bg="${4}"
+  fi
+
+  print_ex "${tag}: ${str}" 0 ${fg} ${bg}
+  #print_ex_tagged "${tag}" "${str}" 0 ${fg} ${bg}
 }
 
-print_pass()
+function print_info()
 {
-  print_green "$1"
+  print_tagged "INFO" "${1}"
 }
 
-print_warn()
+function print_error()
 {
-  print_yellow "$1"
+  print_tagged "ERROR" "${1}" 31
 }
 
-print_error()
+function print_pass()
 {
-  print_red "$1"
+  print_tagged "OK" "${1}" 32
+}
+
+function print_warn()
+{
+  print_tagged "WARNING" "${1}" 33
+}
+
+function print_header()
+{
+  print_ul "${1}"
+  #print_bold "${1}" 34
+}
+
+function print_green()
+{
+  print_ex "${1}" 0 32
+}
+
+function print_red()
+{
+  print_ex "${1}" 0 31
+}
+
+function print_yellow()
+{
+  print_ex "${1}" 0 33
 }
 
 exit_script()
@@ -571,7 +706,7 @@ if [ ! -z "${SECURITY_LEVEL}" ]; then
   OPENSSL_SECLVL=$(get_openssl_seclvl "${SECURITY_LEVEL}")
 
   if [ $VERBOSITY -gt 1 ]; then
-    print_info "INFO: Security level '${SECURITY_LEVEL}' (OpenSSL auth_level ${OPENSSL_SECLVL})"
+    print_info "Security level '${SECURITY_LEVEL}' (OpenSSL auth_level ${OPENSSL_SECLVL})"
   fi
 fi
 
@@ -707,7 +842,7 @@ if version_gt $CERTTOOL_VERSION $CERTTOOL_MIN_VER; then
 fi
 
 if [ $VERBOSITY -gt 1 ]; then
-  print_info "INFO: Detected certtool version ${CERTTOOL_VERSION}"
+  print_info "Detected certtool version ${CERTTOOL_VERSION}"
 fi
 
 OPENSSL_IS_OLD="true"
@@ -724,18 +859,18 @@ if [ "$OPENSSL_VERSION_NUM" == "$OPENSSL_MIN_VERSION_NUM" ] || version_gt $OPENS
 fi
 
 if [ $VERBOSITY -gt 1 ]; then
-  print_info "INFO: Detected OpenSSL version ${OPENSSL_FULLVERSION}"
+  print_info "Detected OpenSSL version ${OPENSSL_FULLVERSION}"
 fi
 
 if [ "${OPENSSL_IS_OLD}" == "true" ]; then
-  print_warn "WARNING: OpenSSL version ${OPENSSL_FULLVERSION} is too old to perform some validation methods."
+  print_warn "OpenSSL version ${OPENSSL_FULLVERSION} is too old to perform some validation methods."
   if [ ! -z "${EV_HOST}" ] || [ ! -z "${OPENSSL_SECLVL}" ]; then
-    print_warn "WARNING: OpenSSL ${OPENSSL_FULLVERSION} does not support security level or hostname validation."
+    print_warn "OpenSSL ${OPENSSL_FULLVERSION} does not support security level or hostname validation."
   fi
 fi
 
 if [ "${CERTTOOL_CAN_VERIFY}" != "true" ]; then
-  print_warn "WARNING: GnuTLS certtool version ${CERTTOOL_VERSION} is too old for verification."
+  print_warn "GnuTLS certtool version ${CERTTOOL_VERSION} is too old for verification."
 fi
 
 X509_BIN="${DIR}/lints/x509lint/${X509_MODE}"
@@ -781,7 +916,7 @@ DER_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).der"
 openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
 lec=0
-print_header "Checking certificate '${CERT}' ..."
+print_bold "Checking certificate '${CERT}' ..."
 
 if [ "${PRINT_MODE}" == "true" ]; then
   echo
@@ -801,11 +936,11 @@ fi
 pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
 AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
 if ! [ $? -eq 0 ]; then
-  print_warn "WARNING: AWS certlint returned a non-zero exit code."
+  print_warn "AWS certlint returned a non-zero exit code."
 fi
 AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}")
 if ! [ $? -eq 0 ]; then
-  print_warn >&2 "WARNING: AWS cablint returned a non-zero exit code."
+  print_warn >&2 "AWS cablint returned a non-zero exit code."
 fi
 popd > /dev/null 2>&1
 
@@ -816,13 +951,13 @@ else
   GS_CERTLINT=$(./gs-certlint -cert "${PEM_FILE}")
 fi
 if ! [ $? -eq 0 ]; then
-  print_warn >&2 "WARNING: GlobalSign certlint returned a non-zero exit code."
+  print_warn >&2 "GlobalSign certlint returned a non-zero exit code."
 fi
 popd > /dev/null 2>&1
 
 X509LINT=$(${X509_BIN} "${PEM_FILE}")
 if ! [ $? -eq 0 ]; then
-  print_warn >&2 "WARNING: x509lint returned a non-zero exit code."
+  print_warn >&2 "x509lint returned a non-zero exit code."
 fi
 
 EC=0
@@ -862,7 +997,7 @@ else
 fi
 if ! [ $? -eq 0 ]; then
   OPENSSL_ERR=1
-  print_warn "WARNING: OpenSSL verification returned a non-zero exit code." >&2
+  print_warn "OpenSSL verification returned a non-zero exit code." >&2
 fi
 
 if [ ! -z "${CA_CHAIN}" ]; then
@@ -886,7 +1021,7 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
   fi
   if ! [ $? -eq 0 ]; then
     GNUTLS_ERR=1
-    print_warn "WARNING: GnuTLS certtool returned a non-zero exit code." >&2
+    print_warn "GnuTLS certtool returned a non-zero exit code." >&2
   fi
 fi
 
@@ -904,10 +1039,10 @@ if [ ! -z "${SECURITY_LEVEL}" ] && [ ! -z "${CERT_ALGO}" ] && [ ! -z "${CERT_BIT
     rsaEncryption)
       if [ $CERT_BITS -lt $RSA_MIN_BITS ]; then
         lec=1
-        print_error "ERROR: Security level '${SECURITY_LEVEL}' requires an RSA key of at least ${RSA_MIN_BITS} bits (certificate: ${CERT_BITS} bits)."
+        print_error "Security level '${SECURITY_LEVEL}' requires an RSA key of at least ${RSA_MIN_BITS} bits (certificate: ${CERT_BITS} bits)."
       else
         lec=0
-        print_pass "OK: RSA certificate key length of ${CERT_BITS} bits (minimum for '${SECURITY_LEVEL}' security level: ${RSA_MIN_BITS} bits)."
+        print_pass "RSA certificate key length of ${CERT_BITS} bits (minimum for '${SECURITY_LEVEL}' security level: ${RSA_MIN_BITS} bits)."
       fi
     ;;
   esac
@@ -919,7 +1054,7 @@ fi
 
 if [ ${OPENSSL_ERR} -eq 1 ]; then
   print_header "openssl verify:"
-  print_error "${OPENSSL_OUT}"
+  print_red "${OPENSSL_OUT}"
   EC=1
   lec=1
 else
@@ -933,7 +1068,7 @@ fi
 
 if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
   print_header "openssl CRL verify:"
-  print_warn "${OPENSSL_CRLCHECK}"
+  print_yellow "${OPENSSL_CRLCHECK}"
   EC=1
   lec=1
 else
@@ -949,7 +1084,7 @@ fi
 
 if [ ${GNUTLS_ERR} -eq 1 ]; then
   print_header "GnuTLS certtool v${CERTTOOL_VERSION}:"
-  print_error "${CERTTOOL_OUT}"
+  print_red "${CERTTOOL_OUT}"
   EC=1
   lec=1
 else
@@ -969,7 +1104,7 @@ fi
 
 if [ ! -z "${X509LINT}" ]; then
 print_header "x509lint:"
-print_error "${X509LINT}"
+print_red "${X509LINT}"
 EC=1
 lec=1
 else
@@ -985,7 +1120,7 @@ fi
 
 if [ ! -z "${AWS_CERTLINT}" ]; then
 print_header "aws-certlint:"
-print_error "${AWS_CERTLINT}"
+print_red "${AWS_CERTLINT}"
 EC=1
 lec=1
 else
@@ -1001,7 +1136,7 @@ fi
 
 if [ ! -z "${AWS_CABLINT}" ]; then
 print_header "aws-cablint:"
-print_error "${AWS_CABLINT}"
+print_red "${AWS_CABLINT}"
 EC=1
 lec=1
 else
@@ -1073,7 +1208,7 @@ done
 echo
 if [ ! -z "${GS_CERTLINT}" ]; then
 print_header "gs-certlint:"
-print_error "${GS_CERTLINT}"
+print_red "${GS_CERTLINT}"
 EC=1
 lec=1
 else
@@ -1127,10 +1262,10 @@ for c in ${DB_PATH}/*.pem; do
     if [ $? -ne 0 ]; then
       EC=1
       lec=1
-      print_error "CA ERROR : ${result}"
+      print_red "CA ERROR : ${result}"
     else
       lec=0
-      print_pass "Valid CA : ${crt_common_name}: ${result}"
+      print_green "Valid CA : ${crt_common_name}: ${result}"
     fi
   fi
 done
@@ -1154,7 +1289,7 @@ if [ $? -ne 0 ]; then
   EC=1
   lec=1
   print_error "NSS certutil FAILED:"
-  print_error "${result}"
+  print_red "${result}"
 else
   lec=0
   print_pass "NSS certutil OK: ${crt_common_name}: ${result}"
@@ -1196,7 +1331,7 @@ if [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ] && [ ! -z "${PEM_CHAIN_FILE}
     EC=1
     lec=1
     print_error "ev-checker FAILED:"
-    print_error "${result}"
+    print_red "${result}"
   else
     lec=0
     print_pass "ev-checker OK: ${result}"

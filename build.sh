@@ -49,31 +49,204 @@ INSTALL_MISSING="true"
 NO_COLOR="false"
 VERBOSITY=0
 
-print_green()
+function is_number()
 {
+  if [ -z "${1}" ]; then
+    return 1
+  fi
+
+  re='^[0-9]+$'
+  if [[ ${1} =~ $re ]]; then
+    return 0
+  fi
+
+  return 1
+}
+
+function print_ex()
+{
+  st=0
+  fg=39
+  bg=49
+  str="${1}"
+
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\x1b[39;49;00m\x1b[32m${1}\x1b[39;49;00m"
+
+  if [ ! -z "${2}" ]; then
+    if ! is_number "${2}"; then
+      echo >&2 "ERROR: Invalid argument passed to function: '${2}' is not a valid number."
+      exit 1
+    fi
+    st="${2}"
+  fi
+  if [ ! -z "${3}" ]; then
+    if ! is_number "${3}"; then
+      echo >&2 "ERROR: Invalid argument passed to function: '${3}' is not a valid number."
+      exit 1
+    fi
+    fg="${3}"
+  fi
+  if [ ! -z "${4}" ]; then
+    if ! is_number "${4}"; then
+      echo >&2 "ERROR: Invalid argument passed to function: '${4}' is not a valid number."
+      exit 1
+    fi
+    bg="${4}"
+  fi
+
+  echo -e "\e[0m\e[${st};${bg};${fg}m${str}\e[0m"
   else
   echo "${1}"
   fi
 }
 
-print_red()
+function print_ex_tagged()
 {
+  st=0
+  fg=39
+  bg=49
+  hdr="${1}"
+  str="${2}"
+
+  if [ -z "${hdr}" ]; then
+    hdr="INFO"
+  fi
+
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e >&2 "\x1b[39;49;00m\x1b[31m${1}\x1b[39;49;00m"
+
+  if [ ! -z "${3}" ]; then
+    if ! is_number "${3}"; then
+      echo >&2 "ERROR: Invalid argument passed to function: '${3}' is not a valid number."
+      exit 1
+    fi
+    st="${3}"
+  fi
+  if [ ! -z "${4}" ]; then
+    if ! is_number "${4}"; then
+      echo >&2 "ERROR: Invalid argument passed to function: '${4}' is not a valid number."
+      exit 1
+    fi
+    fg="${4}"
+  fi
+  if [ ! -z "${5}" ]; then
+    if ! is_number "${5}"; then
+      echo >&2 "ERROR: Invalid argument passed to function: '${5}' is not a valid number."
+      exit 1
+    fi
+    bg="${5}"
+  fi
+
+  echo -e "\e[0m\e[1;${bg};${fg}m${1}:\e[0m\e[${st};${bg};${fg}m ${str}\e[0m"
   else
-  echo >&2 "${1}"
+  echo "${1}: ${2}"
   fi
 }
 
-print_yellow()
+function print_normal()
 {
-  if [ "${NO_COLOR}" == "false" ]; then
-  echo -e >&2 "\x1b[39;49;00m\x1b[33m${1}\x1b[39;49;00m"
-  else
-  echo >&2 "${1}"
+  fg=39
+  bg=49
+  str="${1}"
+
+  if [ ! -z "${2}" ]; then
+    fg="${2}"
   fi
+  if [ ! -z "${3}" ]; then
+    bg="${3}"
+  fi
+
+  print_ex "${str}" 0 ${fg} ${bg}
+}
+
+function print_bold()
+{
+  fg=39
+  bg=49
+  str="${1}"
+
+  if [ ! -z "${2}" ]; then
+    fg="${2}"
+  fi
+  if [ ! -z "${3}" ]; then
+    bg="${3}"
+  fi
+
+  print_ex "${str}" 1 ${fg} ${bg}
+}
+
+function print_ul()
+{
+  fg=39
+  bg=49
+  str="${1}"
+
+  if [ ! -z "${2}" ]; then
+    fg="${2}"
+  fi
+  if [ ! -z "${3}" ]; then
+    bg="${3}"
+  fi
+
+  print_ex "${str}" 4 ${fg} ${bg}
+}
+
+function print_tagged()
+{
+  fg=39
+  bg=49
+  tag="${1}"
+  str="${2}"
+
+  if [ ! -z "${3}" ]; then
+    fg="${3}"
+  fi
+  if [ ! -z "${4}" ]; then
+    bg="${4}"
+  fi
+
+  print_ex "${tag}: ${str}" 0 ${fg} ${bg}
+  #print_ex_tagged "${tag}" "${str}" 0 ${fg} ${bg}
+}
+
+function print_info()
+{
+  print_tagged "INFO" "${1}"
+}
+
+function print_error()
+{
+  print_tagged "ERROR" "${1}" 31
+}
+
+function print_pass()
+{
+  print_tagged "OK" "${1}" 32
+}
+
+function print_warn()
+{
+  print_tagged "WARNING" "${1}" 33
+}
+
+function print_header()
+{
+  print_ul "${1}"
+  #print_bold "${1}" 34
+}
+
+function print_green()
+{
+  print_ex "${1}" 0 32
+}
+
+function print_red()
+{
+  print_ex "${1}" 0 31
+}
+
+function print_yellow()
+{
+  print_ex "${1}" 0 33
 }
 
 exit_script()
