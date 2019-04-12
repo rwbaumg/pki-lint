@@ -1,0 +1,16 @@
+language: shell
+sudo: required
+dist: xenial
+
+git:
+  submodules: true
+
+branches:
+  only:
+    - github
+
+os:
+  - linux
+
+install:
+  - sudo ./build.sh
