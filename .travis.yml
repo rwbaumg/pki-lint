@@ -13,4 +13,6 @@ os:
   - linux
 
 install:
+  - sudo apt-get install software-properties-common
+  - sudo add-apt-repository universe
   - sudo ./build.sh

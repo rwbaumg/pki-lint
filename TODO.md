@@ -1,5 +1,6 @@
 # pki-lint TODO list
 
+- [ ] Refactor LLVM / clang++ installation to use upstream source
 - [ ] Update all third-party linting modules to latest versions.
 - [x] Add argument to specify OpenSSL validation ```auth_level```
 - [x] Update ```README.md``` to document added arguments.
