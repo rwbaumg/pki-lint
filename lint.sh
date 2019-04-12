@@ -105,8 +105,10 @@ function get_root_dir()
 
 print_green()
 {
+  clr=2
+  str="${1}"
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\x1b[39;49;00m\x1b[32;01m${1}\x1b[39;49;00m"
+  echo -e "\e[0m\e[0;3${clr}m${str}\e[0m"
   else
   echo "${1}"
   fi
@@ -114,8 +116,10 @@ print_green()
 
 print_red()
 {
+  clr=1
+  str="${1}"
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\x1b[39;49;00m\x1b[31;01m${1}\x1b[39;49;00m"
+  echo -e "\e[0m\e[0;3${clr}m${str}\e[0m"
   else
   echo "${1}"
   fi
@@ -123,29 +127,45 @@ print_red()
 
 print_yellow()
 {
+  clr=3
+  str="${1}"
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\x1b[39;49;00m\x1b[33;01m${1}\x1b[39;49;00m"
+  echo -e "\e[0m\e[0;3${clr}m${str}\e[0m"
   else
   echo "${1}"
   fi
 }
 
-print_magenta()
+print_header()
 {
-  if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\x1b[39;49;00m\x1b[35;01m${1}\x1b[39;49;00m"
-  else
-  echo "${1}"
-  fi
+  # print bold
+  str="${1}"
+  echo -e "\e[0m\e[3m${str}\e[0m"
 }
 
-print_cyan()
+print_normal()
 {
-  if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\x1b[39;49;00m\x1b[36;01m${1}\x1b[39;49;00m"
-  else
   echo "${1}"
-  fi
+}
+
+print_info()
+{
+  print_normal "$1"
+}
+
+print_pass()
+{
+  print_green "$1"
+}
+
+print_warn()
+{
+  print_yellow "$1"
+}
+
+print_error()
+{
+  print_red "$1"
 }
 
 exit_script()
@@ -163,9 +183,9 @@ exit_script()
   re='[[:alnum:]]'
   if echo "$@" | egrep -iq "$re"; then
     if [ $exit_code -eq 0 ]; then
-      print_green >&2 "INFO: $@"
+      print_info >&2 "INFO: $@"
     else
-      print_red       "ERROR: $@" 1>&2
+      print_error    "ERROR: $@" 1>&2
     fi
   fi
 
@@ -551,7 +571,7 @@ if [ ! -z "${SECURITY_LEVEL}" ]; then
   OPENSSL_SECLVL=$(get_openssl_seclvl "${SECURITY_LEVEL}")
 
   if [ $VERBOSITY -gt 1 ]; then
-    print_cyan "INFO: Security level '${SECURITY_LEVEL}' (OpenSSL auth_level ${OPENSSL_SECLVL})"
+    print_info "INFO: Security level '${SECURITY_LEVEL}' (OpenSSL auth_level ${OPENSSL_SECLVL})"
   fi
 fi
 
@@ -653,11 +673,11 @@ if [ ! -z "${OPT_PURPOSE}" ]; then
 fi
 
 if [ $VERBOSITY -gt 2 ]; then
-print_cyan >&2 "OpenSSL Purpose ID  : '${KU_OPENSSL}'"
-print_cyan >&2 "vfychain Purpose ID : '${KU_VFYCHAIN}'"
-print_cyan >&2 "certutil Purpose ID : '${KU_CERTUTIL}'"
-print_cyan >&2 "golang Purpose ID   : '${KU_GOLANG}'"
-print_cyan >&2 "gnutls Purpose ID   : '${KU_GNUTLS}'"
+print_info >&2 "OpenSSL Purpose ID  : '${KU_OPENSSL}'"
+print_info >&2 "vfychain Purpose ID : '${KU_VFYCHAIN}'"
+print_info >&2 "certutil Purpose ID : '${KU_CERTUTIL}'"
+print_info >&2 "golang Purpose ID   : '${KU_GOLANG}'"
+print_info >&2 "gnutls Purpose ID   : '${KU_GNUTLS}'"
 fi
 
 if [ -z "${X509_MODE}" ]; then
@@ -687,7 +707,7 @@ if version_gt $CERTTOOL_VERSION $CERTTOOL_MIN_VER; then
 fi
 
 if [ $VERBOSITY -gt 1 ]; then
-  print_cyan "INFO: Detected certtool version ${CERTTOOL_VERSION}"
+  print_info "INFO: Detected certtool version ${CERTTOOL_VERSION}"
 fi
 
 OPENSSL_IS_OLD="true"
@@ -704,18 +724,18 @@ if [ "$OPENSSL_VERSION_NUM" == "$OPENSSL_MIN_VERSION_NUM" ] || version_gt $OPENS
 fi
 
 if [ $VERBOSITY -gt 1 ]; then
-  print_cyan "INFO: Detected OpenSSL version ${OPENSSL_FULLVERSION}"
+  print_info "INFO: Detected OpenSSL version ${OPENSSL_FULLVERSION}"
 fi
 
 if [ "${OPENSSL_IS_OLD}" == "true" ]; then
-  print_yellow "WARNING: OpenSSL version ${OPENSSL_FULLVERSION} is too old to perform some validation methods."
+  print_warn "WARNING: OpenSSL version ${OPENSSL_FULLVERSION} is too old to perform some validation methods."
   if [ ! -z "${EV_HOST}" ] || [ ! -z "${OPENSSL_SECLVL}" ]; then
-    print_yellow "WARNING: OpenSSL ${OPENSSL_FULLVERSION} does not support security level or hostname validation."
+    print_warn "WARNING: OpenSSL ${OPENSSL_FULLVERSION} does not support security level or hostname validation."
   fi
 fi
 
 if [ "${CERTTOOL_CAN_VERIFY}" != "true" ]; then
-  print_yellow "WARNING: GnuTLS certtool version ${CERTTOOL_VERSION} is too old for verification."
+  print_warn "WARNING: GnuTLS certtool version ${CERTTOOL_VERSION} is too old for verification."
 fi
 
 X509_BIN="${DIR}/lints/x509lint/${X509_MODE}"
@@ -761,7 +781,7 @@ DER_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).der"
 openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
 lec=0
-print_magenta "Checking certificate '${CERT}' ..."
+print_header "Checking certificate '${CERT}' ..."
 
 if [ "${PRINT_MODE}" == "true" ]; then
   echo
@@ -774,18 +794,18 @@ ZLINT_RAW=$(${ZLINT_BIN} -pretty "${PEM_FILE}")
 ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
 if ! [ $? -eq 0 ]; then
   # NOTE: zlint appears to return a non-zero exit code even if no warnings are found
-  print_cyan "INFO: zlint returned a non-zero exit code."
+  print_info "zlint returned a non-zero exit code."
 fi
 fi
 
 pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
 AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
 if ! [ $? -eq 0 ]; then
-  print_yellow "WARNING: AWS certlint returned a non-zero exit code." >&2
+  print_warn "WARNING: AWS certlint returned a non-zero exit code."
 fi
 AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}")
 if ! [ $? -eq 0 ]; then
-  print_yellow "WARNING: AWS cablint returned a non-zero exit code." >&2
+  print_warn >&2 "WARNING: AWS cablint returned a non-zero exit code."
 fi
 popd > /dev/null 2>&1
 
@@ -796,13 +816,13 @@ else
   GS_CERTLINT=$(./gs-certlint -cert "${PEM_FILE}")
 fi
 if ! [ $? -eq 0 ]; then
-  print_yellow "WARNING: GlobalSign certlint returned a non-zero exit code." >&2
+  print_warn >&2 "WARNING: GlobalSign certlint returned a non-zero exit code."
 fi
 popd > /dev/null 2>&1
 
 X509LINT=$(${X509_BIN} "${PEM_FILE}")
 if ! [ $? -eq 0 ]; then
-  print_yellow "WARNING: x509lint returned a non-zero exit code." >&2
+  print_warn >&2 "WARNING: x509lint returned a non-zero exit code."
 fi
 
 EC=0
@@ -842,7 +862,7 @@ else
 fi
 if ! [ $? -eq 0 ]; then
   OPENSSL_ERR=1
-  print_yellow "WARNING: OpenSSL verification returned a non-zero exit code." >&2
+  print_warn "WARNING: OpenSSL verification returned a non-zero exit code." >&2
 fi
 
 if [ ! -z "${CA_CHAIN}" ]; then
@@ -866,13 +886,13 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
   fi
   if ! [ $? -eq 0 ]; then
     GNUTLS_ERR=1
-    print_yellow "WARNING: GnuTLS certtool returned a non-zero exit code." >&2
+    print_warn "WARNING: GnuTLS certtool returned a non-zero exit code." >&2
   fi
 fi
 
 #echo
-#print_yellow "Results:"
-#print_magenta "---"
+#print_header "Results:"
+#print_header "---"
 
 ################## OpenSSL
 
@@ -884,10 +904,10 @@ if [ ! -z "${SECURITY_LEVEL}" ] && [ ! -z "${CERT_ALGO}" ] && [ ! -z "${CERT_BIT
     rsaEncryption)
       if [ $CERT_BITS -lt $RSA_MIN_BITS ]; then
         lec=1
-        print_red "ERROR: Security level '${SECURITY_LEVEL}' requires an RSA key of at least ${RSA_MIN_BITS} bits (certificate: ${CERT_BITS} bits)."
+        print_error "ERROR: Security level '${SECURITY_LEVEL}' requires an RSA key of at least ${RSA_MIN_BITS} bits (certificate: ${CERT_BITS} bits)."
       else
         lec=0
-        print_green "OK: RSA certificate key length of ${CERT_BITS} bits (minimum for '${SECURITY_LEVEL}' security level: ${RSA_MIN_BITS} bits)."
+        print_pass "OK: RSA certificate key length of ${CERT_BITS} bits (minimum for '${SECURITY_LEVEL}' security level: ${RSA_MIN_BITS} bits)."
       fi
     ;;
   esac
@@ -898,13 +918,13 @@ if [ $lec -ne 0 ]; then
 fi
 
 if [ ${OPENSSL_ERR} -eq 1 ]; then
-  print_magenta "openssl verify:"
-  print_red "${OPENSSL_OUT}"
+  print_header "openssl verify:"
+  print_error "${OPENSSL_OUT}"
   EC=1
   lec=1
 else
   lec=0
-  print_green "openssl verify: certificate OK!"
+  print_pass "openssl verify: certificate OK!"
 fi
 
 if [ $lec -ne 0 ]; then
@@ -912,13 +932,13 @@ if [ $lec -ne 0 ]; then
 fi
 
 if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
-  print_magenta "openssl CRL verify:"
-  print_yellow "${OPENSSL_CRLCHECK}"
+  print_header "openssl CRL verify:"
+  print_warn "${OPENSSL_CRLCHECK}"
   EC=1
   lec=1
 else
   lec=0
-  print_green "openssl verify: certificate CRL check OK!"
+  print_pass "openssl verify: certificate CRL check OK!"
 fi
 
 if [ $lec -ne 0 ]; then
@@ -928,16 +948,16 @@ fi
 ################## GnuTLS
 
 if [ ${GNUTLS_ERR} -eq 1 ]; then
-  print_magenta "GnuTLS certtool v${CERTTOOL_VERSION}:"
-  print_red "${CERTTOOL_OUT}"
+  print_header "GnuTLS certtool v${CERTTOOL_VERSION}:"
+  print_error "${CERTTOOL_OUT}"
   EC=1
   lec=1
 else
   lec=0
   if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
-    print_green "GnuTLS certtool v${CERTTOOL_VERSION}: certificate OK!"
+    print_pass "GnuTLS certtool v${CERTTOOL_VERSION}: certificate OK!"
   else
-    print_yellow "GnuTLS certtool is too old; unable to validate certificate."
+    print_warn "GnuTLS certtool is too old; unable to validate certificate."
   fi
 fi
 
@@ -948,13 +968,13 @@ if [ $lec -ne 0 ]; then
 fi
 
 if [ ! -z "${X509LINT}" ]; then
-print_magenta "x509lint:"
-print_red "${X509LINT}"
+print_header "x509lint:"
+print_error "${X509LINT}"
 EC=1
 lec=1
 else
 lec=0
-print_green "x509lint: certificate OK"
+print_pass "x509lint: certificate OK"
 fi
 
 ################## aws-certlint
@@ -964,13 +984,13 @@ if [ $lec -ne 0 ]; then
 fi
 
 if [ ! -z "${AWS_CERTLINT}" ]; then
-print_magenta "aws-certlint:"
-print_red "${AWS_CERTLINT}"
+print_header "aws-certlint:"
+print_error "${AWS_CERTLINT}"
 EC=1
 lec=1
 else
 lec=0
-print_green "aws-certlint: certificate OK"
+print_pass "aws-certlint: certificate OK"
 fi
 
 ################## aws-cablint
@@ -980,13 +1000,13 @@ if [ $lec -ne 0 ]; then
 fi
 
 if [ ! -z "${AWS_CABLINT}" ]; then
-print_magenta "aws-cablint:"
-print_red "${AWS_CABLINT}"
+print_header "aws-cablint:"
+print_error "${AWS_CABLINT}"
 EC=1
 lec=1
 else
 lec=0
-print_green "aws-certlint: certificate OK"
+print_pass "aws-certlint: certificate OK"
 fi
 
 ################## zlint
@@ -996,8 +1016,8 @@ if [ $lec -ne 0 ]; then
 fi
 
 if [ ! -z "${ZLINT}" ]; then
-print_magenta "zlint results:"
-print_magenta "--"
+print_header "zlint results:"
+print_header "--"
 IFS=$'\n'; for x in ${ZLINT}; do
   name=$(echo $x | grep -Po '(?<=\")[^\"]+(?=\"\:\s\{)')
   if [ ! -z "$name" ]; then
@@ -1024,13 +1044,13 @@ for ((idx=0;idx<=$((${#zlint_names[@]}-1));idx++)); do
   print_yellow "description : ${desc}"
   fi
   print_yellow "reference   : ${ref}"
-  print_magenta "---"
+  print_header "---"
 done
 EC=1
 lec=1
 else
 lec=0
-print_green "zlint: certificate OK"
+print_pass "zlint: certificate OK"
 fi
 
 ################## Golang
@@ -1040,21 +1060,25 @@ if [ $lec -ne 0 ]; then
 fi
 
 for lint in ${GOLANG_LINTS}; do
-  result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}")
-  print_cyan "${result}"
+  result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null)
+  if ! [ $? -eq 0 ]; then
+    print_error "${result}"
+  else
+    print_pass "${result}"
+  fi
 done
 
 ################## gs-certlint
 
 echo
 if [ ! -z "${GS_CERTLINT}" ]; then
-print_magenta "gs-certlint:"
-print_red "${GS_CERTLINT}"
+print_header "gs-certlint:"
+print_error "${GS_CERTLINT}"
 EC=1
 lec=1
 else
 lec=0
-print_green "gs-certlint: certificate OK"
+print_pass "gs-certlint: certificate OK"
 fi
 
 ################## NSS
@@ -1065,7 +1089,7 @@ if [ $lec -ne 0 ]; then
   echo
 fi
 
-print_magenta "Mozilla Network Security Service (NSS):"
+print_header "Mozilla Network Security Service (NSS):"
 
 DB_PATH=$(mktemp -t -d nssdb.XXXXXXXXXX)
 
@@ -1082,7 +1106,7 @@ certutil -N -d ${DB_PATH} --empty-password
 
 if [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
   if [ $VERBOSITY -gt 0 ]; then
-    echo "Checking CA certificate chain..."
+    print_info "Checking CA certificate chain..."
   fi
 fi
 
@@ -1103,17 +1127,17 @@ for c in ${DB_PATH}/*.pem; do
     if [ $? -ne 0 ]; then
       EC=1
       lec=1
-      print_red "CA ERROR : ${result}"
+      print_error "CA ERROR : ${result}"
     else
       lec=0
-      print_green "Valid CA : ${crt_common_name}: ${result}"
+      print_pass "Valid CA : ${crt_common_name}: ${result}"
     fi
   fi
 done
 
 if [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
   if [ $VERBOSITY -gt 0 ]; then
-  echo "Finished processing CA chain."
+  print_info "Finished processing CA chain."
   fi
   echo
 fi
@@ -1129,11 +1153,11 @@ result=$(certutil -V -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} -n "${crt_common_name
 if [ $? -ne 0 ]; then
   EC=1
   lec=1
-  print_red "NSS certutil FAILED:"
-  print_red "${result}"
+  print_error "NSS certutil FAILED:"
+  print_error "${result}"
 else
   lec=0
-  print_green "NSS certutil OK: ${crt_common_name}: ${result}"
+  print_pass "NSS certutil OK: ${crt_common_name}: ${result}"
 fi
 
 if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
@@ -1148,9 +1172,9 @@ if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
   fi
   if [ $? -ne 0 ]; then
     EC=1
-    print_red "vfychain FAILED: ${result}"
+    print_error "vfychain FAILED: ${result}"
   else
-    print_green "vfychain OK: ${result}"
+    print_pass "vfychain OK: ${result}"
   fi
 fi
 
@@ -1166,16 +1190,16 @@ if [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ] && [ ! -z "${PEM_CHAIN_FILE}
   if [ $lec -ne 0 ]; then
     echo
   fi
-  print_magenta "EV policy check:"
+  print_header "EV policy check:"
   result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1)
   if [ $? -ne 0 ]; then
     EC=1
     lec=1
-    print_red "ev-checker FAILED:"
-    print_red "${result}"
+    print_error "ev-checker FAILED:"
+    print_error "${result}"
   else
     lec=0
-    print_green "ev-checker OK: ${result}"
+    print_pass "ev-checker OK: ${result}"
   fi
 fi
 
