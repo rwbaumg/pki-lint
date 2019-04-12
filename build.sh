@@ -52,7 +52,7 @@ VERBOSITY=0
 print_green()
 {
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e "\x1b[39;49;00m\x1b[32;01m${1}\x1b[39;49;00m"
+  echo -e "\x1b[39;49;00m\x1b[32m${1}\x1b[39;49;00m"
   else
   echo "${1}"
   fi
@@ -61,7 +61,7 @@ print_green()
 print_red()
 {
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e >&2 "\x1b[39;49;00m\x1b[31;01m${1}\x1b[39;49;00m"
+  echo -e >&2 "\x1b[39;49;00m\x1b[31m${1}\x1b[39;49;00m"
   else
   echo >&2 "${1}"
   fi
@@ -70,7 +70,7 @@ print_red()
 print_yellow()
 {
   if [ "${NO_COLOR}" == "false" ]; then
-  echo -e >&2 "\x1b[39;49;00m\x1b[33;01m${1}\x1b[39;49;00m"
+  echo -e >&2 "\x1b[39;49;00m\x1b[33m${1}\x1b[39;49;00m"
   else
   echo >&2 "${1}"
   fi
@@ -396,6 +396,107 @@ function check_installed()
   return 1
 }
 
+function install_pkg()
+{
+  if [ "${INSTALL_MISSING}" != "true" ]; then
+    print_yellow "WARNING: Skipping package installation for '${pkg_name}'."
+    return 1
+  fi
+
+  pkg_name="$1"
+  if [ -z "${pkg_name}" ]; then
+    exit_script 1 "Package name not provided to check script."
+  fi
+
+  if check_installed "${pkg_name}"; then
+    # package is already installed
+    if [ $VERBOSITY -gt 0 ]; then
+      echo "Package '${pkg_name}' is already installed."
+    fi
+    return 0
+  fi
+
+  sudo_cmd=""
+  if [[ $EUID -ne 0 ]]; then
+    if ! hash sudo 2>/dev/null; then
+      print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
+      exit_script 1 "You need to install sudo. Aborting."
+    else
+      sudo_cmd="sudo"
+    fi
+  fi
+
+  if hash apt-get 2>/dev/null; then
+    print_yellow "Installing missing package '${pkg_name}' via apt-get ..."
+    if ! ${sudo_cmd} apt-get install -V -y ${pkg_name}; then
+      exit_script 1 "Failed to install package '${pkg_name}'."
+    fi
+    return 0
+  fi
+
+  exit_script 1 "You need to install ${pkg_name}. Aborting."
+}
+
+function is_source_repo_enabled()
+{
+  source="$1"
+  if [ -z "$source" ]; then
+    exit_script 1 "Missing source argument to function."
+  fi
+
+  if hash apt-cache 2>/dev/null; then
+    if ! hash lsb_release 2>/dev/null; then
+      exit_script 1 "Unable to determine OS release (missing lsb_release command)."
+    fi
+
+    os_info="$(lsb_release --short --id --release --codename)"
+    { read -r os_id; read -r os_release; read -r os_codename; } <<< "$os_info"
+
+    if apt-cache policy | grep -q "^     release v=$os_release,o=${os_id},a=$os_codename,n=$os_codename,l=${os_id},c=${source}"; then
+      print_green "Package source '${source}' is already enabled."
+      return 0
+    fi
+  fi
+
+  exit_script 1 "The current operating system lacks a supported package manager."
+}
+
+# Configure the system package manager to support subsequent use.
+# Currently only APT manager is supported.
+function configure_pkg_manager()
+{
+  if [ "${INSTALL_MISSING}" != "true" ]; then
+    print_yellow "WARNING: Skipping package manager configuration."
+    return 0
+  fi
+
+  sudo_cmd=""
+  if [[ $EUID -ne 0 ]]; then
+    if ! hash sudo 2>/dev/null; then
+      print_yellow "WARNING: 'sudo' not found in PATH; cannot configure package manager."
+      exit_script 1 "You need to install sudo. Aborting."
+    else
+      sudo_cmd="sudo"
+    fi
+  fi
+
+  if hash apt-get 2>/dev/null; then
+    # Make sure required tooling is installed
+    hash add-apt-repository 2>/dev/null || { install_pkg "software-properties-common"; }
+
+    # Enable the 'universe' package source.
+    if ! is_source_repo_enabled "universe"; then
+      if ! ${sudo_cmd} add-apt-repository universe; then
+        exit_script 1 "Failed to enable 'universe' package repository."
+      fi
+      print_green "Enabled 'universe' package source."
+      return 0
+    fi
+  fi
+
+  return 0
+}
+
 function install_gem()
 {
   gem_name="$1"
@@ -438,45 +539,6 @@ function install_gem()
   fi
 
   exit_script 1 "You need to install Ruby gem '${gem_name}'. Aborting."
-}
-
-function install_pkg()
-{
-  pkg_name="$1"
-
-  if [ -z "${pkg_name}" ]; then
-    exit_script 1 "Package name not provided to check script."
-  fi
-
-  if check_installed "${pkg_name}"; then
-    # package is already installed
-    if [ $VERBOSITY -gt 0 ]; then
-      echo "Package '${pkg_name}' is already installed."
-    fi
-    return 0
-  fi
-
-  sudo_cmd=""
-  if [[ $EUID -ne 0 ]]; then
-    if ! hash sudo 2>/dev/null; then
-      print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
-      exit_script 1 "You need to install sudo. Aborting."
-    else
-      sudo_cmd="sudo"
-    fi
-  fi
-
-  if [ "${INSTALL_MISSING}" == "true" ]; then
-    if hash apt-get 2>/dev/null; then
-      print_yellow "Installing missing package '${pkg_name}' via apt-get ..."
-      if ! ${sudo_cmd} apt-get install -V -y ${pkg_name}; then
-        exit_script 1 "Failed to install package '${pkg_name}'."
-      fi
-      return 0
-    fi
-  fi
-
-  exit_script 1 "You need to install ${pkg_name}. Aborting."
 }
 
 function check_golang_version()
@@ -540,8 +602,11 @@ if [ ${VERBOSITY} -gt 0 ]; then
   MAKE_ARG="--debug=v ${MAKE_ARG}"
 fi
 
+if ! configure_pkg_manager; then
+  exit_script 1 "Failed to configure package manager."
+fi
+
 # Check for missing packages
-hash add-apt-repository 2>/dev/null || { install_pkg "software-properties-common"; }
 hash make 2>/dev/null || { install_pkg "make"; }
 hash gcc 2>/dev/null || { install_pkg "gcc"; }
 hash gnutls-cli 2>/dev/null || { install_pkg "gnutls-bin"; }
