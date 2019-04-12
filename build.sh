@@ -165,7 +165,7 @@ function get_root_dir()
   return
 }
 
-function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+function version_gt() { test "$(printf '%s\n' "$@" | sort -bt. -k1,1 -k2,2n -k3,3n -k4,4n -k5,5n | head -n 1)" != "$1"; }
 
 # Adds a package source for Ruby
 # This may be required if the distribution does not provide
