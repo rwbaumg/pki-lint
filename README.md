@@ -12,11 +12,14 @@ The primary purpose of this project is to identify potential compatibility issue
 
 ## Dependencies
 The following third-party linting tools are used by this project:
-- [aws-certlint](https://git.0x19e.net/security/aws-certlint.git)
-- [gs-certlint](https://git.0x19e.net/security/gs-certlint.git)
-- [x509lint](https://git.0x19e.net/security/x509lint.git)
-- [ev-checker](https://git.0x19e.net/security/ev-checker.git)
-- [zlint](https://git.0x19e.net/security/zmap-zlint.git)
+
+| Module                                                          | Upstream source          |
+| :---                                                            | :----                    |
+| [aws-certlint](https://git.0x19e.net/security/aws-certlint.git) | [awslabs/certlint](https://github.com/awslabs/certlint) |
+| [gs-certlint](https://git.0x19e.net/security/gs-certlint.git)   | [globalsign/certlint](https://github.com/globalsign/certlint) |
+| [x509lint](https://git.0x19e.net/security/x509lint.git)         | [kroeckx/x509lint](https://github.com/kroeckx/x509lint) |
+| [ev-checker](https://git.0x19e.net/security/ev-checker.git)     | [mozkeeler/ev-checker](https://github.com/mozkeeler/ev-checker) |
+| [zlint](https://git.0x19e.net/security/zmap-zlint.git)          | [zmap/zlint](https://github.com/zmap/zlint) |
 
 The following extra packages are also required
 - Golang ```go``` ≥ v1.3
