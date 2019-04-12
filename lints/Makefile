@@ -8,7 +8,6 @@ PATH_GOCACHE=./.gocache
 PATH_GOROOT=/usr/lib/go-1.10/bin
 
 export GOROOT="${PATH_GOROOT}"
-export PATH="${GOROOT}/bin:${PATH}"
 
 all: x509lint ev-checker aws-certlint gs-certlint zlint bin
 
