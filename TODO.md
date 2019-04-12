@@ -1,5 +1,6 @@
 # pki-lint TODO list
 
+- [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source
 - [ ] Update all third-party linting modules to latest versions.
 - [x] Add argument to specify OpenSSL validation ```auth_level```
