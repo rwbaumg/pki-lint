@@ -5,9 +5,9 @@ SHELL:=/bin/bash
 BIN_NAME=bin
 PATH_GOPATH=./.go
 PATH_GOCACHE=./.gocache
-PATH_GOROOT=/usr/lib/go-1.10/bin
+PATH_GOROOT=/usr/lib/go-1.10
 
-export GOROOT="${PATH_GOROOT}"
+export GOROOT=${PATH_GOROOT}
 
 all: x509lint ev-checker aws-certlint gs-certlint zlint bin
 
