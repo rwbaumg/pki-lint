@@ -3,6 +3,29 @@
 ## OpenSSL
 OpenSSL provides the ```openssl verify``` command for validating X.509 certificates.
 
+To verify a certificate against security Level 2 requirements, you could run:
+```bash
+openssl verify -x509_strict -auth_level 2 /path/to/cert.crt 2>&1
+```
+
+To perform a more complete verification, you could run something like:
+```bash
+openssl verify -verbose \
+  -show_chain \
+  -x509_strict \
+  -auth_level 2 \
+  -verify_name default \
+  -purpose sslserver \
+  -verify_hostname test.example.com \
+  -policy_print \
+  -policy_check \
+  -policy 2.23.140.1.2.2 \
+  -CAfile /path/to/ca/chain.pem \
+  /path/to/cert.crt
+```
+
+**Note that the ```auth_level``` argument is only available with newer versions of ```openssl```.**
+
 The following security levels are defined by OpenSSL for certificate verification (taken from ```man SSL_CTX_set_security_level```).
 
 **Certificates must be equivalent to *Level 2* or greater security in order to meet baseline requirements for certificate issuance.**
@@ -16,30 +39,6 @@ The following security levels are defined by OpenSSL for certificate verificatio
 | Level 4 | Security level set to 192 bits of security. As a result RSA, DSA and DH keys shorter than 7680 bits and ECC keys shorter than 384 bits are prohibited.  Ciphersuites using SHA1 for the MAC are prohibited. TLS versions below 1.2 are not permitted. |
 | Level 5 | Security level set to 256 bits of security. As a result RSA, DSA and DH keys shorter than 15360 bits and ECC keys shorter than 512 bits are prohibited. |
 
----
-
-To verify a certificate against security Level 2 requirements, you could run:
-```bash
-openssl verify -x509_strict -auth_level 2 /path/to/cert.crt 2>&1
-```
-
-To perform a more complete verification, you could run something like:
-```bash
-openssl verify -verbose \
-               -show_chain \
-               -x509_strict \
-               -auth_level 2 \
-               -verify_name default \
-               -purpose sslserver \
-               -verify_hostname test.example.com \
-               -policy_print \
-               -policy_check \
-               -policy 2.23.140.1.2.2 \
-               -CAfile /path/to/ca/chain.pem \
-               /path/to/cert.crt
-```
-
-**Note that the ```auth_level``` argument is only available with newer versions of ```openssl```**
 
 The following ```-purpose``` strings are supported by ```openssl verify```:
 - ```sslclient```

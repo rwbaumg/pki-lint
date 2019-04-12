@@ -49,9 +49,9 @@ Certificate type switches for ```lint.sh``` are listed below:
 
 | Type switch                   | Certificate type                            |
 | :---                          | :----                                       |
-| ```-r```/```--root```         | Root CA / trust-anchor certificate.         |
-| ```-i```/```--intermediate``` | Intermediate / Subordinate CA certificate.  |
-| ```-s```/```--subscriber```   | Subscriber / end-entity certificate.        |
+| ```-r``` / ```--root```         | Root CA / trust-anchor certificate.         |
+| ```-i``` / ```--intermediate``` | Intermediate / Subordinate CA certificate.  |
+| ```-s``` / ```--subscriber```   | Subscriber / end-entity certificate.        |
 
 
 To check an end-entity certificate, pass the full path to the PEM-encoded certificate file along with the appropriate type switch (eg. ```--subscriber```):
@@ -69,7 +69,7 @@ To view extended usage information, run:
 ./lint.sh --help
 ```
 
-To validate a certificate's intended purpose, you can use the ```-u```/```--usage``` argument. The supported options are:
+To validate a certificate's intended purpose, you can use the ```-u``` / ```--usage``` argument. The supported options are:
 
 | ID      | Name              |
 | :---:   | :----:            |
@@ -91,10 +91,10 @@ Other useful validation arguments are:
 
 | Argument                  | Description                            |
 | :---:                     | :----:                                 |
-| ```-c```/```--chain```    | Specifies a CA chain file to use.      |
-| ```-o```/```--policy```   | Specifies an OID of a policy to test.  |
-| ```-n```/```--hostname``` | Specifies the hostname for validation. |
-| ```-l```/```--level```    | Specifies the required security level. |
+| ```-c``` / ```--chain```    | Specifies a CA chain file to use.      |
+| ```-o``` / ```--policy```   | Specifies an OID of a policy to test.  |
+| ```-n``` / ```--hostname``` | Specifies the hostname for validation. |
+| ```-l``` / ```--level```    | Specifies the required security level. |
 
 Available security levels are:
 
