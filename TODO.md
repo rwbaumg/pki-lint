@@ -1,5 +1,6 @@
 # pki-lint TODO list
 
+- [ ] Fix output coloring (use regex to check if info/warn/err/etc.)
 - [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source
 - [ ] Update all third-party linting modules to latest versions.
