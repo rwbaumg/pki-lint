@@ -62,7 +62,7 @@ func main() {
   // Read and parse the PEM certificate file
   if len(os.Args) < 2 {
     fmt.Println("Usage: script.go <cert> [chain] [purpose] [hostname]")
-    return
+    os.Exit(1)
   }
 
   var file string
@@ -110,7 +110,9 @@ func main() {
     for _, ext := range cert.UnhandledCriticalExtensions {
       fmt.Printf("    Extension OID: %s\n", ext.String());
      }
-  } else {
-    fmt.Printf("Go: No unhandled critical extensions (good!).\n")
+     os.Exit(1)
   }
+
+  fmt.Printf("Go: No unhandled critical extensions (good!).\n")
+  os.Exit(0)
 }

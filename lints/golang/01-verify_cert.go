@@ -62,7 +62,7 @@ func main() {
   // Read and parse the PEM certificate file
   if len(os.Args) < 2 {
     fmt.Println("Usage: script.go <cert> [chain] [purpose] [hostname]")
-    return
+    os.Exit(1)
   }
 
   var file string
@@ -156,9 +156,9 @@ func main() {
   _, err = cert.Verify(opts)
   if err != nil {
     fmt.Printf("Go: Verify error: %s\n", err)
-    return
-  } else {
-    fmt.Printf("Go: Certificate verification succeeded (good!).\n")
-    return
+    os.Exit(1)
   }
+
+  fmt.Printf("Go: Certificate verification succeeded (good!).\n")
+  os.Exit(0)
 }
