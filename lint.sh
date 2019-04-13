@@ -51,6 +51,7 @@ NO_COLOR="true"
 CERTTOOL_MIN_VER="3.0.0"
 VERBOSITY=0
 DEBUG_LEVEL=0
+EV_DETECTED="false"
 NSS_VERIFY_CHAIN="false"
 SECURITY_LEVEL=0
 OPENSSL_SECLVL=2
@@ -127,7 +128,7 @@ function print_ex()
   if [ "${NO_COLOR}" == "false" ]; then
 
   if [ ! -z "${2}" ]; then
-    if ! is_number "${2}"; then
+    if ! echo "${2}" | grep -qPo '^[0-9\;]+$'; then
       echo >&2 "ERROR: Invalid argument passed to function: '${2}' is not a valid number."
       exit 1
     fi
@@ -169,7 +170,7 @@ function print_ex_tagged()
   if [ "${NO_COLOR}" == "false" ]; then
 
   if [ ! -z "${3}" ]; then
-    if ! is_number "${3}"; then
+    if ! echo "${3}" | grep -qPo '^[0-9\;]+$'; then
       echo >&2 "ERROR: Invalid argument passed to function: '${3}' is not a valid number."
       exit 1
     fi
@@ -210,6 +211,22 @@ function print_normal()
   fi
 
   print_ex "${str}" 0 ${fg} ${bg}
+}
+
+function print_bold_ul()
+{
+  fg=39
+  bg=49
+  str="${1}"
+
+  if [ ! -z "${2}" ]; then
+    fg="${2}"
+  fi
+  if [ ! -z "${3}" ]; then
+    bg="${3}"
+  fi
+
+  print_ex "${str}" "1;4" ${fg} ${bg}
 }
 
 function print_bold()
@@ -274,17 +291,18 @@ function print_error()
 
 function print_pass()
 {
-  print_tagged "OK" "${1}" 32
+  print_tagged "PASS" "${1}" 32
 }
 
 function print_warn()
 {
-  print_tagged "WARNING" "${1}" 33
+  print_tagged "WARN" "${1}" 33
 }
 
 function print_header()
 {
-  print_ul "${1}"
+  print_bold_ul "${1}"
+  #print_ul "${1}"
   #print_bold "${1}" 34
 }
 
@@ -604,6 +622,58 @@ function get_openssl_seclvl()
   done
 
   echo "$((${temp}+2))"
+}
+
+function get_print_func()
+{
+  input="${1}"
+  if [ -z "${1}" ]; then
+    echo "echo"
+  fi
+
+  case "${input}" in
+    pass)
+      echo "print_pass"
+    ;;
+    info|I|Info)
+      echo "print_info"
+    ;;
+    warn|W|Warning)
+      echo "print_warn"
+    ;;
+    error|fatal|E|Error)
+      echo "print_error"
+    ;;
+    *)
+      echo "print_normal"
+    ;;
+  esac
+}
+
+function get_print_func_raw()
+{
+  input="${1}"
+  if [ -z "${1}" ]; then
+    echo "echo"
+  fi
+
+  case "${input}" in
+    pass)
+      echo "print_green"
+    ;;
+    info|I|Info)
+      echo "print_normal"
+    ;;
+    warn|W|Warning)
+      echo "print_yellow"
+    ;;
+    error|fatal|E|F|B|Error)
+      echo "print_red"
+    ;;
+    *)
+      echo "print_normal"
+    ;;
+  esac
 }
 
 # process arguments
@@ -1048,30 +1118,30 @@ if [ ! -z "${SECURITY_LEVEL}" ] && [ ! -z "${CERT_ALGO}" ] && [ ! -z "${CERT_BIT
   esac
 fi
 
-if [ $lec -ne 0 ]; then
-  echo
-fi
-
 if [ ${OPENSSL_ERR} -eq 1 ]; then
+  echo
   print_header "openssl verify:"
   print_red "${OPENSSL_OUT}"
   EC=1
   lec=1
 else
+  if [ $lec -ne 0 ]; then
+    echo
+  fi
   lec=0
   print_pass "openssl verify: certificate OK!"
 fi
 
-if [ $lec -ne 0 ]; then
-  echo
-fi
-
 if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
+  echo
   print_header "openssl CRL verify:"
   print_yellow "${OPENSSL_CRLCHECK}"
   EC=1
   lec=1
 else
+  if [ $lec -ne 0 ]; then
+    echo
+  fi
   lec=0
   print_pass "openssl verify: certificate CRL check OK!"
 fi
@@ -1098,61 +1168,104 @@ fi
 
 ################## z509lint
 
-if [ $lec -ne 0 ]; then
-  echo
-fi
-
 if [ ! -z "${X509LINT}" ]; then
+echo
 print_header "x509lint:"
-print_red "${X509LINT}"
-EC=1
-lec=1
+
+IFS=$'\n'; for line in ${X509LINT}; do
+  temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
+  info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
+  print_method=$(get_print_func "${temp}")
+  print_method_raw=$(get_print_func_raw "${temp}")
+  if [ -z "${print_method}" ] || [ -z "${print_method_raw}" ]; then
+    exit_script 1 "Failed to determine print method."
+  fi
+  ${print_method} "${info}"
+done
+
+#print_red "${X509LINT}"
+
+#EC=1
+#lec=1
 else
+#if [ $lec -ne 0 ]; then
+  echo
+#fi
 lec=0
 print_pass "x509lint: certificate OK"
 fi
 
 ################## aws-certlint
 
-if [ $lec -ne 0 ]; then
-  echo
-fi
+#if [ $lec -ne 0 ]; then
+#  echo
+#fi
 
 if [ ! -z "${AWS_CERTLINT}" ]; then
+echo
 print_header "aws-certlint:"
-print_red "${AWS_CERTLINT}"
-EC=1
-lec=1
+
+IFS=$'\n'; for line in ${AWS_CERTLINT}; do
+  temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
+  info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
+  print_method=$(get_print_func "${temp}")
+  print_method_raw=$(get_print_func_raw "${temp}")
+  if [ -z "${print_method}" ] || [ -z "${print_method_raw}" ]; then
+    exit_script 1 "Failed to determine print method."
+  fi
+  ${print_method} "${info}"
+done
+
+#print_red "${AWS_CERTLINT}"
+
+#EC=1
+#lec=1
 else
 lec=0
+echo
 print_pass "aws-certlint: certificate OK"
 fi
 
 ################## aws-cablint
 
-if [ $lec -ne 0 ]; then
-  echo
-fi
-
 if [ ! -z "${AWS_CABLINT}" ]; then
+echo
 print_header "aws-cablint:"
-print_red "${AWS_CABLINT}"
-EC=1
-lec=1
+
+IFS=$'\n'; for line in ${AWS_CABLINT}; do
+  temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
+  info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
+
+  if echo "${info}" | grep -qP 'EV\scertificate\sidentified'; then
+    EV_DETECTED="true"
+  fi
+
+  print_method=$(get_print_func "${temp}")
+  print_method_raw=$(get_print_func_raw "${temp}")
+  if [ -z "${print_method}" ] || [ -z "${print_method_raw}" ]; then
+    exit_script 1 "Failed to determine print method."
+  fi
+  ${print_method} "${info}"
+done
+
+#print_red "${AWS_CABLINT}"
+
+#EC=1
+#lec=1
 else
+#if [ $lec -ne 0 ]; then
+  echo
+#fi
 lec=0
-print_pass "aws-certlint: certificate OK"
+print_pass "aws-cablint: certificate OK"
 fi
 
 ################## zlint
 
-if [ $lec -ne 0 ]; then
-  echo
-fi
-
 if [ ! -z "${ZLINT}" ]; then
+echo
 print_header "zlint results:"
-print_header "--"
+#print_header "--"
 IFS=$'\n'; for x in ${ZLINT}; do
   name=$(echo $x | grep -Po '(?<=\")[^\"]+(?=\"\:\s\{)')
   if [ ! -z "$name" ]; then
@@ -1170,35 +1283,55 @@ for ((idx=0;idx<=$((${#zlint_names[@]}-1));idx++)); do
   desc=$(${ZLINT_BIN} -list-lints-json | grep "$zlint_name" | grep -Po '(?<=\"description\"\:\")[^\"]+(?=\")')
   ref=$(${ZLINT_BIN} -list-lints-json | grep "$zlint_name" | grep -Po '(?<=\"citation\"\:\")[^\"]+(?=\")')
 
-  print_yellow "zlint name  : $zlint_name"
-  print_yellow "result      : ${result}"
+  print_method=$(get_print_func "${result}")
+  print_method_raw=$(get_print_func_raw "${result}")
+  if [ -z "${print_method}" ] || [ -z "${print_method_raw}" ]; then
+    exit_script 1 "Failed to determine print method."
+  fi
   if [ ! -z "${details}" ] && [ "${details}" != "null" ]; then
-  print_yellow "details     : ${details}"
+    ${print_method} "${details}"
+  else
+    ${print_method} "${desc}"
+  fi
+
+  if [ $VERBOSITY -gt 1 ]; then
+  print_header "---"
+  ${print_method_raw} "zlint name  : $zlint_name"
+  ${print_method_raw} "result      : ${result}"
+  if [ ! -z "${details}" ] && [ "${details}" != "null" ]; then
+  ${print_method_raw} "details     : ${details}"
   fi
   if [ $VERBOSITY -gt 0 ]; then
-  print_yellow "description : ${desc}"
+  ${print_method_raw} "description : ${desc}"
   fi
-  print_yellow "reference   : ${ref}"
+  ${print_method_raw} "reference   : ${ref}"
   print_header "---"
+  fi
 done
 EC=1
 lec=1
 else
+#if [ $lec -ne 0 ]; then
+  echo
+#fi
 lec=0
 print_pass "zlint: certificate OK"
 fi
 
 ################## Golang
 
-if [ $lec -ne 0 ]; then
+#if [ $lec -ne 0 ]; then
   echo
-fi
+#fi
 
+print_header "Golang:"
 for lint in ${GOLANG_LINTS}; do
   result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null)
   if ! [ $? -eq 0 ]; then
+    lec=1
     print_error "${result}"
   else
+    lec=0
     print_pass "${result}"
   fi
 done
@@ -1207,22 +1340,43 @@ done
 
 echo
 if [ ! -z "${GS_CERTLINT}" ]; then
-print_header "gs-certlint:"
-print_red "${GS_CERTLINT}"
-EC=1
-lec=1
+print_header "GlobalSign certlint:"
+
+IFS=$'\n'; for line in ${GS_CERTLINT}; do
+
+if echo "${line}" | grep -qP '^Processed\sCertificate\sType\:\sEV$'; then
+  EV_DETECTED="true"
+fi
+
+temp=$(echo "${line}" | grep -Po '(?<=Priority\:\s)(Error|Warning|Info)' | sort | head -n1)
+print_method=$(get_print_func "${temp}")
+print_method_raw=$(get_print_func_raw "${temp}")
+if [ -z "${print_method}" ] || [ -z "${print_method_raw}" ]; then
+  exit_script 1 "Failed to determine print method."
+fi
+
+if echo "${line}" | grep -q "Message"; then
+info=$(echo "${line}" | grep -Po '(?<=Message\:\s).*$')
+${print_method} "${info}"
+#else
+#print_normal "${line}"
+fi
+
+done
+
 else
 lec=0
-print_pass "gs-certlint: certificate OK"
+print_pass "GlobalSign certlint: certificate OK"
 fi
 
 ################## NSS
 
 if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
 
-if [ $lec -ne 0 ]; then
-  echo
-fi
+#if [ $lec -ne 0 ]; then
+#  echo
+#fi
+echo
 
 print_header "Mozilla Network Security Service (NSS):"
 
@@ -1321,10 +1475,10 @@ fi
 
 ################## ev-checker
 
-if [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
-  if [ $lec -ne 0 ]; then
+if [ "${EV_DETECTED}" == "true" ] && [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
+  #if [ $lec -ne 0 ]; then
     echo
-  fi
+  #fi
   print_header "EV policy check:"
   result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1)
   if [ $? -ne 0 ]; then
