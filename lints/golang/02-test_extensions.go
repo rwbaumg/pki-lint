@@ -113,6 +113,6 @@ func main() {
      os.Exit(1)
   }
 
-  fmt.Printf("Go: No unhandled critical extensions (good!).\n")
+  fmt.Printf("Go: No unhandled critical extensions.\n")
   os.Exit(0)
 }

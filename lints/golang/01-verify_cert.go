@@ -159,6 +159,6 @@ func main() {
     os.Exit(1)
   }
 
-  fmt.Printf("Go: Certificate verification succeeded (good!).\n")
+  fmt.Printf("Go: Certificate verification succeeded.\n")
   os.Exit(0)
 }
