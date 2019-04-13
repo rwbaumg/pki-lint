@@ -60,6 +60,7 @@ OPENSSL_ARGS="-verbose -x509_strict -policy_print -policy_check"
 OPENSSL_MIN_VERSION_NUM="1.1.0"
 OPENSSL_MIN_VERSION_EXT="g"
 
+hash realpath 2>/dev/null || { echo >&2 "You need to install realpath. Aborting."; exit 1; }
 hash openssl 2>/dev/null || { echo >&2 "You need to install openssl. Aborting."; exit 1; }
 hash go 2>/dev/null || { echo >&2 "You need to install go. Aborting."; exit 1; }
 hash git 2>/dev/null || { echo >&2 "You need to install git. Aborting."; exit 1; }
@@ -1141,10 +1142,10 @@ if [ ! -z "${SECURITY_LEVEL}" ] && [ ! -z "${CERT_ALGO}" ] && [ ! -z "${CERT_BIT
     rsaEncryption)
       if [ $CERT_BITS -lt $RSA_MIN_BITS ]; then
         lec=1
-        print_error "Security level '${SECURITY_LEVEL}' requires an RSA key of at least ${RSA_MIN_BITS} bits (certificate: ${CERT_BITS} bits)."
+        print_error "An RSA key of at least ${RSA_MIN_BITS} bits is required (certificate: ${CERT_BITS} bits)."
       else
         lec=0
-        print_pass "RSA certificate key length of ${CERT_BITS} bits (${RSA_MIN_BITS} bits required for level '${SECURITY_LEVEL}')."
+        print_pass "RSA certificate key length of ${CERT_BITS} bits (${RSA_MIN_BITS} bits required)."
       fi
     ;;
   esac

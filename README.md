@@ -159,7 +159,7 @@ git submodule update --recursive
 For Debian and Debian-based distributions (e.g Ubuntu) with APT (Advanced Package Manager) installed, you can run the following commands to setup a build environment:
 ```bash
 sudo apt-get install make gcc clang \
-   gnutls-bin openssl git jq \
+   gnutls-bin openssl git jq realpath \
    ruby-dev golang-go libnspr4-dev \
    libcurl4-openssl-dev libnss3-dev \
    libnss3-tools libssl-dev && \
