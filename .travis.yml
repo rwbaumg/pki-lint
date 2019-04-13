@@ -2,6 +2,10 @@ language: shell
 sudo: required
 dist: xenial
 
+addons:
+  apt:
+    update: true
+
 git:
   submodules: true
 
@@ -13,6 +17,4 @@ os:
   - linux
 
 install:
-  - sudo apt-get install software-properties-common
-  - sudo add-apt-repository universe
   - sudo ./build.sh

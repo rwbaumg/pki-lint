@@ -669,8 +669,13 @@ function configure_pkg_manager()
       if ! ${sudo_cmd} add-apt-repository universe; then
         exit_script 1 "Failed to enable 'universe' package repository."
       fi
-      print_green "Enabled 'universe' package source."
+      print_green "Enabled APT repository 'universe'."
       return 0
+    fi
+
+    if ! ${sudo_cmd} apt-get update; then
+      echo >&2 "WARNING: Failed to update apt cache."
+      return 1
     fi
   fi
 
