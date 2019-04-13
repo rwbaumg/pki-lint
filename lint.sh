@@ -1534,14 +1534,21 @@ if [ "${EV_DETECTED}" == "true" ] && [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOS
   if ! result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1); then
     EC=1
     lec=1
-    print_error "ev-checker:"
-    print_red "${result}"
+    print_red  "${result}"
   else
     lec=0
-    print_pass "ev-checker: ${result}"
+    print_pass "${result}"
   fi
 fi
 
 rm ${VERBOSE_FLAG} ${DER_FILE} ${PEM_FILE}
+
+echo
+#print_normal "Finished checking certificate."
+if [ ${EC} -ne 0 ]; then
+  print_error "Certificate linting found one or more issues."
+else
+  print_pass  "Certificate passed all checks."
+fi
 
 exit ${EC}
