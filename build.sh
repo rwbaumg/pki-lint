@@ -406,6 +406,7 @@ function add_apt_source()
       print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package source."
       return 1
     else
+      print_yellow "Requesting root permissions via sudo invocation..."
       sudo_cmd="sudo"
     fi
   fi
@@ -453,6 +454,7 @@ function install_golang_v110()
         print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
         exit_script 1 "You need to install sudo. Aborting."
       else
+        print_yellow "Requesting root permissions via sudo invocation..."
         sudo_cmd="sudo"
       fi
     fi
@@ -516,6 +518,7 @@ function install_ruby_v220()
         print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
         exit_script 1 "You need to install sudo. Aborting."
       else
+        print_yellow "Requesting root permissions via sudo invocation..."
         sudo_cmd="sudo"
       fi
     fi
@@ -595,6 +598,7 @@ function install_pkg()
       print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
       exit_script 1 "You need to install sudo. Aborting."
     else
+      print_yellow "Requesting root permissions via sudo invocation..."
       sudo_cmd="sudo"
     fi
   fi
@@ -656,6 +660,7 @@ function configure_pkg_manager()
       print_yellow "WARNING: 'sudo' not found in PATH; cannot configure package manager."
       exit_script 1 "You need to install sudo. Aborting."
     else
+      print_yellow "Requesting root permissions via sudo invocation..."
       sudo_cmd="sudo"
     fi
   fi
@@ -705,6 +710,7 @@ function install_gem()
       print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing gem."
       exit_script 1 "You need to install the Ruby gem '${gem_name}'. Aborting."
     else
+      print_yellow "Requesting root permissions via sudo invocation..."
       sudo_cmd="sudo"
     fi
   fi
