@@ -629,6 +629,13 @@ function is_source_repo_enabled()
       print_green "Package source '${source}' is already enabled."
       return 0
     fi
+
+    if add-apt-repository universe; then
+      print_green "Enabled package source '${source}'."
+      return 0
+    else
+      exit_script 1 "Failed to enable package source '${source}'."
+    fi
   fi
 
   exit_script 1 "The current operating system lacks a supported package manager."
