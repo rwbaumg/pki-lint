@@ -583,9 +583,9 @@ function install_pkg()
 
   if check_installed "${pkg_name}"; then
     # package is already installed
-    if [ $VERBOSITY -gt 0 ]; then
-      echo "Package '${pkg_name}' is already installed."
-    fi
+    #if [ $VERBOSITY -gt 0 ]; then
+    print_green "Package '${pkg_name}' is installed."
+    #fi
     return 0
   fi
 
