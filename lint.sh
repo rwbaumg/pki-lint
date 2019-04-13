@@ -294,9 +294,14 @@ function print_pass()
   print_tagged "PASS" "${1}" 32
 }
 
+function print_notice()
+{
+  print_tagged "NOTICE" "${1}" 32
+}
+
 function print_warn()
 {
-  print_tagged "WARN" "${1}" 33
+  print_tagged "WARNING" "${1}" 33
 }
 
 function print_header()
@@ -641,8 +646,11 @@ function get_print_func()
     warn|W|Warning)
       echo "print_warn"
     ;;
-    error|fatal|E|Error)
+    error|fatal|E|F|B|Error)
       echo "print_error"
+    ;;
+    notice)
+      echo "print_notice"
     ;;
     *)
       echo "print_normal"
@@ -669,6 +677,9 @@ function get_print_func_raw()
     ;;
     error|fatal|E|F|B|Error)
       echo "print_red"
+    ;;
+    notice)
+      echo "print_green"
     ;;
     *)
       echo "print_normal"
@@ -1112,7 +1123,7 @@ if [ ! -z "${SECURITY_LEVEL}" ] && [ ! -z "${CERT_ALGO}" ] && [ ! -z "${CERT_BIT
         print_error "Security level '${SECURITY_LEVEL}' requires an RSA key of at least ${RSA_MIN_BITS} bits (certificate: ${CERT_BITS} bits)."
       else
         lec=0
-        print_pass "RSA certificate key length of ${CERT_BITS} bits (minimum for '${SECURITY_LEVEL}' security level: ${RSA_MIN_BITS} bits)."
+        print_pass "RSA certificate key length of ${CERT_BITS} bits (${RSA_MIN_BITS} bits required for level '${SECURITY_LEVEL}')."
       fi
     ;;
   esac
@@ -1120,7 +1131,7 @@ fi
 
 if [ ${OPENSSL_ERR} -eq 1 ]; then
   echo
-  print_header "openssl verify:"
+  print_header "OpenSSL verify:"
   print_red "${OPENSSL_OUT}"
   EC=1
   lec=1
@@ -1129,13 +1140,14 @@ else
     echo
   fi
   lec=0
-  print_pass "openssl verify: certificate OK!"
+  print_pass "OpenSSL verify: certificate OK!"
 fi
 
 if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
   echo
-  print_header "openssl CRL verify:"
-  print_yellow "${OPENSSL_CRLCHECK}"
+  text=$(echo "${OPENSSL_CRLCHECK}" | sed 's/'${PEM_FILE//\//\\/}'//')
+  print_header "OpenSSL CRL verify:"
+  print_yellow "${text}"
   EC=1
   lec=1
 else
@@ -1143,7 +1155,7 @@ else
     echo
   fi
   lec=0
-  print_pass "openssl verify: certificate CRL check OK!"
+  print_pass "OpenSSL verify: certificate CRL check OK!"
 fi
 
 if [ $lec -ne 0 ]; then
@@ -1170,7 +1182,7 @@ fi
 
 if [ ! -z "${X509LINT}" ]; then
 echo
-print_header "x509lint:"
+print_header "X.509 lint:"
 
 IFS=$'\n'; for line in ${X509LINT}; do
   temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
@@ -1192,7 +1204,7 @@ else
   echo
 #fi
 lec=0
-print_pass "x509lint: certificate OK"
+print_pass "X.509 lint: All certificate checks OK."
 fi
 
 ################## aws-certlint
@@ -1203,7 +1215,7 @@ fi
 
 if [ ! -z "${AWS_CERTLINT}" ]; then
 echo
-print_header "aws-certlint:"
+print_header "certlint:"
 
 IFS=$'\n'; for line in ${AWS_CERTLINT}; do
   temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
@@ -1223,18 +1235,18 @@ done
 else
 lec=0
 echo
-print_pass "aws-certlint: certificate OK"
+print_pass "certlint: certificate OK"
 fi
 
 ################## aws-cablint
 
 if [ ! -z "${AWS_CABLINT}" ]; then
 echo
-print_header "aws-cablint:"
+print_header "CA/B Forum lint:"
 
 IFS=$'\n'; for line in ${AWS_CABLINT}; do
   temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
-  info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
+  info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
 
   if echo "${info}" | grep -qP 'EV\scertificate\sidentified'; then
     EV_DETECTED="true"
@@ -1257,14 +1269,14 @@ else
   echo
 #fi
 lec=0
-print_pass "aws-cablint: certificate OK"
+print_pass "CA/B Forum lint: All certificate checks OK."
 fi
 
 ################## zlint
 
 if [ ! -z "${ZLINT}" ]; then
 echo
-print_header "zlint results:"
+print_header "ZLint:"
 #print_header "--"
 IFS=$'\n'; for x in ${ZLINT}; do
   name=$(echo $x | grep -Po '(?<=\")[^\"]+(?=\"\:\s\{)')
@@ -1282,6 +1294,10 @@ for ((idx=0;idx<=$((${#zlint_names[@]}-1));idx++)); do
 
   desc=$(${ZLINT_BIN} -list-lints-json | grep "$zlint_name" | grep -Po '(?<=\"description\"\:\")[^\"]+(?=\")')
   ref=$(${ZLINT_BIN} -list-lints-json | grep "$zlint_name" | grep -Po '(?<=\"citation\"\:\")[^\"]+(?=\")')
+
+  if [ "${result}" == "info" ]; then
+    result="notice"
+  fi
 
   print_method=$(get_print_func "${result}")
   print_method_raw=$(get_print_func_raw "${result}")
@@ -1315,7 +1331,7 @@ else
   echo
 #fi
 lec=0
-print_pass "zlint: certificate OK"
+print_pass "ZLint: All certificate checks OK."
 fi
 
 ################## Golang
@@ -1442,11 +1458,11 @@ result=$(certutil -V -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} -n "${crt_common_name
 if [ $? -ne 0 ]; then
   EC=1
   lec=1
-  print_error "NSS certutil FAILED:"
+  print_error "NSS certutil:"
   print_red "${result}"
 else
   lec=0
-  print_pass "NSS certutil OK: ${crt_common_name}: ${result}"
+  print_pass "NSS certutil: ${crt_common_name}: ${result}"
 fi
 
 if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
@@ -1461,9 +1477,9 @@ if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
   fi
   if [ $? -ne 0 ]; then
     EC=1
-    print_error "vfychain FAILED: ${result}"
+    print_error "NSS vfychain: ${result}"
   else
-    print_pass "vfychain OK: ${result}"
+    print_pass  "NSS vfychain: ${result}"
   fi
 fi
 
@@ -1479,16 +1495,16 @@ if [ "${EV_DETECTED}" == "true" ] && [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOS
   #if [ $lec -ne 0 ]; then
     echo
   #fi
-  print_header "EV policy check:"
+  print_header "EV Policy check:"
   result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1)
   if [ $? -ne 0 ]; then
     EC=1
     lec=1
-    print_error "ev-checker FAILED:"
+    print_error "ev-checker:"
     print_red "${result}"
   else
     lec=0
-    print_pass "ev-checker OK: ${result}"
+    print_pass "ev-checker: ${result}"
   fi
 fi
 
