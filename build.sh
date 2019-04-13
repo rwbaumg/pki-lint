@@ -662,7 +662,7 @@ function configure_pkg_manager()
 
   if hash apt-get 2>/dev/null; then
     # Make sure required tooling is installed
-    hash add-apt-repository 2>/dev/null || { install_pkg "software-properties-common"; }
+    install_pkg "software-properties-common"
 
     # Enable the 'universe' package source.
     if ! is_source_repo_enabled "universe"; then
