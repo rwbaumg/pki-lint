@@ -304,6 +304,11 @@ function print_warn()
   print_tagged "WARNING" "${1}" 33
 }
 
+function print_data()
+{
+  print_cyan "${1}"
+}
+
 function print_header()
 {
   print_bold_ul "${1}"
@@ -319,6 +324,21 @@ function print_green()
 function print_red()
 {
   print_ex "${1}" 0 31
+}
+
+function print_blue()
+{
+  print_ex "${1}" 0 34
+}
+
+function print_magenta()
+{
+  print_ex "${1}" 0 35
+}
+
+function print_cyan()
+{
+  print_ex "${1}" 0 36
 }
 
 function print_yellow()
@@ -1001,7 +1021,8 @@ print_bold "Checking certificate '${CERT}' ..."
 
 if [ "${PRINT_MODE}" == "true" ]; then
   echo
-  openssl x509 -in "${PEM_FILE}" -noout -text
+  OPENSSL_RAW=$(openssl x509 -in "${PEM_FILE}" -noout -text)
+  print_data "${OPENSSL_RAW}"
   echo
 fi
 
