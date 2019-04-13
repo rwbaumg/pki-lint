@@ -13,4 +13,5 @@ os:
   - linux
 
 install:
+  - sudo apt-get install software-properties-common
   - sudo ./build.sh
