@@ -74,17 +74,17 @@ hash vfychain 2>/dev/null || { echo >&2 "You need to install libnss3-tools. Abor
 # level 1: 128 bits (RSA >= 3072  bits ; ECC >= 256 bits)
 # level 2: 192 bits (RSA >= 7680  bits ; ECC >= 384 bits)
 # level 3: 256 bits (RSA >= 15360 bits ; ECC >= 512 bits)
-securityLevels=([0]=minimum [1]=medium [2]=high [3]=extreme)
+securityLevels=([0]="minimum" [1]="medium" [2]="high" [3]="extreme")
 
 # define table of EKU purpose arguments for various tools
-certPurposes=([0]=client [1]=server [2]=mailsign [3]=mailencrypt [4]=ocsp [5]=anyCA)
-opensslk_opts=([0]=sslclient [1]=sslserver [2]=smimesign [3]=smimeencrypt [4]= [5]=)
-vfychain_opts=([0]=0 [1]=1 [2]=4 [3]=5 [4]=10 [5]=11)
-certutil_opts=([0]=C [1]=V [2]=S [3]=R [4]=O [5]=A)
-golangku_opts=([0]=2 [1]=1 [2]=4 [3]=4 [4]=9 [5]=)
-gnutlsku_opts=([0]=1.3.6.1.5.5.7.3.2 [1]=1.3.6.1.5.5.7.3.1 [2]=1.3.6.1.5.5.7.3.4 [3]=1.3.6.1.5.5.7.3.4 [4]=1.3.6.1.5.5.7.3.9 [5]=)
+certPurposes=([0]="client" [1]="server" [2]="mailsign" [3]="mailencrypt" [4]="ocsp" [5]="anyCA")
+opensslk_opts=([0]="sslclient" [1]="sslserver" [2]="smimesign" [3]="smimeencrypt" [4]="" [5]="")
+vfychain_opts=([0]="0"  [1]="1"  [2]="4"  [3]="5"  [4]="10" [5]="11" )
+certutil_opts=([0]="C"  [1]="V"  [2]="S"  [3]="R"  [4]="O"  [5]="A"  )
+golangku_opts=([0]="2"  [1]="1"  [2]="4"  [3]="4"  [4]="9"  [5]=""   )
+gnutlsku_opts=([0]="1.3.6.1.5.5.7.3.2" [1]="1.3.6.1.5.5.7.3.1" [2]="1.3.6.1.5.5.7.3.4" [3]="1.3.6.1.5.5.7.3.4" [4]="1.3.6.1.5.5.7.3.9" [5]="")
 
-function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+function version_gt() { test "$(printf '%s\n' "$@" | sort -bt. -k1,1 -k2,2n -k3,3n -k4,4n -k5,5n | head -n 1)" != "$1"; }
 
 # get the root directory this script is running from
 # if the script is called from a symlink, the link is
@@ -354,17 +354,17 @@ exit_script()
   local re var
 
   re='^([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$'
-  if echo "$1" | egrep -q "$re"; then
+  if echo "$1" | grep -q -E "$re"; then
     exit_code=$1
     shift
   fi
 
   re='[[:alnum:]]'
-  if echo "$@" | egrep -iq "$re"; then
+  if echo "$*" | grep -iq -E "$re"; then
     if [ $exit_code -eq 0 ]; then
-      print_info >&2 "INFO: $@"
+      print_info   "$*"  >&2
     else
-      print_error    "ERROR: $@" 1>&2
+      print_error  "$*" 1>&2
     fi
   fi
 
@@ -432,12 +432,12 @@ test_arg()
   local argv="$2"
 
   if [ -z "$argv" ]; then
-    if echo "$arg" | egrep -q '^-'; then
+    if echo "$arg" | grep -q -E '^-'; then
       usage "Null argument supplied for option $arg"
     fi
   fi
 
-  if echo "$argv" | egrep -q '^-'; then
+  if echo "$argv" | grep -q -E '^-'; then
     usage "Argument for option $arg cannot start with '-'"
   fi
 }
@@ -506,7 +506,7 @@ test_host_arg()
   fi
 
   host_regex='^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
-  if ! `echo "$argv" | grep -qPo ${host_regex}`; then
+  if ! $(echo "$argv" | grep -qPo ${host_regex}); then
     usage "Invalid hostname: '${argv}'"
   fi
 }
@@ -1001,8 +1001,7 @@ if [ ! -z "${CA_CHAIN}" ]; then
 fi
 
 PEM_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).pem"
-openssl x509 -outform pem -in "${CERT}" -out "${PEM_FILE}" > /dev/null 2>&1
-if ! [ $? -eq 0 ]; then
+if ! openssl x509 -outform pem -in "${CERT}" -out "${PEM_FILE}" > /dev/null 2>&1; then
   usage "Failed to parse input file '${CERT}' as PEM certificate."
 fi
 
@@ -1028,38 +1027,39 @@ if [ "${PRINT_MODE}" == "true" ]; then
 fi
 
 if [ -e "${ZLINT_BIN}" ]; then
-ZLINT_RAW=$(${ZLINT_BIN} -pretty "${PEM_FILE}")
-ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
-if ! [ $? -eq 0 ]; then
+if ! ZLINT_RAW=$(${ZLINT_BIN} -pretty "${PEM_FILE}"); then
   # NOTE: zlint appears to return a non-zero exit code even if no warnings are found
   print_info "zlint returned a non-zero exit code."
 fi
+ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
 fi
 
 pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
-AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}")
-if ! [ $? -eq 0 ]; then
+if ! AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}"); then
   print_warn "AWS certlint returned a non-zero exit code."
 fi
-AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}")
-if ! [ $? -eq 0 ]; then
+if ! AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}"); then
   print_warn >&2 "AWS cablint returned a non-zero exit code."
 fi
 popd > /dev/null 2>&1
 
+err=0
 pushd ${GS_CLINT_DIR} > /dev/null 2>&1
 if [ ! -z "${CA_CHAIN}" ]; then
-  GS_CERTLINT=$(./gs-certlint -issuer "${CA_CHAIN_FULL_PATH}" -cert "${PEM_FILE}")
+  if ! GS_CERTLINT=$(./gs-certlint -issuer "${CA_CHAIN_FULL_PATH}" -cert "${PEM_FILE}"); then
+    err=1
+  fi
 else
-  GS_CERTLINT=$(./gs-certlint -cert "${PEM_FILE}")
-fi
-if ! [ $? -eq 0 ]; then
-  print_warn >&2 "GlobalSign certlint returned a non-zero exit code."
+  if ! GS_CERTLINT=$(./gs-certlint -cert "${PEM_FILE}"); then
+    err=1
+  fi
 fi
 popd > /dev/null 2>&1
+if [ $err -ne 0 ]; then
+  print_warn >&2 "GlobalSign certlint returned a non-zero exit code."
+fi
 
-X509LINT=$(${X509_BIN} "${PEM_FILE}")
-if ! [ $? -eq 0 ]; then
+if ! X509LINT=$(${X509_BIN} "${PEM_FILE}"); then
   print_warn >&2 "x509lint returned a non-zero exit code."
 fi
 
@@ -1093,23 +1093,29 @@ if [ ! -z "${KU_GNUTLS}" ]; then
   GNUTLS_EXTRA="${GNUTLS_EXTRA} --verify-purpose=${KU_GNUTLS}"
 fi
 
+err=0
 if [ ! -z "${CA_CHAIN}" ]; then
-  OPENSSL_OUT=$(openssl verify ${OPENSSL_ARGS} ${OPENSSL_EXTRA} -CAfile "${PEM_CHAIN_FILE}" "${PEM_FILE}" 2>&1)
+  if ! OPENSSL_OUT=$(openssl verify ${OPENSSL_ARGS} ${OPENSSL_EXTRA} -CAfile "${PEM_CHAIN_FILE}" "${PEM_FILE}" 2>&1); then
+    err=1
+  fi
 else
-  OPENSSL_OUT=$(openssl verify ${OPENSSL_ARGS} ${OPENSSL_EXTRA} "${PEM_FILE}" 2>&1)
+  if ! OPENSSL_OUT=$(openssl verify ${OPENSSL_ARGS} ${OPENSSL_EXTRA} "${PEM_FILE}" 2>&1); then
+    err=1
+  fi
 fi
-if ! [ $? -eq 0 ]; then
+if [ $err -ne 0 ]; then
   OPENSSL_ERR=1
   print_warn "OpenSSL verification returned a non-zero exit code." >&2
 fi
 
 if [ ! -z "${CA_CHAIN}" ]; then
-  OPENSSL_CRLCHECK=$(openssl verify -crl_check_all -CAfile "${PEM_CHAIN_FILE}" "${PEM_FILE}" 2>&1)
+  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check_all -CAfile "${PEM_CHAIN_FILE}" "${PEM_FILE}" 2>&1); then
+    OPENSSL_CRL_ERR=1
+  fi
 else
-  OPENSSL_CRLCHECK=$(openssl verify -crl_check_all "${PEM_FILE}" 2>&1)
-fi
-if ! [ $? -eq 0 ]; then
-  OPENSSL_CRL_ERR=1
+  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check_all "${PEM_FILE}" 2>&1); then
+    OPENSSL_CRL_ERR=1
+  fi
 fi
 
 if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
@@ -1117,14 +1123,19 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
   if [ ${DEBUG_LEVEL} -gt 0 ]; then
     DEBUG_ARG="-d ${DEBUG_LEVEL}"
   fi
+  err=0
   if [ ! -z "${CA_CHAIN}" ]; then
-  CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} --load-ca-certificate "${CA_CHAIN}" 2>&1)
+    if ! CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} --load-ca-certificate "${CA_CHAIN}" 2>&1); then
+      err=1
+    fi
   else
-  CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} 2>&1)
+    if ! CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} 2>&1); then
+      err=1
+    fi
   fi
-  if ! [ $? -eq 0 ]; then
+  if [ $err -ne 0 ]; then
     GNUTLS_ERR=1
-    print_warn "GnuTLS certtool returned a non-zero exit code." >&2
+    print_warn >&2 "GnuTLS certtool returned a non-zero exit code."
   fi
 fi
 
@@ -1364,8 +1375,7 @@ fi
 
 print_header "Golang:"
 for lint in ${GOLANG_LINTS}; do
-  result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null)
-  if ! [ $? -eq 0 ]; then
+  if ! result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
     lec=1
     print_error "${result}"
   else
@@ -1450,8 +1460,7 @@ for c in ${DB_PATH}/*.pem; do
   if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i "${c}" -t C,C,C; then
     ec=1
   elif [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
-    result=$(certutil -V -n "${crt_common_name}" -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} 2>&1)
-    if [ $? -ne 0 ]; then
+    if ! result=$(certutil -V -n "${crt_common_name}" -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} 2>&1); then
       EC=1
       lec=1
       print_red "CA ERROR : ${result}"
@@ -1476,8 +1485,7 @@ if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i ${DB_PATH}/cert.crt
 fi
 
 # check end-entity certificate
-result=$(certutil -V -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} -n "${crt_common_name}" 2>&1)
-if [ $? -ne 0 ]; then
+if ! result=$(certutil -V -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} -n "${crt_common_name}" 2>&1); then
   EC=1
   lec=1
   print_error "NSS certutil:"
@@ -1492,12 +1500,17 @@ if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
     echo
   fi
 
+  err=0
   if [ ! -z "${EV_POLICY}" ]; then
-    result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -o ${EV_POLICY} -d ${DB_PATH} "${crt_common_name}" 2>&1)
+    if ! result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -o ${EV_POLICY} -d ${DB_PATH} "${crt_common_name}" 2>&1); then
+      err=1
+    fi
   else
-    result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -d ${DB_PATH} "${crt_common_name}" 2>&1)
+    if ! result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -d ${DB_PATH} "${crt_common_name}" 2>&1); then
+      err=1
+    fi
   fi
-  if [ $? -ne 0 ]; then
+  if [ $err -ne 0 ]; then
     EC=1
     print_error "NSS vfychain: ${result}"
   else
@@ -1518,8 +1531,7 @@ if [ "${EV_DETECTED}" == "true" ] && [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOS
     echo
   #fi
   print_header "EV Policy check:"
-  result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1)
-  if [ $? -ne 0 ]; then
+  if ! result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1); then
     EC=1
     lec=1
     print_error "ev-checker:"
