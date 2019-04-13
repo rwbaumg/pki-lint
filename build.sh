@@ -400,6 +400,10 @@ function add_apt_source()
     fi
   done
 
+  if [ $VERBOSITY -gt 0 ]; then
+    print_yellow "Configuring '$ppa_name' package source for apt-get ..."
+  fi
+
   sudo_cmd=""
   if [[ $EUID -ne 0 ]]; then
     if ! hash sudo 2>/dev/null; then
@@ -409,10 +413,6 @@ function add_apt_source()
       print_yellow "Requesting root permissions via sudo invocation..."
       sudo_cmd="sudo"
     fi
-  fi
-
-  if [ $VERBOSITY -gt 0 ]; then
-    print_yellow "Configuring '$ppa_name' package source for apt-get ..."
   fi
 
   if ! ${sudo_cmd} add-apt-repository ppa:${ppa_name}; then
@@ -447,6 +447,9 @@ function install_golang_v110()
 
   #if [ ! -e "/usr/bin/go" ] && [ ! -e "/usr/local/bin/go" ]; then
   if [ ! -e "/usr/local/bin/go" ]; then
+    #print_yellow "Golang 'go' command is missing from PATH; installing symlink..."
+    print_yellow "Creating /usr/local/bin symlink for Golang 'go' command ..."
+
     # Check if 'sudo' is required
     sudo_cmd=""
     if [[ $EUID -ne 0 ]]; then
@@ -458,9 +461,6 @@ function install_golang_v110()
         sudo_cmd="sudo"
       fi
     fi
-
-    #print_yellow "Golang 'go' command is missing from PATH; installing symlink..."
-    print_yellow "Creating /usr/local/bin symlink for Golang 'go' command ..."
 
     # Create a symlink for 'go' command.
     ln_args="-s"
@@ -511,6 +511,13 @@ function install_ruby_v220()
   fi
 
   if [ ! -e "/usr/local/bin/ruby" ]; then
+    RUBY22_PATH=$(which ruby2.2)
+    if [ -L "${RUBY22_PATH}" ]; then
+      exit_script 1 "The path '${RUBY22_PATH}' is already a symlink."
+    fi
+
+    print_yellow "Creating /usr/local/bin symlink for '${RUBY22_PATH}' command ..."
+
     # Check if 'sudo' is required
     sudo_cmd=""
     if [[ $EUID -ne 0 ]]; then
@@ -522,13 +529,6 @@ function install_ruby_v220()
         sudo_cmd="sudo"
       fi
     fi
-
-    RUBY22_PATH=$(which ruby2.2)
-    if [ -L "${RUBY22_PATH}" ]; then
-      exit_script 1 "The path '${RUBY22_PATH}' is already a symlink."
-    fi
-
-    print_yellow "Creating /usr/local/bin symlink for '${RUBY22_PATH}' command ..."
 
     # Create a symlink for 'ruby' command.
     ln_args="-s"
@@ -660,7 +660,7 @@ function configure_pkg_manager()
       print_yellow "WARNING: 'sudo' not found in PATH; cannot configure package manager."
       exit_script 1 "You need to install sudo. Aborting."
     else
-      print_yellow "Requesting root permissions via sudo invocation..."
+      #print_yellow "Requesting root permissions via sudo invocation..."
       sudo_cmd="sudo"
     fi
   fi
@@ -695,6 +695,11 @@ function install_gem()
     exit_script 1 "No gem name provided to install function."
   fi
 
+  if [ "${INSTALL_MISSING}" != "true" ]; then
+    print_yellow "WARNING: Skipping Gem installation for '${gem_name}'."
+    return 0
+  fi
+
   if [ ! -z "$(gem list | grep ${gem_name})" ]; then
     #print_green "Required Ruby gem '${gem_name}' is already installed."
     return 0
@@ -715,18 +720,16 @@ function install_gem()
     fi
   fi
 
-  if [ "${INSTALL_MISSING}" == "true" ]; then
-    if hash gem 2>/dev/null; then
-      gem_args=""
-      if [ $VERBOSITY -gt 0 ]; then
-        gem_args="--verbose $gem_args"
-      fi
-      print_yellow "Installing Ruby gem '${gem_name}' ..."
-      if ! ${sudo_cmd} gem install ${gem_args} ${gem_name}; then
-        exit_script 1 "Failed to install Ruby gem '${gem_name}'."
-      fi
-      return 0
+  if hash gem 2>/dev/null; then
+    gem_args=""
+    if [ $VERBOSITY -gt 0 ]; then
+      gem_args="--verbose $gem_args"
     fi
+    print_yellow "Installing Ruby gem '${gem_name}' ..."
+    if ! ${sudo_cmd} gem install ${gem_args} ${gem_name}; then
+      exit_script 1 "Failed to install Ruby gem '${gem_name}'."
+    fi
+    return 0
   fi
 
   exit_script 1 "You need to install Ruby gem '${gem_name}'. Aborting."
