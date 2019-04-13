@@ -256,13 +256,13 @@ exit_script()
   local re var
 
   re='^([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$'
-  if echo "$1" | egrep -q "$re"; then
+  if echo "$1" | grep -q -E "$re"; then
     exit_code=$1
     shift
   fi
 
   re='[[:alnum:]]'
-  if echo "$@" | egrep -iq "$re"; then
+  if echo "$@" | grep -iq -E "$re"; then
     if [ $exit_code -eq 0 ]; then
       print_green "INFO: $@"
     else
@@ -309,12 +309,12 @@ test_arg()
   local argv="$2"
 
   if [ -z "$argv" ]; then
-    if echo "$arg" | egrep -q '^-'; then
+    if echo "$arg" | grep -q -E '^-'; then
       usage "Null argument supplied for option $arg"
     fi
   fi
 
-  if echo "$argv" | egrep -q '^-'; then
+  if echo "$argv" | grep -q -E '^-'; then
     usage "Argument for option $arg cannot start with '-'"
   fi
 }
@@ -338,7 +338,7 @@ function get_root_dir()
   return
 }
 
-function version_gt() { test "$(printf '%s\n' "$@" | sort -bt. -k1,1 -k2,2n -k3,3n -k4,4n -k5,5n | head -n 1)" != "$1"; }
+function version_gt() { test "$(printf '%s\n' "$*" | sort -bt. -k1,1 -k2,2n -k3,3n -k4,4n -k5,5n | head -n 1)" != "$1"; }
 
 # Adds a package source for Ruby
 # This may be required if the distribution does not provide
@@ -405,14 +405,8 @@ function add_apt_source()
   fi
 
   sudo_cmd=""
-  if [[ $EUID -ne 0 ]]; then
-    if ! hash sudo 2>/dev/null; then
-      print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package source."
-      return 1
-    else
-      print_yellow "Requesting root permissions via sudo invocation..."
-      sudo_cmd="sudo"
-    fi
+  if ! sudo_cmd="$(get_sudo_cmd)"; then
+    exit_script 1 "You need to install sudo. Aborting."
   fi
 
   if ! ${sudo_cmd} add-apt-repository ppa:${ppa_name}; then
@@ -452,14 +446,10 @@ function install_golang_v110()
 
     # Check if 'sudo' is required
     sudo_cmd=""
-    if [[ $EUID -ne 0 ]]; then
-      if ! hash sudo 2>/dev/null; then
-        print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
-        exit_script 1 "You need to install sudo. Aborting."
-      else
-        print_yellow "Requesting root permissions via sudo invocation..."
-        sudo_cmd="sudo"
-      fi
+    if ! sudo_cmd="$(get_sudo_cmd)"; then
+      exit_script 1 "You need to install sudo. Aborting."
+    else
+      print_yellow "Requesting root permissions via sudo invocation..."
     fi
 
     # Create a symlink for 'go' command.
@@ -520,14 +510,11 @@ function install_ruby_v220()
 
     # Check if 'sudo' is required
     sudo_cmd=""
-    if [[ $EUID -ne 0 ]]; then
-      if ! hash sudo 2>/dev/null; then
-        print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
-        exit_script 1 "You need to install sudo. Aborting."
-      else
-        print_yellow "Requesting root permissions via sudo invocation..."
-        sudo_cmd="sudo"
-      fi
+    if ! sudo_cmd="$(get_sudo_cmd)"; then
+      # print_warn "Cannot install Ruby package."
+      exit_script 1 "You need to install sudo. Aborting."
+    else
+      print_yellow "Requesting root permissions via sudo invocation..."
     fi
 
     # Create a symlink for 'ruby' command.
@@ -553,6 +540,24 @@ function install_ruby_v220()
   fi
 
   return
+}
+
+# request the sudo command
+function get_sudo_cmd()
+{
+  sudo_cmd=""
+  if [[ $EUID -ne 0 ]]; then
+    if ! hash sudo 2>/dev/null; then
+      return 1
+      # exit_script 1 "You need to install sudo. Aborting."
+    fi
+
+    # print_yellow >&2 "Requesting root permissions via sudo invocation..."
+    sudo_cmd="sudo"
+  fi
+
+  echo "${sudo_cmd}"
+  return 0
 }
 
 function check_installed()
@@ -592,15 +597,10 @@ function install_pkg()
     return 0
   fi
 
+  # Check if 'sudo' is required
   sudo_cmd=""
-  if [[ $EUID -ne 0 ]]; then
-    if ! hash sudo 2>/dev/null; then
-      print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing package."
-      exit_script 1 "You need to install sudo. Aborting."
-    else
-      print_yellow "Requesting root permissions via sudo invocation..."
-      sudo_cmd="sudo"
-    fi
+  if ! sudo_cmd="$(get_sudo_cmd)"; then
+    exit_script 1 "You need to install sudo. Aborting."
   fi
 
   if hash apt-get 2>/dev/null; then
@@ -629,13 +629,20 @@ function is_source_repo_enabled()
     os_info="$(lsb_release --short --id --release --codename)"
     { read -r os_id; read -r os_release; read -r os_codename; } <<< "$os_info"
 
-    if apt-cache policy | grep -q "^     release v=$os_release,o=${os_id},a=$os_codename,n=$os_codename,l=${os_id},c=${source}"; then
+    if apt-cache policy | grep -q -E "^([\s]+)?release\sv=$os_release,o=${os_id},a=$os_codename,n=$os_codename,l=${os_id},c=${source}"; then
       print_green "Package source '${source}' is already enabled."
       return 0
     fi
 
-    if add-apt-repository universe; then
-      print_green "Enabled package source '${source}'."
+    if ! sudo_cmd="$(get_sudo_cmd)"; then
+      print_error "Cannot install missing package '${pkg_name}'."
+      exit_script 1 "You need to install sudo. Aborting."
+    else
+      print_yellow "Requesting root permissions via sudo invocation..."
+    fi
+
+    if ${sudo_cmd} add-apt-repository universe; then
+      print_pass "Enabled package source '${source}'."
       return 0
     else
       exit_script 1 "Failed to enable package source '${source}'."
@@ -654,15 +661,11 @@ function configure_pkg_manager()
     return 0
   fi
 
+  # Check if 'sudo' is required
   sudo_cmd=""
-  if [[ $EUID -ne 0 ]]; then
-    if ! hash sudo 2>/dev/null; then
-      print_yellow "WARNING: 'sudo' not found in PATH; cannot configure package manager."
-      exit_script 1 "You need to install sudo. Aborting."
-    else
-      #print_yellow "Requesting root permissions via sudo invocation..."
-      sudo_cmd="sudo"
-    fi
+  if ! sudo_cmd="$(get_sudo_cmd)"; then
+    print_warn    "Cannot configure package manager."
+    exit_script 1 "You need to install sudo. Aborting."
   fi
 
   if hash apt-get 2>/dev/null; then
@@ -709,15 +712,11 @@ function install_gem()
     exit_script 1 "The 'ruby' package is not installed; cannot install gem. Aborting..."
   fi
 
+  # Check if 'sudo' is required
   sudo_cmd=""
-  if [[ $EUID -ne 0 ]]; then
-    if ! hash sudo 2>/dev/null; then
-      print_yellow "WARNING: 'sudo' not found in PATH; cannot install missing gem."
-      exit_script 1 "You need to install the Ruby gem '${gem_name}'. Aborting."
-    else
-      print_yellow "Requesting root permissions via sudo invocation..."
-      sudo_cmd="sudo"
-    fi
+  if ! sudo_cmd="$(get_sudo_cmd)"; then
+    print_warn    "Cannot install Ruby gem '${gem_name}'"
+    exit_script 1 "You need to install sudo. Aborting."
   fi
 
   if hash gem 2>/dev/null; then
