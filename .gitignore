@@ -1,5 +1,7 @@
 *.tmp
 *.bak
+
+.go/
+.gocache/
+
 lints/bin/
-lints/.go/
-lints/.gocache/
