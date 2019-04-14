@@ -50,6 +50,7 @@
 NO_COLOR="true"
 CERTTOOL_MIN_VER="3.0.0"
 VERBOSITY=0
+ERROR_LEVEL=0
 DEBUG_LEVEL=0
 EV_DETECTED="false"
 NSS_VERIFY_CHAIN="false"
@@ -69,6 +70,11 @@ hash jq 2>/dev/null || { echo >&2 "You need to install jq. Aborting."; exit 1; }
 hash ruby 2>/dev/null || { echo >&2 "You need to install ruby-dev. Aborting."; exit 1; }
 hash vfychain 2>/dev/null || { echo >&2 "You need to install libnss3-tools. Aborting."; exit 1; }
 
+# define script error messages
+errorMessages=([0]="Certificate passed all checks."
+               [1]="Certificate linting produced one or more warnings; manual validation required."
+               [2]="Certificate linting found one or more critical issues.")
+
 # define supported security levels
 # level 0: 112 bits (RSA >= 2048  bits ; ECC >= 224 bits)
 # level 1: 128 bits (RSA >= 3072  bits ; ECC >= 256 bits)
@@ -77,13 +83,19 @@ hash vfychain 2>/dev/null || { echo >&2 "You need to install libnss3-tools. Abor
 securityLevels=([0]="minimum" [1]="medium" [2]="high" [3]="extreme")
 
 # define table of EKU purpose arguments for various tools
-certPurposes=([0]="client" [1]="server" [2]="mailsign" [3]="mailencrypt" [4]="ocsp" [5]="anyCA")
-opensslk_opts=([0]="sslclient" [1]="sslserver" [2]="smimesign" [3]="smimeencrypt" [4]="" [5]="")
-vfychain_opts=([0]="0"  [1]="1"  [2]="4"  [3]="5"  [4]="10" [5]="11" )
-certutil_opts=([0]="C"  [1]="V"  [2]="S"  [3]="R"  [4]="O"  [5]="A"  )
-golangku_opts=([0]="2"  [1]="1"  [2]="4"  [3]="4"  [4]="9"  [5]=""   )
-gnutlsku_opts=([0]="1.3.6.1.5.5.7.3.2" [1]="1.3.6.1.5.5.7.3.1" [2]="1.3.6.1.5.5.7.3.4" [3]="1.3.6.1.5.5.7.3.4" [4]="1.3.6.1.5.5.7.3.9" [5]="")
+certPurposes=(  [0]="client"    [1]="server"    [2]="mailsign"  [3]="mailencrypt"  [4]="ocsp" [5]="anyCA" )
+opensslk_opts=( [0]="sslclient" [1]="sslserver" [2]="smimesign" [3]="smimeencrypt" [4]=""     [5]=""      )
+vfychain_opts=( [0]="0"         [1]="1"         [2]="4"         [3]="5"            [4]="10"   [5]="11"    )
+certutil_opts=( [0]="C"         [1]="V"         [2]="S"         [3]="R"            [4]="O"    [5]="A"     )
+golangku_opts=( [0]="2"         [1]="1"         [2]="4"         [3]="4"            [4]="9"    [5]=""      )
+gnutlsku_opts=( [0]="1.3.6.1.5.5.7.3.2"
+                [1]="1.3.6.1.5.5.7.3.1"
+                [2]="1.3.6.1.5.5.7.3.4"
+                [3]="1.3.6.1.5.5.7.3.4"
+                [4]="1.3.6.1.5.5.7.3.9"
+                [5]="")
 
+# usage: version_gt( current_version, required_version )
 function version_gt() { test "$(printf '%s\n' "$@" | sort -bt. -k1,1 -k2,2n -k3,3n -k4,4n -k5,5n | head -n 1)" != "$1"; }
 
 # get the root directory this script is running from
@@ -305,6 +317,13 @@ function print_warn()
   print_tagged "WARNING" "${1}" 33
 }
 
+function print_debug()
+{
+  if [ $VERBOSITY -gt 0 ]; then
+  print_tagged "DEBUG" "${1}" 36
+  fi
+}
+
 function print_data()
 {
   print_cyan "${1}"
@@ -387,38 +406,42 @@ usage()
 
     ARGUMENTS
 
-     certificate             The certificate (in PEM format) to lint.
+     certificate               The certificate (in PEM format) to lint.
 
     OPTIONS
 
-     -r, --root              Certificate is a root CA.
-     -i, --intermediate      Certificate is an Intermediate CA.
-     -s, --subscriber        Certificate is for an end-entity.
+     -r, --root                Certificate is a root CA.
+     -i, --intermediate        Certificate is an Intermediate CA.
+     -s, --subscriber          Certificate is for an end-entity.
 
-     -c, --chain <file>      Specifies a CA chain file to use.
-     -o, --policy <oid>      Specifies an OID of a policy to test.
-     -n, --hostname <name>   Specifies the hostname for validation.
+     -c, --chain <file>        Specifies a CA chain file to use.
+     -o, --policy <oid>        Specifies an OID of a policy to test.
+     -n, --hostname <name>     Specifies the hostname for validation.
 
-     -u, --usage <purpose>   Specifies the certificate purpose to test for.
-                             Supported options are:
-                             - 0=client
-                             - 1=server
-                             - 2=mailsign
-                             - 3=mailencrypt
-                             - 4=ocsp
-                             - 5=anyCA
+     -u, --usage <purpose>     Specifies the certificate purpose to test for.
+                               Supported options are:
+                               - 0=client
+                               - 1=server
+                               - 2=mailsign
+                               - 3=mailencrypt
+                               - 4=ocsp
+                               - 5=anyCA
 
-     -l, --level <level>     Specify the required certificate security level.
-                             Supported options are:
-                             - 0=minimum (>= 112 bits) (default)
-                             - 1=medium  (>= 128 bits)
-                             - 2=high    (>= 192 bits)
-                             - 3=extreme (>= 256 bits)
+     -l, --level <level>       Specify the required certificate security level.
+                               Supported options are:
+                               - 0=minimum (>= 112 bits) (default)
+                               - 1=medium  (>= 128 bits)
+                               - 2=high    (>= 192 bits)
+                               - 3=extreme (>= 256 bits)
 
-     -p, --print             Print the input certificate.
-     -b, --colors            Print colorful output.
-     -v, --verbose           Make the script more verbose.
-     -h, --help              Prints this usage.
+     -e, --error-level <int>   Specify the maximum allowed error level.
+
+     --no-ev-check             Do not validate Extended Validation (EV) certificates.
+
+     -p, --print               Print the input certificate.
+     -b, --colors              Print colorful output.
+     -v, --verbose             Make the script more verbose.
+     -h, --help                Prints this usage.
 
     EOF
 
@@ -453,8 +476,7 @@ test_number_arg()
     argv="$arg"
   fi
 
-  re='^[0-9]+$'
-  if ! [[ $argv =~ $re ]]; then
+  if ! is_number $argv; then
     usage "Value is not a valid number: '$argv'."
   fi
 }
@@ -521,6 +543,8 @@ EV_HOST=""
 PRINT_MODE=""
 OPT_PURPOSE=""
 OPT_LEVEL=""
+OPT_ERROR_LEVEL=0
+NO_EV_CHECK="false"
 
 test_chain()
 {
@@ -650,6 +674,33 @@ function get_openssl_seclvl()
   echo "$((${temp}+2))"
 }
 
+function get_errlvl()
+{
+  input="${1}"
+  if [ -z "${1}" ]; then
+    echo "echo"
+  fi
+
+  ret=0
+  case "${input}" in
+    #pass|0)
+    #;;
+    #info|I|Info)
+    #;;
+    warn|W|Warning|1)
+      ret=1
+    ;;
+    error|fatal|E|F|B|Error|2)
+      ret=2
+    ;;
+    #notice)
+    #;;
+    #*)
+    #;;
+  esac
+  return 0
+}
+
 function get_print_func()
 {
   input="${1}"
@@ -658,16 +709,16 @@ function get_print_func()
   fi
 
   case "${input}" in
-    pass)
+    pass|0)
       echo "print_pass"
     ;;
     info|I|Info)
       echo "print_info"
     ;;
-    warn|W|Warning)
+    warn|W|Warning|1)
       echo "print_warn"
     ;;
-    error|fatal|E|F|B|Error)
+    error|fatal|E|F|B|Error|2)
       echo "print_error"
     ;;
     notice)
@@ -677,6 +728,7 @@ function get_print_func()
       echo "print_normal"
     ;;
   esac
+  return 0
 }
 
 function get_print_func_raw()
@@ -687,16 +739,16 @@ function get_print_func_raw()
   fi
 
   case "${input}" in
-    pass)
+    pass|0)
       echo "print_green"
     ;;
     info|I|Info)
       echo "print_normal"
     ;;
-    warn|W|Warning)
+    warn|W|Warning|1)
       echo "print_yellow"
     ;;
-    error|fatal|E|F|B|Error)
+    error|fatal|E|F|B|Error|2)
       echo "print_red"
     ;;
     notice)
@@ -706,6 +758,7 @@ function get_print_func_raw()
       echo "print_normal"
     ;;
   esac
+  return 0
 }
 
 # process arguments
@@ -761,7 +814,7 @@ while [ $# -gt 0 ]; do
       test_arg "$1" "$2"
       shift
       # try to convert argument to purpose
-      OPT_PURPOSE=`get_purpose "$1"`
+      OPT_PURPOSE=$(get_purpose "$1")
       shift
     ;;
     -l|--level)
@@ -771,11 +824,21 @@ while [ $# -gt 0 ]; do
       test_arg "$1" "$2"
       shift
       # try to convert argument to security level
-      OPT_LEVEL=`get_level "$1"`
+      OPT_LEVEL=$(get_level "$1")
+      shift
+    ;;
+    -e|--error-level)
+      test_number_arg "$1" "$2"
+      shift
+      OPT_ERROR_LEVEL=$1
       shift
     ;;
     -b|--colors)
       NO_COLOR="false"
+      shift
+    ;;
+    --no-ev-check)
+      NO_EV_CHECK="true"
       shift
     ;;
     -h|--help)
@@ -800,6 +863,12 @@ done
 # export verbosity as an environment variable
 export VERBOSITY=$VERBOSITY
 
+if [ ! -z "${OPT_ERROR_LEVEL}" ]; then
+  if ! is_number "${OPT_ERROR_LEVEL}"; then
+    exit_script "Invalid error level threshold: '${OPT_ERROR_LEVEL}'."
+  fi
+  ERROR_LEVEL=${OPT_ERROR_LEVEL}
+fi
 if [ ! -z "${OPT_LEVEL}" ]; then
   SECURITY_LEVEL="${OPT_LEVEL}"
 fi
@@ -1166,8 +1235,7 @@ if [ ${OPENSSL_ERR} -eq 1 ]; then
   echo
   print_header "OpenSSL verify:"
   print_red "${OPENSSL_OUT}"
-  EC=1
-  lec=1
+  EC=2
 else
   if [ $lec -ne 0 ]; then
     echo
@@ -1181,28 +1249,32 @@ if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
   text=$(echo "${OPENSSL_CRLCHECK}" | sed 's/'${PEM_FILE//\//\\/}'//')
   print_header "OpenSSL CRL verify:"
   print_yellow "${text}"
-  EC=1
+  if [[ 1 -gt $EC ]]; then
+    EC=1
+  fi
   lec=1
 else
-  if [ $lec -ne 0 ]; then
+  if [[ $lec -ne 0 ]]; then
     echo
   fi
   lec=0
   print_pass "OpenSSL verify: certificate CRL check OK!"
 fi
 
-if [ $lec -ne 0 ]; then
-  echo
-fi
-
 ################## GnuTLS
 
 if [ ${GNUTLS_ERR} -eq 1 ]; then
+  echo
   print_header "GnuTLS certtool v${CERTTOOL_VERSION}:"
   print_red "${CERTTOOL_OUT}"
-  EC=1
+  if [[ 2 -gt $EC ]]; then
+    EC=2
+  fi
   lec=1
 else
+  if [[ $lec -ne 0 ]]; then
+    echo
+  fi
   lec=0
   if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
     print_pass "GnuTLS certtool v${CERTTOOL_VERSION}: certificate OK!"
@@ -1214,170 +1286,184 @@ fi
 ################## z509lint
 
 if [ ! -z "${X509LINT}" ]; then
-echo
-print_header "X.509 lint:"
-
-IFS=$'\n'; for line in ${X509LINT}; do
-  temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
-  info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
-  print_method=$(get_print_func "${temp}")
-  print_method_raw=$(get_print_func_raw "${temp}")
-  if [ -z "${print_method}" ] || [ -z "${print_method_raw}" ]; then
-    exit_script 1 "Failed to determine print method."
-  fi
-  ${print_method} "${info}"
-done
-
-#print_red "${X509LINT}"
-
-#EC=1
-#lec=1
-else
-#if [ $lec -ne 0 ]; then
   echo
-#fi
-lec=0
-print_pass "X.509 lint: All certificate checks OK."
+  print_header "X.509 lint:"
+
+  error_level=0
+  IFS=$'\n'; for line in ${X509LINT}; do
+    temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
+    info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
+    elvl=$(get_errlvl "${temp}")
+    if [[ $elvl -gt $error_level ]]; then
+      error_level=$elvl
+    fi
+    print_method=$(get_print_func "${temp}")
+    #print_method_raw=$(get_print_func_raw "${temp}")
+    ${print_method} "${info}"
+  done
+
+  lec=1
+  if [[ $error_level -gt $EC ]]; then
+    EC=${error_level}
+  fi
+else
+  if [[ $lec -ne 0 ]]; then
+    echo
+  fi
+  lec=0
+  print_pass "X.509 lint: All certificate checks OK."
 fi
 
 ################## aws-certlint
 
-#if [ $lec -ne 0 ]; then
-#  echo
-#fi
-
 if [ ! -z "${AWS_CERTLINT}" ]; then
-echo
-print_header "certlint:"
+  echo
+  print_header "certlint:"
 
-IFS=$'\n'; for line in ${AWS_CERTLINT}; do
-  temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
-  info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
-  print_method=$(get_print_func "${temp}")
-  print_method_raw=$(get_print_func_raw "${temp}")
-  if [ -z "${print_method}" ] || [ -z "${print_method_raw}" ]; then
-    exit_script 1 "Failed to determine print method."
+  error_level=0
+  IFS=$'\n'; for line in ${AWS_CERTLINT}; do
+    temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
+    info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
+    elvl=$(get_errlvl "${temp}")
+    if [[ $elvl -gt $error_level ]]; then
+      error_level=$elvl
+    fi
+    print_method=$(get_print_func "${temp}")
+    #print_method_raw=$(get_print_func_raw "${temp}")
+    ${print_method} "${info}"
+  done
+
+  #print_red "${AWS_CERTLINT}"
+
+  lec=1
+  if [[ $error_level -gt $EC ]]; then
+    EC=${error_level}
   fi
-  ${print_method} "${info}"
-done
-
-#print_red "${AWS_CERTLINT}"
-
-#EC=1
-#lec=1
 else
-lec=0
-echo
-print_pass "certlint: certificate OK"
+  if [[ $lec -ne 0 ]]; then
+    echo
+  fi
+  lec=0
+  print_pass "certlint: certificate OK"
 fi
 
 ################## aws-cablint
 
 if [ ! -z "${AWS_CABLINT}" ]; then
-echo
-print_header "CA/B Forum lint:"
-
-IFS=$'\n'; for line in ${AWS_CABLINT}; do
-  temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
-  info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
-
-  if echo "${info}" | grep -qP 'EV\scertificate\sidentified'; then
-    EV_DETECTED="true"
-  fi
-
-  print_method=$(get_print_func "${temp}")
-  print_method_raw=$(get_print_func_raw "${temp}")
-  if [ -z "${print_method}" ] || [ -z "${print_method_raw}" ]; then
-    exit_script 1 "Failed to determine print method."
-  fi
-  ${print_method} "${info}"
-done
-
-#print_red "${AWS_CABLINT}"
-
-#EC=1
-#lec=1
-else
-#if [ $lec -ne 0 ]; then
   echo
-#fi
-lec=0
-print_pass "CA/B Forum lint: All certificate checks OK."
+  print_header "CA/B Forum lint:"
+
+  error_level=0
+  IFS=$'\n'; for line in ${AWS_CABLINT}; do
+    temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
+    info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
+    elvl=$(get_errlvl "${temp}")
+    if [[ $elvl -gt $error_level ]]; then
+      error_level=$elvl
+    fi
+
+    if echo "${info}" | grep -qP 'EV\scertificate\sidentified'; then
+      EV_DETECTED="true"
+    fi
+
+    print_method=$(get_print_func "${temp}")
+    #print_method_raw=$(get_print_func_raw "${temp}")
+    ${print_method} "${info}"
+  done
+
+  #print_red "${AWS_CABLINT}"
+
+  lec=1
+  if [[ $error_level -gt $EC ]]; then
+    EC=${error_level}
+  fi
+else
+  if [[ $lec -ne 0 ]]; then
+    echo
+  fi
+  lec=0
+  print_pass "CA/B Forum lint: All certificate checks OK."
 fi
 
 ################## zlint
 
 if [ ! -z "${ZLINT}" ]; then
-echo
-print_header "ZLint:"
-#print_header "--"
-IFS=$'\n'; for x in ${ZLINT}; do
-  name=$(echo $x | grep -Po '(?<=\")[^\"]+(?=\"\:\s\{)')
-  if [ ! -z "$name" ]; then
-    add_zlint_lint "$name"
-  fi
-done
-
-# parse zlint json results
-for ((idx=0;idx<=$((${#zlint_names[@]}-1));idx++)); do
-  zlint_name="${zlint_names[$idx]}"
-
-  details=$(echo "${ZLINT_RAW}" | jq -r ".${zlint_name}.details")
-  result=$(echo "${ZLINT_RAW}" | jq -r ".${zlint_name}.result")
-
-  desc=$(${ZLINT_BIN} -list-lints-json | grep "$zlint_name" | grep -Po '(?<=\"description\"\:\")[^\"]+(?=\")')
-  ref=$(${ZLINT_BIN} -list-lints-json | grep "$zlint_name" | grep -Po '(?<=\"citation\"\:\")[^\"]+(?=\")')
-
-  if [ "${result}" == "info" ]; then
-    result="notice"
-  fi
-
-  print_method=$(get_print_func "${result}")
-  print_method_raw=$(get_print_func_raw "${result}")
-  if [ -z "${print_method}" ] || [ -z "${print_method_raw}" ]; then
-    exit_script 1 "Failed to determine print method."
-  fi
-  if [ ! -z "${details}" ] && [ "${details}" != "null" ]; then
-    ${print_method} "${details}"
-  else
-    ${print_method} "${desc}"
-  fi
-
-  if [ $VERBOSITY -gt 1 ]; then
-  print_header "---"
-  ${print_method_raw} "zlint name  : $zlint_name"
-  ${print_method_raw} "result      : ${result}"
-  if [ ! -z "${details}" ] && [ "${details}" != "null" ]; then
-  ${print_method_raw} "details     : ${details}"
-  fi
-  if [ $VERBOSITY -gt 0 ]; then
-  ${print_method_raw} "description : ${desc}"
-  fi
-  ${print_method_raw} "reference   : ${ref}"
-  print_header "---"
-  fi
-done
-EC=1
-lec=1
-else
-#if [ $lec -ne 0 ]; then
   echo
-#fi
-lec=0
-print_pass "ZLint: All certificate checks OK."
+  print_header "ZLint:"
+  #print_header "--"
+  IFS=$'\n'; for x in ${ZLINT}; do
+    name=$(echo $x | grep -Po '(?<=\")[^\"]+(?=\"\:\s\{)')
+    if [ ! -z "$name" ]; then
+      add_zlint_lint "$name"
+    fi
+  done
+
+  # parse zlint json results
+  error_level=0
+  for ((idx=0;idx<=$((${#zlint_names[@]}-1));idx++)); do
+    zlint_name="${zlint_names[$idx]}"
+
+    details=$(echo "${ZLINT_RAW}" | jq -r ".${zlint_name}.details")
+    result=$(echo "${ZLINT_RAW}" | jq -r ".${zlint_name}.result")
+
+    desc=$(${ZLINT_BIN} -list-lints-json | grep "$zlint_name" | grep -Po '(?<=\"description\"\:\")[^\"]+(?=\")')
+    ref=$(${ZLINT_BIN} -list-lints-json | grep "$zlint_name" | grep -Po '(?<=\"citation\"\:\")[^\"]+(?=\")')
+
+    if [ "${result}" == "info" ]; then
+      result="notice"
+    fi
+
+    elvl=$(get_errlvl "${result}")
+    if [[ $elvl -gt $error_level ]]; then
+      error_level=$elvl
+    fi
+
+    print_method=$(get_print_func "${result}")
+    print_method_raw=$(get_print_func_raw "${result}")
+    if [ ! -z "${details}" ] && [ "${details}" != "null" ]; then
+      ${print_method} "${details}"
+    else
+      ${print_method} "${desc}"
+    fi
+
+    if [ $VERBOSITY -gt 1 ]; then
+    print_header "---"
+    ${print_method_raw} "zlint name  : $zlint_name"
+    ${print_method_raw} "result      : ${result}"
+    if [ ! -z "${details}" ] && [ "${details}" != "null" ]; then
+    ${print_method_raw} "details     : ${details}"
+    fi
+    if [ $VERBOSITY -gt 0 ]; then
+    ${print_method_raw} "description : ${desc}"
+    fi
+    ${print_method_raw} "reference   : ${ref}"
+    print_header "---"
+    fi
+  done
+
+  lec=1
+  if [[ $error_level -gt $EC ]]; then
+    EC=${error_level}
+  fi
+else
+  if [[ $lec -ne 0 ]]; then
+    echo
+  fi
+  lec=0
+  print_pass "ZLint: All certificate checks OK."
 fi
 
 ################## Golang
 
-#if [ $lec -ne 0 ]; then
-  echo
-#fi
-
+echo
 print_header "Golang:"
 for lint in ${GOLANG_LINTS}; do
   if ! result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
     lec=1
     print_error "${result}"
+    if [[ 2 -gt $EC ]]; then
+      EC=2
+    fi
   else
     lec=0
     print_pass "${result}"
@@ -1386,169 +1472,197 @@ done
 
 ################## gs-certlint
 
-echo
 if [ ! -z "${GS_CERTLINT}" ]; then
-print_header "GlobalSign certlint:"
+  echo
+  error_level=0
+  print_header "GlobalSign certlint:"
+  IFS=$'\n'; for line in ${GS_CERTLINT}; do
+    if echo "${line}" | grep -qP '^Processed\sCertificate\sType\:\sEV$'; then
+      EV_DETECTED="true"
+    fi
 
-IFS=$'\n'; for line in ${GS_CERTLINT}; do
+    temp=$(echo "${line}" | grep -Po '(?<=Priority\:\s)(Error|Warning|Info)' | sort | head -n1)
+    print_method=$(get_print_func "${temp}")
+    #print_method_raw=$(get_print_func_raw "${temp}")
 
-if echo "${line}" | grep -qP '^Processed\sCertificate\sType\:\sEV$'; then
-  EV_DETECTED="true"
-fi
+    elvl=$(get_errlvl "${temp}")
+    if [[ $elvl -gt $error_level ]]; then
+      error_level=$elvl
+    fi
 
-temp=$(echo "${line}" | grep -Po '(?<=Priority\:\s)(Error|Warning|Info)' | sort | head -n1)
-print_method=$(get_print_func "${temp}")
-print_method_raw=$(get_print_func_raw "${temp}")
-if [ -z "${print_method}" ] || [ -z "${print_method_raw}" ]; then
-  exit_script 1 "Failed to determine print method."
-fi
+    if echo "${line}" | grep -q "Message"; then
+    info=$(echo "${line}" | grep -Po '(?<=Message\:\s).*$')
+    ${print_method} "${info}"
+    #else
+    #print_normal "${line}"
+    fi
+  done
 
-if echo "${line}" | grep -q "Message"; then
-info=$(echo "${line}" | grep -Po '(?<=Message\:\s).*$')
-${print_method} "${info}"
-#else
-#print_normal "${line}"
-fi
-
-done
-
+  lec=1
+  if [[ $error_level -gt $EC ]]; then
+    EC=${error_level}
+  fi
 else
-lec=0
-print_pass "GlobalSign certlint: certificate OK"
+  if [[ $lec -ne 0 ]]; then
+    echo
+  fi
+  lec=0
+  print_pass "GlobalSign certlint: certificate OK"
 fi
 
 ################## NSS
 
 if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
+  echo
+  print_header "Mozilla Network Security Service (NSS):"
 
-#if [ $lec -ne 0 ]; then
-#  echo
-#fi
-echo
+  DB_PATH=$(mktemp -t -d nssdb.XXXXXXXXXX)
 
-print_header "Mozilla Network Security Service (NSS):"
+  cp ${PEM_FILE} ${DB_PATH}/cert.crt
 
-DB_PATH=$(mktemp -t -d nssdb.XXXXXXXXXX)
-
-cp ${PEM_FILE} ${DB_PATH}/cert.crt
-
-if [ ! -z "${PEM_CHAIN_FILE}" ]; then
-  cp ${PEM_CHAIN_FILE} ${DB_PATH}/chain.tmp
-else
-  touch ${DB_PATH}/chain.tmp
-fi
-
-# create temp. database
-certutil -N -d ${DB_PATH} --empty-password
-
-if [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
-  if [ $VERBOSITY -gt 0 ]; then
-    print_info "Checking CA certificate chain..."
+  if [ ! -z "${PEM_CHAIN_FILE}" ]; then
+    cp ${PEM_CHAIN_FILE} ${DB_PATH}/chain.tmp
+  else
+    touch ${DB_PATH}/chain.tmp
   fi
-fi
 
-# add all certificates from chain
-ca_count=0
-pushd ${DB_PATH} > /dev/null 2>&1
-awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "ca-cert." c ".pem"}' < chain.tmp
-popd > /dev/null 2>&1
-for c in ${DB_PATH}/*.pem; do
-  ca_count=$((ca_count+1))
+  # create temp. database
+  certutil -N -d ${DB_PATH} --empty-password
 
-  crt_common_name=$(openssl x509 -noout -subject -nameopt multiline -in "${c}" | grep commonName | sed -n 's/ *commonName *= //p')
-
-  if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i "${c}" -t C,C,C; then
-    ec=1
-  elif [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
-    if ! result=$(certutil -V -n "${crt_common_name}" -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} 2>&1); then
-      EC=1
-      lec=1
-      print_red "CA ERROR : ${result}"
-    else
-      lec=0
-      print_green "Valid CA : ${crt_common_name}: ${result}"
+  if [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
+    if [ $VERBOSITY -gt 0 ]; then
+      print_info "Checking CA certificate chain..."
     fi
   fi
-done
 
-if [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
-  if [ $VERBOSITY -gt 0 ]; then
-  print_info "Finished processing CA chain."
-  fi
-  echo
-fi
+  # add all certificates from chain
+  ca_count=0
+  pushd ${DB_PATH} > /dev/null 2>&1
+  awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "ca-cert." c ".pem"}' < chain.tmp
+  popd > /dev/null 2>&1
+  for c in ${DB_PATH}/*.pem; do
+    ca_count=$((ca_count+1))
 
-# add entity certificate
-crt_common_name=$(openssl x509 -noout -subject -nameopt multiline -in "${DB_PATH}/cert.crt" | grep commonName | sed -n 's/ *commonName *= //p')
-if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i ${DB_PATH}/cert.crt -t P,P,P; then
-  EC=1
-fi
+    crt_common_name=$(openssl x509 -noout -subject -nameopt multiline -in "${c}" | grep commonName | sed -n 's/ *commonName *= //p')
 
-# check end-entity certificate
-if ! result=$(certutil -V -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} -n "${crt_common_name}" 2>&1); then
-  EC=1
-  lec=1
-  print_error "NSS certutil:"
-  print_red "${result}"
-else
-  lec=0
-  print_pass "NSS certutil: ${crt_common_name}: ${result}"
-fi
+    if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i "${c}" -t C,C,C; then
+      ec=1
+    elif [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
+      if ! result=$(certutil -V -n "${crt_common_name}" -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} 2>&1); then
+        if [[ 2 -gt $EC ]]; then
+          EC=2
+        fi
+        lec=1
+        print_red "CA ERROR : ${result}"
+      else
+        lec=0
+        print_green "Valid CA : ${crt_common_name}: ${result}"
+      fi
+    fi
+  done
 
-if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
-  if [ $lec -ne 0 ]; then
+  if [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
+    if [ $VERBOSITY -gt 0 ]; then
+    print_info "Finished processing CA chain."
+    fi
     echo
   fi
 
-  err=0
-  if [ ! -z "${EV_POLICY}" ]; then
-    if ! result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -o ${EV_POLICY} -d ${DB_PATH} "${crt_common_name}" 2>&1); then
-      err=1
-    fi
-  else
-    if ! result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -d ${DB_PATH} "${crt_common_name}" 2>&1); then
-      err=1
+  # add entity certificate
+  crt_common_name=$(openssl x509 -noout -subject -nameopt multiline -in "${DB_PATH}/cert.crt" | grep commonName | sed -n 's/ *commonName *= //p')
+  if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i ${DB_PATH}/cert.crt -t P,P,P; then
+    lec=1
+    if [[ 1 -gt $EC ]]; then
+      EC=1
     fi
   fi
-  if [ $err -ne 0 ]; then
-    EC=1
-    print_error "NSS vfychain: ${result}"
+
+  # check end-entity certificate
+  if ! result=$(certutil -V -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} -n "${crt_common_name}" 2>&1); then
+    lec=1
+    if [[ 2 -gt $EC ]]; then
+      EC=2
+    fi
+    print_error "NSS certutil:"
+    print_red "${result}"
   else
-    print_pass  "NSS vfychain: ${result}"
+    lec=0
+    print_pass "NSS certutil: ${crt_common_name}: ${result}"
   fi
-fi
 
-if [ -e "${DB_PATH}" ]; then
-rm -rf ${VERBOSE_FLAG} ${DB_PATH}
-fi
+  if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
+    if [ $lec -ne 0 ]; then
+      echo
+    fi
 
+    err=0
+    if [ ! -z "${EV_POLICY}" ]; then
+      if ! result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -o ${EV_POLICY} -d ${DB_PATH} "${crt_common_name}" 2>&1); then
+        err=1
+      fi
+    else
+      if ! result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -d ${DB_PATH} "${crt_common_name}" 2>&1); then
+        err=1
+      fi
+    fi
+    if [[ $err -ne 0 ]]; then
+      if [[ 2 -gt $EC ]]; then
+        EC=2
+      fi
+      print_error "NSS vfychain: ${result}"
+    else
+      print_pass  "NSS vfychain: ${result}"
+    fi
+  fi
+
+  if [ -e "${DB_PATH}" ]; then
+    rm -rf ${VERBOSE_FLAG} ${DB_PATH}
+  fi
 fi
 
 ################## ev-checker
 
 if [ "${EV_DETECTED}" == "true" ] && [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
-  #if [ $lec -ne 0 ]; then
-    echo
-  #fi
+echo
+if [ "${NO_EV_CHECK}" != "true" ]; then
   print_header "EV Policy check:"
   if ! result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1); then
-    EC=1
+    if [[ 2 -gt $EC ]]; then
+      EC=2
+    fi
     lec=1
     print_red  "${result}"
   else
     lec=0
     print_pass "${result}"
   fi
+
+  echo
+else
+  print_warn "Skipping Extended Validation (EV) certificate validation."
+  lec=1
+  if [[ 1 -gt $EC ]]; then
+    EC=1
+  fi
+fi
 fi
 
 rm ${VERBOSE_FLAG} ${DER_FILE} ${PEM_FILE}
 
-echo
-#print_normal "Finished checking certificate."
-if [ ${EC} -ne 0 ]; then
-  print_error "Certificate linting found one or more issues."
-else
-  print_pass  "Certificate passed all checks."
+errorMsg="${errorMessages[${EC}]}"
+print_method=$(get_print_func "${EC}")
+#print_method_raw=$(get_print_func_raw "${EC}")
+if [ -z "${errorMsg}" ]; then
+  exit_script 1 "Unexpected exit code."
+fi
+
+#echo
+${print_method} "${errorMsg}"
+#${print_method_raw} "${errorMsg}"
+
+if [[ ${EC} -le ${ERROR_LEVEL} ]]; then
+  print_debug "Exit-code '${EC}' is below threshold; exiting with code zero..."
+  EC=0
 fi
 
 exit ${EC}
