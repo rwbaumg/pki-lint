@@ -1194,11 +1194,11 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
   fi
   err=0
   if [ ! -z "${CA_CHAIN}" ]; then
-    if ! CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} --load-ca-certificate "${CA_CHAIN}" 2>&1); then
+    if ! CERTTOOL_OUT=$(certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} --load-ca-certificate "${CA_CHAIN}" 2>&1 < "${PEM_FILE}"); then
       err=1
     fi
   else
-    if ! CERTTOOL_OUT=$(cat "${PEM_FILE}" | certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} 2>&1); then
+    if ! CERTTOOL_OUT=$(certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} 2>&1 < "${PEM_FILE}"); then
       err=1
     fi
   fi
