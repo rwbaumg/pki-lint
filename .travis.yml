@@ -2,13 +2,6 @@ language: shell
 sudo: required
 dist: xenial
 
-addons:
-  apt:
-    update: true
-
-git:
-  submodules: true
-
 branches:
   only:
     - github
