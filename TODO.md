@@ -2,7 +2,7 @@
 
 - [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source.
-- [ ] Update all third-party linting modules to latest versions.
+- [x] Update all third-party linting modules to latest versions.
 - [x] Fix output coloring (use regex to check if info/warn/err/etc.)
 - [x] Add argument to specify OpenSSL validation ```auth_level```.
 - [x] Update ```README.md``` to document added arguments.
