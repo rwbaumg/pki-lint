@@ -5,7 +5,7 @@ SHELL:=/bin/bash
 BIN_NAME=bin
 PATH_GOPATH=./golang/.go
 PATH_GOCACHE=./golang/.gocache
-PATH_GOROOT=/usr/lib/go-1.10
+PATH_GOROOT=/usr/lib/go-1.11
 
 export GOROOT=${PATH_GOROOT}
 
@@ -15,15 +15,15 @@ list:
 	@grep '^[^#[:space:]|SHELL|PATH|$$].*:' Makefile
 
 clean:
-	if [ -e "./${PATH_GOPATH}" ]; then rm -rfv "${PATH_GOPATH}"; fi;
-	if [ -e "./${PATH_GOCACHE}" ]; then rm -rfv "${PATH_GOCACHE}"; fi;
-	if [ -e "./${BIN_NAME}" ]; then rm -rfv "./${BIN_NAME}"; fi;
 	pushd x509lint && ${MAKE} clean && popd;
 	pushd ev-checker && ${MAKE} clean && popd;
-	pushd gs-certlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x && popd;
+	pushd gs-certlint && GOPATH=$(abspath ../${PATH_GOPATH}) GOCACHE=$(abspath ../${PATH_GOCACHE}) go clean -x && popd;
 	pushd aws-certlint/ext && ${MAKE} clean && popd;
-	pushd zlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x && \
-	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) ${MAKE} clean && popd;
+	pushd zlint && GOPATH=$(abspath ../${PATH_GOPATH}) GOCACHE=$(abspath ../${PATH_GOCACHE}) go clean -x && \
+	GOPATH=$(abspath ../${PATH_GOPATH}) GOCACHE=$(abspath ../${PATH_GOCACHE}) ${MAKE} clean && popd;
+	if [ -e "${PATH_GOCACHE}" ]; then rm -rfv "${PATH_GOCACHE}"; fi;
+	if [ -e "./${BIN_NAME}" ]; then rm -rfv "./${BIN_NAME}"; fi;
+	if [ -e "${PATH_GOPATH}" ]; then rm -rfv "${PATH_GOPATH}"; fi;
 
 bin:
 	mkdir -v ./${BIN_NAME}
