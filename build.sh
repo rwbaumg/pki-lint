@@ -346,7 +346,7 @@ function version_gt() { test "$(printf '%s\n' "$@" | sort -bt. -k1,1 -k2,2n -k3,
 function check_etckeeper()
 {
   if [[ $EUID -ne 0 ]]; then
-    print_warn "WARNING: Must run as root to commit /etc changes."
+    print_warn "Skipping etckeeper check (must run as root to commit /etc changes)..."
     return
   fi
 
