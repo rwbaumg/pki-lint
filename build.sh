@@ -49,6 +49,7 @@ ETCKEEPER_COMMIT="true"
 INSTALL_MISSING="true"
 NO_COLOR="false"
 VERBOSITY=0
+PKG_UPDATED="false"
 
 function is_number()
 {
@@ -623,6 +624,15 @@ function install_pkg()
   fi
 
   if hash apt-get 2>/dev/null; then
+    if [ "${PKG_UPDATED}" != "true" ]; then
+      print_yellow "Updating apt cache..."
+      if ! ${sudo_cmd} apt-get update; then
+        print_warn "Failed to update apt cache."
+        return 1
+      fi
+      PKG_UPDATED="true"
+    fi
+
     print_yellow "Installing missing package '${pkg_name}' via apt-get ..."
     if ! ${sudo_cmd} apt-get install -V -y ${pkg_name}; then
       exit_script 1 "Failed to install package '${pkg_name}'."
@@ -678,29 +688,24 @@ function configure_pkg_manager()
     return 0
   fi
 
-  # Check if 'sudo' is required
-  sudo_cmd=""
-  if ! sudo_cmd="$(get_sudo_cmd)"; then
-    print_warn    "Cannot configure package manager."
-    exit_script 1 "You need to install sudo. Aborting."
-  fi
-
   if hash apt-get 2>/dev/null; then
     # Make sure required tooling is installed
     install_pkg "software-properties-common"
 
     # Enable the 'universe' package source.
     if ! is_source_repo_enabled "universe"; then
+      # Check if 'sudo' is required
+      sudo_cmd=""
+      if ! sudo_cmd="$(get_sudo_cmd)"; then
+        print_warn    "Cannot configure package manager."
+        exit_script 1 "You need to install sudo. Aborting."
+      fi
+
       if ! ${sudo_cmd} add-apt-repository universe; then
         exit_script 1 "Failed to enable 'universe' package repository."
       fi
       print_green "Enabled APT repository 'universe'."
       return 0
-    fi
-
-    if ! ${sudo_cmd} apt-get update; then
-      print_warn "Failed to update apt cache."
-      return 1
     fi
   fi
 
