@@ -7,24 +7,29 @@ PATH_GOPATH=./golang/.go
 PATH_GOCACHE=./golang/.gocache
 
 # Determine the major and minor Go version numbers to construct path.
-#GO_VERSION=`GOROOT=. go version | head -n1 | grep -Po '(?<=\sgo)[0-9]+\.[0-9]+(?=(\s|\.))'`
-#PATH_GOROOT=/usr/lib/go-$(GO_VERSION)
+GO_VERSION=`GOROOT='' go version | head -n1 | grep -Po '(?<=\sgo)[0-9]+\.[0-9]+(?=(\s|\.))'`
+PATH_GOROOT=/usr/lib/go-$(GO_VERSION)
+
+# Uncomment to export GOROOT
 #export GOROOT=$(PATH_GOROOT)
-#test:
-#	echo "GOROOT=${GOROOT}"
 
 all: x509lint ev-checker aws-certlint gs-certlint zlint bin
 
 list:
 	@grep '^[^#[:space:]|SHELL|PATH|$$].*:' Makefile
 
+test:
+	@echo "GO_VERSION='${GO_VERSION}'"
+	@echo "GOROOT='${PATH_GOROOT}'"
+	@echo "GOPATH='$(abspath ${PATH_GOPATH})'"
+	@echo "GOCACHE='$(abspath ${PATH_GOCACHE})'"
+
 clean:
 	pushd x509lint && ${MAKE} clean && popd;
 	pushd ev-checker && ${MAKE} clean && popd;
-	pushd gs-certlint && GOPATH=$(abspath ../${PATH_GOPATH}) GOCACHE=$(abspath ../${PATH_GOCACHE}) go clean -x && popd;
+	pushd gs-certlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x && popd;
 	pushd aws-certlint/ext && ${MAKE} clean && popd;
-	pushd zlint && GOPATH=$(abspath ../${PATH_GOPATH}) GOCACHE=$(abspath ../${PATH_GOCACHE}) go clean -x && \
-	GOPATH=$(abspath ../${PATH_GOPATH}) GOCACHE=$(abspath ../${PATH_GOCACHE}) ${MAKE} clean && popd;
+	pushd zlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) ${MAKE} clean && popd;
 	if [ -e "${PATH_GOCACHE}" ]; then rm -rfv "${PATH_GOCACHE}"; fi;
 	if [ -e "./${BIN_NAME}" ]; then rm -rfv "./${BIN_NAME}"; fi;
 	if [ -e "${PATH_GOPATH}" ]; then rm -rfv "${PATH_GOPATH}"; fi;
@@ -77,14 +82,6 @@ gs-certlint/gs-certlint:
 	popd;
 
 ${PATH_GOPATH}/bin/zlint:
-	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -u -v github.com/zmap/zlint;
-	pushd $(abspath ${PATH_GOPATH})/src/github.com/zmap/zlint/cmd/zlint && \
-	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go build -x -v -a && \
-	popd;
-	pushd $(abspath ${PATH_GOPATH})/src/github.com/zmap/zlint/cmd/zlint-gtld-update && \
-	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go build -x -v -a && \
-	popd;
-	pushd $(abspath ${PATH_GOPATH}) && \
-	rsync -au src/github.com/zmap/zlint/cmd/zlint/zlint bin/ && \
-	rsync -au src/github.com/zmap/zlint/cmd/zlint-gtld-update/zlint-gtld-update bin/ && \
+	pushd zlint && \
+	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) ${MAKE} && \
 	popd;
