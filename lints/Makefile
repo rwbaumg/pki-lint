@@ -36,16 +36,16 @@ clean:
 
 bin:
 	mkdir -v ./${BIN_NAME}
-	ln -s -v ../x509lint/x509lint-root ${BIN_NAME}
-	ln -s -v ../x509lint/x509lint-int ${BIN_NAME}
-	ln -s -v ../x509lint/x509lint-sub ${BIN_NAME}
-	ln -s -v ../ev-checker/ev-checker ${BIN_NAME}
-	ln -s -v ../gs-certlint/gs-certlint ${BIN_NAME}
-	ln -s -v ../${PATH_GOPATH}/bin/zlint ${BIN_NAME}
-	ln -s -v ../${PATH_GOPATH}/bin/zlint-gtld-update ${BIN_NAME}
-	#ln -s -v ../aws-certlint/bin/certlint ${BIN_NAME}
-	#ln -s -v ../aws-certlint/bin/cablint ${BIN_NAME}
-	#ln -s -v ../aws-certlint/bin/cablint-ct ${BIN_NAME}
+	ln -sf -v ../x509lint/x509lint-root ${BIN_NAME}
+	ln -sf -v ../x509lint/x509lint-int ${BIN_NAME}
+	ln -sf -v ../x509lint/x509lint-sub ${BIN_NAME}
+	ln -sf -v ../ev-checker/ev-checker ${BIN_NAME}
+	ln -sf -v ../gs-certlint/gs-certlint ${BIN_NAME}
+	ln -sf -v ../zlint/zlint ${BIN_NAME}
+	ln -sf -v ../zlint/zlint-gtld-update ${BIN_NAME}
+	#ln -sf -v ../aws-certlint/bin/certlint ${BIN_NAME}
+	#ln -sf -v ../aws-certlint/bin/cablint ${BIN_NAME}
+	#ln -sf -v ../aws-certlint/bin/cablint-ct ${BIN_NAME}
 
 zlint: ${PATH_GOPATH}/bin/zlint
 
