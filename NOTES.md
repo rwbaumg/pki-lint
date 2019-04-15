@@ -100,7 +100,36 @@ To validate a certificate chain using ```vfychain```, pass each CA certificate i
 vfychain -v -pp -u 4 -a /path/to/emailsign.crt -t ca/root-ca.crt -t ca/int-ca.crt
 ```
 
-The following certificate purposes are supported by the ```vfychain``` tool via the ```-u <purpose>``` option:
+To validate revocation information for a chain or leaf certificate using ```vfychain```, you can use the ```-g``` and ```-m``` arguments. For example:
+```bash
+vfychain -vv -pp -u 4 -T \
+  -g leaf -h requireFreshInfo \
+  -m crl -s requireInfo \
+  -a /path/to/emailsign.crt \
+  -t ca/root-ca.crt -t ca/int-ca.crt
+```
+
+
+The following arguments can be passes to ```vfychain``` to control validation:
+
+| Argument              | Description |
+| :---                  |    :----    |
+| ```-v```              | Verbose mode. Prints root cert subject(double the argument for whole root cert info). |
+| ```-p```              | Use PKIX Library to validate certificate by calling ```CERT_VerifyCertificate```. |
+| ```-pp```             | Use PKIX Library to validate certificate by calling ```CERT_PKIXVerifyCert```. |
+| ```-f```              | Enable cert fetching from AIA URL. |
+| ```-a```              | The following certfile is base64 encoded. |
+| ```-t```              | Following cert is explicitly trusted (overrides db trust). |
+| ```-T```              | Trust both explicit trust anchors (```-t```) and the database. (Without this option, the default is to only trust certificates marked ```-t```, if there are any, or to trust the database if there are certificates marked ```-t```.) |
+| ```-u usage```        | 0=SSL client, 1=SSL server, 2=SSL StepUp, 3=SSL CA, 4=Email signer, 5=Email recipient, 6=Object signer, 9=ProtectedObjectSigner, 10=OCSP responder, 11=Any CA |
+| ```-o oid```          | Set policy OID for cert validation. |
+| ```-g test-type```    | Sets status checking test type. Possible values are "leaf" or "chain". |
+| ```-h test-flags```   | Sets revocation flags for the test type it follows. Possible flags: "testLocalInfoFirst" and "requireFreshInfo". |
+| ```-m method-type```  | Sets method type for the test type it follows. Possible types are "crl" and "ocsp". |
+| ```-s method-flags``` | Sets revocation flags for the method it follows. Possible types are "doNotUse", "forbidFetching", "ignoreDefaultSrc", "requireInfo" and "failIfNoInfo". |
+
+
+The following certificate purposes are supported by the ```vfychain``` tool via the ```-u <usage>``` option:
 
 | Purpose                  | Code        |
 | :---                     |    :----:   |
