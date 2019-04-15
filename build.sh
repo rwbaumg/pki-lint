@@ -76,22 +76,19 @@ function print_ex()
 
   if [ ! -z "${2}" ]; then
     if ! is_number "${2}"; then
-      echo >&2 "ERROR: Invalid argument passed to function: '${2}' is not a valid number."
-      exit 1
+      exit_script 1 "Invalid argument passed to function: '${2}' is not a valid number."
     fi
     st="${2}"
   fi
   if [ ! -z "${3}" ]; then
     if ! is_number "${3}"; then
-      echo >&2 "ERROR: Invalid argument passed to function: '${3}' is not a valid number."
-      exit 1
+      exit_script 1 "Invalid argument passed to function: '${3}' is not a valid number."
     fi
     fg="${3}"
   fi
   if [ ! -z "${4}" ]; then
     if ! is_number "${4}"; then
-      echo >&2 "ERROR: Invalid argument passed to function: '${4}' is not a valid number."
-      exit 1
+      exit_script 1 "Invalid argument passed to function: '${4}' is not a valid number."
     fi
     bg="${4}"
   fi
@@ -118,22 +115,19 @@ function print_ex_tagged()
 
   if [ ! -z "${3}" ]; then
     if ! is_number "${3}"; then
-      echo >&2 "ERROR: Invalid argument passed to function: '${3}' is not a valid number."
-      exit 1
+      exit_script 1 "ERROR: Invalid argument passed to function: '${3}' is not a valid number."
     fi
     st="${3}"
   fi
   if [ ! -z "${4}" ]; then
     if ! is_number "${4}"; then
-      echo >&2 "ERROR: Invalid argument passed to function: '${4}' is not a valid number."
-      exit 1
+      exit_script 1 "Invalid argument passed to function: '${4}' is not a valid number."
     fi
     fg="${4}"
   fi
   if [ ! -z "${5}" ]; then
     if ! is_number "${5}"; then
-      echo >&2 "ERROR: Invalid argument passed to function: '${5}' is not a valid number."
-      exit 1
+      exit_script "Invalid argument passed to function: '${5}' is not a valid number."
     fi
     bg="${5}"
   fi
@@ -251,7 +245,7 @@ function print_yellow()
   print_ex "${1}" 0 33
 }
 
-exit_script()
+function exit_script()
 {
   # Default exit code is 1
   local exit_code=1
@@ -278,10 +272,10 @@ exit_script()
   exit $exit_code
 }
 
-usage()
+function usage()
 {
     # Prints out usage and exit.
-    sed -e "s/^    //" -e "s|SCRIPT_NAME|$(basename $0)|" <<"    EOF"
+    sed -e "s/^    //" -e "s|SCRIPT_NAME|$(basename $0)|" << EOF
     USAGE
 
     Install required packages and build all third-party certificate linters
@@ -300,12 +294,12 @@ usage()
      -v, --verbose           Make the script more verbose.
      -h, --help              Prints this usage.
 
-    EOF
+EOF
 
     exit_script $@
 }
 
-test_arg()
+function test_arg()
 {
   # Used to validate user input
   local arg="$1"
