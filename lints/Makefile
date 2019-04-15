@@ -2,15 +2,16 @@
 
 SHELL:=/bin/bash
 
-# Determine the major and minor Go version numbers to construct path.
-GO_VERSION=`GOROOT="" go version | head -n1 | grep -Po '(?<=\sgo)[0-9]+\.[0-9]+(?=(\s|\.))'`
-
 BIN_NAME=bin
 PATH_GOPATH=./golang/.go
 PATH_GOCACHE=./golang/.gocache
-PATH_GOROOT=/usr/lib/go-${GO_VERSION}
 
-export GOROOT=${PATH_GOROOT}
+# Determine the major and minor Go version numbers to construct path.
+#GO_VERSION=`GOROOT=. go version | head -n1 | grep -Po '(?<=\sgo)[0-9]+\.[0-9]+(?=(\s|\.))'`
+#PATH_GOROOT=/usr/lib/go-$(GO_VERSION)
+#export GOROOT=$(PATH_GOROOT)
+#test:
+#	echo "GOROOT=${GOROOT}"
 
 all: x509lint ev-checker aws-certlint gs-certlint zlint bin
 
