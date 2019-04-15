@@ -406,16 +406,16 @@ function add_apt_source()
   fi
 
   if [ "${INSTALL_MISSING}" != "true" ]; then
-    print_yellow "WARNING: Skipping package source configuration for '$ppa_name'."
+    print_warn "Skipping package source configuration for '$ppa_name'."
     return 1
   fi
 
   if ! hash apt-get 2>/dev/null; then
-    print_yellow "WARNING: Missing apt-get command; cannot configure PPA '$ppa_name'."
+    print_warn "Missing apt-get command; cannot configure PPA '$ppa_name'."
     return 1
   fi
   if ! hash add-apt-repository 2>/dev/null; then
-    print_yellow "WARNING: Missing add-apt-repository command; cannot configure PPA '$ppa_name'."
+    print_warn "Missing add-apt-repository command; cannot configure PPA '$ppa_name'."
     return 1
   fi
 
@@ -467,7 +467,7 @@ function install_golang()
   install_pkg "golang-${GO_MIN_VERSION}-go"
 
   if [ ! -e "/usr/lib/go-${GO_MIN_VERSION}/bin/go" ]; then
-    print_red "Golang v${GO_MIN_VERSION} installation failed: missing required file '/usr/lib/go-${GO_MIN_VERSION}/bin/go'."
+    print_error "Golang v${GO_MIN_VERSION} installation failed: missing required file '/usr/lib/go-${GO_MIN_VERSION}/bin/go'."
     exit_script 1 "You need to install golang-go >= v${GO_MIN_VERSION}; aborting..."
   fi
 
@@ -482,20 +482,20 @@ function install_golang()
     fi
 
     # Create a symlink for 'go' command.
-    ln_args="-s"
+    ln_args="-s -f"
     if [ $VERBOSITY -gt 0 ]; then
       ln_args="-v ${ln_args}"
     fi
 
     # Symlink in /usr/local/bin
     if ! ${sudo_cmd} ln ${ln_args} /usr/lib/go-${GO_MIN_VERSION}/bin/go /usr/local/bin/go; then
-      print_red "Failed to create /usr/local/bin symlink for /usr/lib/go-${GO_MIN_VERSION}/bin/go command."
+      print_error "Failed to create /usr/local/bin symlink for /usr/lib/go-${GO_MIN_VERSION}/bin/go command."
       exit_script 1 "The Golang 'go' command must be installed in the system PATH. Aborting."
     fi
     print_green "Created symlink: /usr/local/bin/go -> /usr/lib/go-${GO_MIN_VERSION}/bin/go"
 
     if ! hash go 2>/dev/null; then
-      print_red "Golang 'go' command is still missing from PATH."
+      print_error "Golang 'go' command is still missing from PATH."
       exit_script 1 "You need to install ${pkg_name}. Aborting."
     fi
 
@@ -518,7 +518,7 @@ function install_ruby()
   install_pkg "ruby${RUBY_MIN_VERSION}-dev"
 
   if ! hash ruby${RUBY_MIN_VERSION} 2>/dev/null; then
-    print_red "Ruby v${RUBY_MIN_VERSION} installation failed: 'ruby${RUBY_MIN_VERSION}' missing from PATH."
+    print_error "Ruby v${RUBY_MIN_VERSION} installation failed: 'ruby${RUBY_MIN_VERSION}' missing from PATH."
     exit_script 1 "You need to install ruby >= v${RUBY_MIN_VERSION}; aborting..."
   fi
 
@@ -538,20 +538,20 @@ function install_ruby()
     fi
 
     # Create a symlink for 'ruby' command.
-    ln_args="-s"
+    ln_args="-s -f"
     if [ $VERBOSITY -gt 0 ]; then
       ln_args="-v ${ln_args}"
     fi
 
     # Symlink in /usr/local/bin
     if ! ${sudo_cmd} ln ${ln_args} ${RUBY_PATH} /usr/local/bin/ruby; then
-      print_red "Failed to create /usr/local/bin symlink for ${RUBY_PATH} command."
+      print_error "Failed to create /usr/local/bin symlink for ${RUBY_PATH} command."
       exit_script 1 "The 'ruby' command must be installed in the system PATH. Aborting."
     fi
     print_green "Created symlink: /usr/local/bin/ruby -> ${RUBY_PATH}"
 
     if ! hash ruby 2>/dev/null; then
-      print_red "The 'ruby' command is still missing from PATH."
+      print_error "The 'ruby' command is still missing from PATH."
       exit_script 1 "You need to install Ruby >= ${RUBY_MIN_VERSION}. Aborting."
     fi
 
@@ -600,7 +600,7 @@ function check_installed()
 function install_pkg()
 {
   if [ "${INSTALL_MISSING}" != "true" ]; then
-    print_yellow "WARNING: Skipping package installation for '${pkg_name}'."
+    print_warn "Skipping package installation for '${pkg_name}'."
     return 1
   fi
 
@@ -684,7 +684,7 @@ function is_source_repo_enabled()
 function configure_pkg_manager()
 {
   if [ "${INSTALL_MISSING}" != "true" ]; then
-    print_yellow "WARNING: Skipping package manager configuration."
+    print_warn "Skipping package manager configuration."
     return 0
   fi
 
@@ -721,7 +721,7 @@ function install_gem()
   fi
 
   if [ "${INSTALL_MISSING}" != "true" ]; then
-    print_yellow "WARNING: Skipping Gem installation for '${gem_name}'."
+    print_warn "Skipping Gem installation for '${gem_name}'."
     return 0
   fi
 
@@ -769,7 +769,7 @@ function check_golang_version()
       fi
     fi
   fi
-  print_yellow "WARNING: Missing Golang go >= ${GO_MIN_VERSION}; trying to install..."
+  print_warn "Missing Golang go >= ${GO_MIN_VERSION}; trying to install..."
   install_golang
 }
 
@@ -785,7 +785,7 @@ function check_ruby_version()
     fi
   fi
   # add ruby source and install it
-  print_yellow "WARNING: Missing Ruby >= ${RUBY_MIN_VERSION}; trying to install..."
+  print_warn "Missing Ruby >= ${RUBY_MIN_VERSION}; trying to install..."
   install_ruby
 }
 
