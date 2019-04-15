@@ -45,10 +45,12 @@
 
 GO_MIN_VERSION=1.11
 RUBY_MIN_VERSION=2.2
+
+VERBOSITY=0
 ETCKEEPER_COMMIT="true"
 INSTALL_MISSING="true"
 NO_COLOR="false"
-VERBOSITY=0
+BOLD_TAGGED="true"
 PKG_UPDATED="false"
 
 function is_number()
@@ -200,8 +202,11 @@ function print_tagged()
     bg="${4}"
   fi
 
-  print_ex "${tag}: ${str}" 0 ${fg} ${bg}
-  #print_ex_tagged "${tag}" "${str}" 0 ${fg} ${bg}
+  if [ "${BOLD_TAGGED}" == "true" ]; then
+    print_ex_tagged "${tag}" "${str}" 0 ${fg} ${bg}
+  else
+    print_ex "${tag}: ${str}" 0 ${fg} ${bg}
+  fi
 }
 
 function print_info()
@@ -807,6 +812,17 @@ while [ $# -gt 0 ]; do
       usage
     ;;
     -v|--verbose)
+      ((VERBOSITY++))
+      shift
+    ;;
+    -vv)
+      ((VERBOSITY++))
+      ((VERBOSITY++))
+      shift
+    ;;
+    -vvv)
+      ((VERBOSITY++))
+      ((VERBOSITY++))
       ((VERBOSITY++))
       shift
     ;;

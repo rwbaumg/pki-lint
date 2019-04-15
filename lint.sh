@@ -53,6 +53,7 @@ ERROR_LEVEL=0
 DEBUG_LEVEL=0
 SECURITY_LEVEL=0
 NO_COLOR="true"
+BOLD_TAGGED="false"
 NSS_VERIFY_CHAIN="false"
 OPENSSL_ARGS="-verbose -x509_strict -policy_print -policy_check"
 
@@ -97,7 +98,6 @@ gnutlsku_opts=( [0]="1.3.6.1.5.5.7.3.2"
                 [5]="")
 
 # Define additional variables
-DIR=$(get_root_dir)
 CERT=""
 CA_CERT="false"
 X509_MODE=""
@@ -299,8 +299,11 @@ function print_tagged()
     bg="${4}"
   fi
 
-  print_ex "${tag}: ${str}" 0 ${fg} ${bg}
-  #print_ex_tagged "${tag}" "${str}" 0 ${fg} ${bg}
+  if [ "${BOLD_TAGGED}" == "true" ]; then
+    print_ex_tagged "${tag}" "${str}" 0 ${fg} ${bg}
+  else
+    print_ex "${tag}: ${str}" 0 ${fg} ${bg}
+  fi
 }
 
 function print_info()
@@ -846,6 +849,17 @@ while [ $# -gt 0 ]; do
       ((VERBOSITY++))
       shift
     ;;
+    -vv)
+      ((VERBOSITY++))
+      ((VERBOSITY++))
+      shift
+    ;;
+    -vvv)
+      ((VERBOSITY++))
+      ((VERBOSITY++))
+      ((VERBOSITY++))
+      shift
+    ;;
     *)
       if [ ! -z "${CERT}" ]; then
         usage "Cannot specify multiple input certificates."
@@ -976,14 +990,6 @@ if [ ! -z "${OPT_PURPOSE}" ]; then
   esac
 fi
 
-if [ $VERBOSITY -gt 2 ]; then
-print_info >&2 "OpenSSL Purpose ID  : '${KU_OPENSSL}'"
-print_info >&2 "vfychain Purpose ID : '${KU_VFYCHAIN}'"
-print_info >&2 "certutil Purpose ID : '${KU_CERTUTIL}'"
-print_info >&2 "golang Purpose ID   : '${KU_GOLANG}'"
-print_info >&2 "gnutls Purpose ID   : '${KU_GNUTLS}'"
-fi
-
 if [ -z "${X509_MODE}" ]; then
   usage "Must specify certificate type."
 fi
@@ -1004,6 +1010,9 @@ if [ $VERBOSITY -gt 1 ]; then
   VERBOSE_FLAG="-v"
 fi
 
+# Get the root directory
+DIR=$(get_root_dir)
+
 X509_BIN="${DIR}/lints/x509lint/${X509_MODE}"
 ZLINT_BIN="${DIR}/lints/bin/zlint"
 AWS_CLINT_DIR="${DIR}/lints/aws-certlint"
@@ -1012,16 +1021,35 @@ EV_CHECK_BIN="${DIR}/lints/ev-checker/ev-checker"
 GOLANG_LINTS="${DIR}/lints/golang/*.go"
 
 if [ ! -e "${X509_BIN}" ]; then
-  usage "Missing required binary (did you build it?): lints/x509lint/${X509_MODE}"
+  usage "Missing required binary (did you build it?): ${X509_BIN}"
 fi
 if [ ! -e "${EV_CHECK_BIN}" ]; then
-  usage "Missing required binary (did you build it?): lints/ev-checker/ev-checker"
+  usage "Missing required binary (did you build it?): ${EV_CHECK_BIN}"
 fi
 if [ ! -e "${AWS_CLINT_DIR}/bin/certlint" ]; then
-  usage "Missing required binary (did you build it?): lints/aws-certlint/bin/certlint"
+  usage "Missing required binary (did you build it?): ${AWS_CLINT_DIR}/bin/certlint"
+fi
+if [ ! -e "${AWS_CLINT_DIR}/bin/cablint" ]; then
+  usage "Missing required binary (did you build it?): ${AWS_CLINT_DIR}/bin/cablint"
 fi
 if [ ! -e "${ZLINT_BIN}" ]; then
-  usage "Missing required binary (did you build it?): lints/bin/zlint"
+  usage "Missing required binary (did you build it?): ${ZLINT_BIN}"
+fi
+
+if [ $VERBOSITY -gt 1 ]; then
+print_info >&2 "Found  : x509lint   : ${X509_BIN}"
+print_info >&2 "Found  : cablint    : ${AWS_CLINT_DIR}/bin/cablint"
+print_info >&2 "Found  : certlint   : ${GS_CLINT_DIR}"
+print_info >&2 "Found  : zlint      : ${ZLINT_BIN}"
+print_info >&2 "Found  : ev-checker : ${EV_CHECK_BIN}"
+fi
+
+if [ $VERBOSITY -gt 1 ]; then
+print_info >&2 "OpenSSL Purpose ID  : '${KU_OPENSSL}'"
+print_info >&2 "vfychain Purpose ID : '${KU_VFYCHAIN}'"
+print_info >&2 "certutil Purpose ID : '${KU_CERTUTIL}'"
+print_info >&2 "golang Purpose ID   : '${KU_GOLANG}'"
+print_info >&2 "gnutls Purpose ID   : '${KU_GNUTLS}'"
 fi
 
 CA_CHAIN_FULL_PATH=""
@@ -1320,7 +1348,7 @@ fi
 
 if [ ! -z "${AWS_CERTLINT}" ]; then
   echo
-  print_header "certlint:"
+  print_header "AWS certlint:"
 
   error_level=0
   IFS=$'\n'; for line in ${AWS_CERTLINT}; do
@@ -1346,7 +1374,7 @@ else
     echo
   fi
   lec=0
-  print_pass "certlint: certificate OK"
+  print_pass "AWS certlint: certificate OK"
 fi
 
 ################## aws-cablint
