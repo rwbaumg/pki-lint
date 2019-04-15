@@ -3,8 +3,8 @@
 SHELL:=/bin/bash
 
 BIN_NAME=bin
-PATH_GOPATH=./.go
-PATH_GOCACHE=./.gocache
+PATH_GOPATH=./golang/.go
+PATH_GOCACHE=./golang/.gocache
 PATH_GOROOT=/usr/lib/go-1.10
 
 export GOROOT=${PATH_GOROOT}

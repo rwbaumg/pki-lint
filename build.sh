@@ -765,11 +765,13 @@ function check_ruby_version()
 
 DIR=$(get_root_dir)
 MAKE_ARG="all"
+CLEAN_MODE="false"
 
 # process arguments
 while [ $# -gt 0 ]; do
   case "$1" in
     -c|--clean)
+      CLEAN_MODE="true"
       MAKE_ARG="clean"
       shift
     ;;
@@ -794,6 +796,8 @@ done
 if [ ${VERBOSITY} -gt 0 ]; then
   MAKE_ARG="--debug=v ${MAKE_ARG}"
 fi
+
+if [ "${CLEAN_MODE}" != "true" ]; then
 
 if ! configure_pkg_manager; then
   exit_script 1 "Failed to configure package manager."
@@ -830,6 +834,8 @@ if ! git submodule init; then
 fi
 if ! git submodule update --recursive; then
   exit_script 1 "Failed to update required modules."
+fi
+
 fi
 
 # Build all modules
