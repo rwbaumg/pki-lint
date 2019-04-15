@@ -24,8 +24,8 @@ The following third-party linting tools are used by this project:
 | [zlint](https://github.com/rwbaumg/zlint.git)                   | [zmap/zlint](https://github.com/zmap/zlint) |
 
 The following extra packages are also required
-- Golang ```go``` ≥ v1.3
-- Ruby ```ruby``` & ```ruby-dev``` ≥ v2.1, and
+- Golang ```go``` ≥ v1.11
+- Ruby ```ruby``` & ```ruby-dev``` ≥ v2.2, and
 - Ruby Gems ```simpleidn``` & ```public_suffix```
 
 Running the ```build.sh``` script will try to install missing dependencies for you.

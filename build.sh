@@ -43,8 +43,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-GO_MIN_VERSION=1.3
-RUBY_MIN_VERSION=2.1
+GO_MIN_VERSION=1.11
+RUBY_MIN_VERSION=2.2
+ETCKEEPER_COMMIT="true"
 INSTALL_MISSING="true"
 NO_COLOR="false"
 VERBOSITY=0
@@ -293,6 +294,7 @@ usage()
      -c, --clean             Clean all downloaded and compiled objects.
 
      --no-install-missing    Do not install missing packages.
+     --no-etckeeper          Do not auto-commit /etc changes under VCS.
 
      -v, --verbose           Make the script more verbose.
      -h, --help              Prints this usage.
@@ -340,9 +342,35 @@ function get_root_dir()
 
 function version_gt() { test "$(printf '%s\n' "$@" | sort -bt. -k1,1 -k2,2n -k3,3n -k4,4n -k5,5n | head -n 1)" != "$1"; }
 
+function check_etckeeper()
+{
+  if [[ $EUID -ne 0 ]]; then
+    print_warn "WARNING: Must run as root to commit /etc changes."
+    return
+  fi
+
+  # git handling for etckeeper (check if /etc/.git exists)
+  if [ -d /etc/.git  ] && hash git 2>/dev/null; then
+    if `git -C "/etc" rev-parse > /dev/null 2>&1`; then
+      # check /etc/apt for modifications
+      # if there are changes, commit them
+      if [[ "$(git --git-dir=/etc/.git --work-tree=/etc status --porcelain -- /etc/apt|egrep '^(M| M)')" != "" ]]; then
+        if [ "${ETCKEEPER_COMMIT}" != "true" ]; then
+          print_warn "Uncommitted changes under version control: /etc/apt"
+          return
+        fi
+        print_info "Auto-commit changes to /etc/apt (directory under version control) ..."
+        pushd /etc > /dev/null 2>&1
+        sudo git add --all /etc/apt
+        sudo git commit -v -m "apt: auto-commit configuration changes."
+        popd > /dev/null 2>&1
+      fi
+    fi
+  fi
+}
+
 # Adds a package source for Ruby
-# This may be required if the distribution does not provide
-# a version of Ruby >= v2.1
+# This may be required if the distribution does not provide a new enough version of Ruby
 function add_ruby_src()
 {
   # standard ruby: ppa:brightbox/ruby-ng
@@ -355,8 +383,7 @@ function add_ruby_src()
 }
 
 # Adds a package source for Golang
-# This may be required if the distribution does not provide
-# a version of Golang >= v1.3
+# This may be required if the distribution does not provide a new enough version of Golang
 function add_golang_src()
 {
   # standard golang: ppa:gophers/archive
@@ -413,15 +440,18 @@ function add_apt_source()
     exit_script 1 "Failed to configure '$ppa_name' package source for apt command."
   fi
   if ! ${sudo_cmd} apt-get update; then
-    echo >&2 "WARNING: Failed to update apt cache."
+    print_warn "Failed to update apt cache."
     return 1
   fi
+
   print_green "Added custom package source '$ppa_name' for apt-get."
+
+  check_etckeeper
   return 0
 }
 
-# Attempts to install Golang v1.10
-function install_golang_v110()
+# Attempts to install Golang
+function install_golang()
 {
   #if hash go 2>/dev/null; then
   #  print_green "Found Golang; 'go' command is in PATH."
@@ -429,27 +459,25 @@ function install_golang_v110()
   #fi
 
   if [ "${INSTALL_MISSING}" != "true" ]; then
-    exit_script 1 "You need to install golang-go >= v1.3; aborting..."
+    exit_script 1 "You need to install golang-go >= v${GO_MIN_VERSION}; aborting..."
   fi
 
-  install_pkg "golang-1.10-go"
+  add_golang_src
+  install_pkg "golang-${GO_MIN_VERSION}-go"
 
-  if [ ! -e "/usr/lib/go-1.10/bin/go" ]; then
-    print_red "Golang v1.10 installation failed: missing required file '/usr/lib/go-1.10/bin/go'."
-    exit_script 1 "You need to install golang-go >= v1.3; aborting..."
+  if [ ! -e "/usr/lib/go-${GO_MIN_VERSION}/bin/go" ]; then
+    print_red "Golang v${GO_MIN_VERSION} installation failed: missing required file '/usr/lib/go-${GO_MIN_VERSION}/bin/go'."
+    exit_script 1 "You need to install golang-go >= v${GO_MIN_VERSION}; aborting..."
   fi
 
   #if [ ! -e "/usr/bin/go" ] && [ ! -e "/usr/local/bin/go" ]; then
   if [ ! -e "/usr/local/bin/go" ]; then
-    #print_yellow "Golang 'go' command is missing from PATH; installing symlink..."
     print_yellow "Creating /usr/local/bin symlink for Golang 'go' command ..."
 
     # Check if 'sudo' is required
     sudo_cmd=""
     if ! sudo_cmd="$(get_sudo_cmd)"; then
       exit_script 1 "You need to install sudo. Aborting."
-    else
-      print_yellow "Requesting root permissions via sudo invocation..."
     fi
 
     # Create a symlink for 'go' command.
@@ -458,63 +486,54 @@ function install_golang_v110()
       ln_args="-v ${ln_args}"
     fi
 
-    # Symling in /usr/bin
-    #if ! ${sudo_cmd} ln ${ln_args} /usr/lib/go-1.10/bin/go /usr/bin/go; then
-    #  print_red "Failed to create /usr/bin symlink for /usr/lib/go-1.10/bin/go command."
-    #  exit_script 1 "The Golang 'go' command must be installed in the system PATH. Aborting."
-    #fi
-    #print_green "Created symlink: /usr/bin/go -> /usr/lib/go-1.10/bin/go"
-
     # Symlink in /usr/local/bin
-    if ! ${sudo_cmd} ln ${ln_args} /usr/lib/go-1.10/bin/go /usr/local/bin/go; then
-      print_red "Failed to create /usr/local/bin symlink for /usr/lib/go-1.10/bin/go command."
+    if ! ${sudo_cmd} ln ${ln_args} /usr/lib/go-${GO_MIN_VERSION}/bin/go /usr/local/bin/go; then
+      print_red "Failed to create /usr/local/bin symlink for /usr/lib/go-${GO_MIN_VERSION}/bin/go command."
       exit_script 1 "The Golang 'go' command must be installed in the system PATH. Aborting."
     fi
-    print_green "Created symlink: /usr/local/bin/go -> /usr/lib/go-1.10/bin/go"
+    print_green "Created symlink: /usr/local/bin/go -> /usr/lib/go-${GO_MIN_VERSION}/bin/go"
 
     if ! hash go 2>/dev/null; then
       print_red "Golang 'go' command is still missing from PATH."
       exit_script 1 "You need to install ${pkg_name}. Aborting."
     fi
 
-    print_green "Found Golang v1.10 binaries; 'go' command is in PATH."
+    print_green "Found Golang v${GO_MIN_VERSION} binaries; 'go' command is in PATH."
     return
   fi
 
   return
 }
 
-# Attempts to install Ruby v2.20
-function install_ruby_v220()
+# Attempts to install Ruby
+function install_ruby()
 {
   if [ "${INSTALL_MISSING}" != "true" ]; then
-    exit_script 1 "You need to install Ruby >= v2.1; aborting..."
+    exit_script 1 "You need to install Ruby >= v${RUBY_MIN_VERSION}; aborting..."
   fi
 
   add_ruby_src
-  install_pkg "ruby2.2"
-  install_pkg "ruby2.2-dev"
+  install_pkg "ruby${RUBY_MIN_VERSION}"
+  install_pkg "ruby${RUBY_MIN_VERSION}-dev"
 
-  if ! hash ruby2.2 2>/dev/null; then
-    print_red "Ruby v2.20 installation failed: 'ruby2.2' missing from PATH."
-    exit_script 1 "You need to install ruby >= v2.1; aborting..."
+  if ! hash ruby${RUBY_MIN_VERSION} 2>/dev/null; then
+    print_red "Ruby v${RUBY_MIN_VERSION} installation failed: 'ruby${RUBY_MIN_VERSION}' missing from PATH."
+    exit_script 1 "You need to install ruby >= v${RUBY_MIN_VERSION}; aborting..."
   fi
 
   if [ ! -e "/usr/local/bin/ruby" ]; then
-    RUBY22_PATH=$(which ruby2.2)
-    if [ -L "${RUBY22_PATH}" ]; then
-      exit_script 1 "The path '${RUBY22_PATH}' is already a symlink."
+    RUBY_PATH=$(which ruby${RUBY_MIN_VERSION})
+    if [ -L "${RUBY_PATH}" ]; then
+      exit_script 1 "The path '${RUBY_PATH}' is already a symlink."
     fi
 
-    print_yellow "Creating /usr/local/bin symlink for '${RUBY22_PATH}' command ..."
+    print_yellow "Creating /usr/local/bin symlink for '${RUBY_PATH}' command ..."
 
     # Check if 'sudo' is required
     sudo_cmd=""
     if ! sudo_cmd="$(get_sudo_cmd)"; then
-      # print_warn "Cannot install Ruby package."
+      print_warn "Cannot install Ruby package."
       exit_script 1 "You need to install sudo. Aborting."
-    else
-      print_yellow "Requesting root permissions via sudo invocation..."
     fi
 
     # Create a symlink for 'ruby' command.
@@ -525,14 +544,14 @@ function install_ruby_v220()
 
     # Symlink in /usr/local/bin
     if ! ${sudo_cmd} ln ${ln_args} ${RUBY22_PATH} /usr/local/bin/ruby; then
-      print_red "Failed to create /usr/local/bin symlink for ${RUBY22_PATH} command."
+      print_red "Failed to create /usr/local/bin symlink for ${RUBY_PATH} command."
       exit_script 1 "The 'ruby' command must be installed in the system PATH. Aborting."
     fi
-    print_green "Created symlink: /usr/local/bin/ruby -> ${RUBY22_PATH}"
+    print_green "Created symlink: /usr/local/bin/ruby -> ${RUBY_PATH}"
 
     if ! hash ruby 2>/dev/null; then
       print_red "The 'ruby' command is still missing from PATH."
-      exit_script 1 "You need to install Ruby >= 2.1. Aborting."
+      exit_script 1 "You need to install Ruby >= ${RUBY_MIN_VERSION}. Aborting."
     fi
 
     print_green "Found Ruby binaries; 'ruby' command is in PATH."
@@ -552,7 +571,7 @@ function get_sudo_cmd()
       # exit_script 1 "You need to install sudo. Aborting."
     fi
 
-    # print_yellow >&2 "Requesting root permissions via sudo invocation..."
+    print_yellow >&2 "Requesting root permissions via sudo invocation..."
     sudo_cmd="sudo"
   fi
 
@@ -629,7 +648,7 @@ function is_source_repo_enabled()
     os_info="$(lsb_release --short --id --release --codename)"
     { read -r os_id; read -r os_release; read -r os_codename; } <<< "$os_info"
 
-    if apt-cache policy | grep -q -E "^([\s]+)?release\sv=$os_release,o=${os_id},a=$os_codename,n=$os_codename,l=${os_id},c=${source}"; then
+    if apt-cache policy | grep -q -E "^(\s+)?release\sv=$os_release,o=${os_id},a=$os_codename,n=$os_codename,l=${os_id},c=${source}"; then
       print_green "Package source '${source}' is already enabled."
       return 0
     fi
@@ -637,8 +656,6 @@ function is_source_repo_enabled()
     if ! sudo_cmd="$(get_sudo_cmd)"; then
       print_error "Cannot install missing package '${pkg_name}'."
       exit_script 1 "You need to install sudo. Aborting."
-    else
-      print_yellow "Requesting root permissions via sudo invocation..."
     fi
 
     if ${sudo_cmd} add-apt-repository universe; then
@@ -682,7 +699,7 @@ function configure_pkg_manager()
     fi
 
     if ! ${sudo_cmd} apt-get update; then
-      echo >&2 "WARNING: Failed to update apt cache."
+      print_warn "Failed to update apt cache."
       return 1
     fi
   fi
@@ -743,8 +760,7 @@ function check_golang_version()
     fi
   fi
   print_yellow "WARNING: Missing Golang go >= ${GO_MIN_VERSION}; trying to install..."
-  # add_golang_src
-  install_golang_v110
+  install_golang
 }
 
 function check_ruby_version()
@@ -758,9 +774,9 @@ function check_ruby_version()
       return 0
     fi
   fi
-  # add ruby 2.20 source and install it
+  # add ruby source and install it
   print_yellow "WARNING: Missing Ruby >= ${RUBY_MIN_VERSION}; trying to install..."
-  install_ruby_v220
+  install_ruby
 }
 
 DIR=$(get_root_dir)
@@ -777,6 +793,10 @@ while [ $# -gt 0 ]; do
     ;;
     --no-install-missing)
       INSTALL_MISSING="false"
+      shift
+    ;;
+    --no-etckeeper)
+      ETCKEEPER_COMMIT="false"
       shift
     ;;
     -h|--help)
