@@ -17,4 +17,4 @@ os:
   - linux
 
 install:
-  - sudo ./build.sh
+  - ./build.sh
