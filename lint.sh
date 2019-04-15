@@ -1549,7 +1549,7 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
 
     crt_common_name=$(openssl x509 -noout -subject -nameopt multiline -in "${c}" | grep commonName | sed -n 's/ *commonName *= //p')
 
-    if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i "${c}" -t C,C,C; then
+    if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i "${c}" -t CT,CT,CT; then
       ec=1
     elif [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
       if ! result=$(certutil -V -n "${crt_common_name}" -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} 2>&1); then
