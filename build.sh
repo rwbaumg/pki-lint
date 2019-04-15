@@ -544,7 +544,7 @@ function install_ruby()
     fi
 
     # Symlink in /usr/local/bin
-    if ! ${sudo_cmd} ln ${ln_args} ${RUBY22_PATH} /usr/local/bin/ruby; then
+    if ! ${sudo_cmd} ln ${ln_args} ${RUBY_PATH} /usr/local/bin/ruby; then
       print_red "Failed to create /usr/local/bin symlink for ${RUBY_PATH} command."
       exit_script 1 "The 'ruby' command must be installed in the system PATH. Aborting."
     fi
@@ -759,9 +759,14 @@ function install_gem()
 function check_golang_version()
 {
   if hash go 2>/dev/null; then
-    GO_VERSION=$(go version | head -n1 | grep -Po '(?<=\sgo)[0-9\.]+(?=\s)')
-    if version_gt $GO_VERSION $GO_MIN_VERSION; then
-      return 0
+    GO_VERSION_FULL=$(go version | head -n1 | grep -Po '(?<=\sgo)[0-9\.]+(?=\s)')
+    GO_VERSION=$(go version | head -n1 | grep -Po '(?<=\sgo)[0-9]+\.[0-9]+(?=(\s|\.))')
+    if version_gt $GO_VERSION_FULL $GO_MIN_VERSION; then
+      if [ -e "/usr/lib/go-${GO_VERSION}" ]; then
+        return 0
+      else
+        print_warn "Found Go v${GO_VERSION_FULL} in PATH but missing GOROOT: /usr/lib/go-${GO_VERSION}"
+      fi
     fi
   fi
   print_yellow "WARNING: Missing Golang go >= ${GO_MIN_VERSION}; trying to install..."
