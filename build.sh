@@ -352,10 +352,10 @@ function check_etckeeper()
 
   # git handling for etckeeper (check if /etc/.git exists)
   if [ -d /etc/.git  ] && hash git 2>/dev/null; then
-    if `git -C "/etc" rev-parse > /dev/null 2>&1`; then
+    if $(git -C "/etc" rev-parse > /dev/null 2>&1); then
       # check /etc/apt for modifications
       # if there are changes, commit them
-      if [[ "$(git --git-dir=/etc/.git --work-tree=/etc status --porcelain -- /etc/apt|egrep '^(M| M)')" != "" ]]; then
+      if [[ "$(git --git-dir=/etc/.git --work-tree=/etc status --porcelain -- /etc/apt|grep -E '^(M| M)')" != "" ]]; then
         if [ "${ETCKEEPER_COMMIT}" != "true" ]; then
           print_warn "Uncommitted changes under version control: /etc/apt"
           return
@@ -437,7 +437,7 @@ function add_apt_source()
     exit_script 1 "You need to install sudo. Aborting."
   fi
 
-  if ! ${sudo_cmd} add-apt-repository ppa:${ppa_name}; then
+  if ! ${sudo_cmd} add-apt-repository --yes ppa:${ppa_name}; then
     exit_script 1 "Failed to configure '$ppa_name' package source for apt command."
   fi
   if ! ${sudo_cmd} apt-get update; then
@@ -664,11 +664,11 @@ function is_source_repo_enabled()
     fi
 
     if ! sudo_cmd="$(get_sudo_cmd)"; then
-      print_error "Cannot install missing package '${pkg_name}'."
+      print_error "Cannot install missing source '${source}'."
       exit_script 1 "You need to install sudo. Aborting."
     fi
 
-    if ${sudo_cmd} add-apt-repository universe; then
+    if ${sudo_cmd} add-apt-repository --yes ${source}; then
       print_pass "Enabled package source '${source}'."
       return 0
     else
@@ -701,7 +701,7 @@ function configure_pkg_manager()
         exit_script 1 "You need to install sudo. Aborting."
       fi
 
-      if ! ${sudo_cmd} add-apt-repository universe; then
+      if ! ${sudo_cmd} add-apt-repository --yes universe; then
         exit_script 1 "Failed to enable 'universe' package repository."
       fi
       print_green "Enabled APT repository 'universe'."
