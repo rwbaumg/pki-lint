@@ -58,6 +58,50 @@ func loadPemChain(chainInput string) tls.Certificate {
   return cert
 }
 
+func getVerifyOpts(chain string, dns_name string, purpose x509.ExtKeyUsage) x509.VerifyOptions {
+  // construct verification options
+  opts := x509.VerifyOptions{
+    Roots: x509.NewCertPool(),
+    Intermediates: x509.NewCertPool(),
+    DNSName: dns_name,
+    KeyUsages: []x509.ExtKeyUsage{purpose}}
+
+  if len(chain) > 0 {
+    var chainCerts []*x509.Certificate
+
+    // load all PEM-encoded certificates from the provided chain file
+    certChain := loadPemChain(chain)
+    printDebug(2, "Using PEM chain: %s", chain)
+
+     // construct an array containing all chain certificates
+    for _, cert := range certChain.Certificate {
+      x509Cert, err := x509.ParseCertificate(cert)
+      if err != nil {
+        panic(err)
+      }
+      chainCerts = append(chainCerts, x509Cert)
+    }
+
+    if len(chainCerts) > 0 {
+      // parse chain certificates, assuming that the first in the array is the root
+      // add the root certificate first
+      var rootCert *x509.Certificate = chainCerts[len(chainCerts)-1]
+      opts.Roots.AddCert(rootCert)
+      printDebug(2, "Added Root CA: %s", rootCert.Subject)
+
+      // add remaining certificates as intermediates
+      var intCA *x509.Certificate
+      for i := 1; i < len(chainCerts)-1; i = i + 1 {
+        intCA = chainCerts[i]
+        opts.Intermediates.AddCert(intCA)
+        printDebug(2, "Added Intermediate CA: %s", intCA.Subject)
+      }
+    }
+  }
+
+  return opts
+}
+
 func main() {
   // Read and parse the PEM certificate file
   if len(os.Args) < 2 {
@@ -109,50 +153,8 @@ func main() {
     purpose = x509.ExtKeyUsageServerAuth
   }
 
-  // construct verification options
-  opts := x509.VerifyOptions{
-    Roots: x509.NewCertPool(),
-    Intermediates: x509.NewCertPool(),
-    DNSName: dns_name,
-    KeyUsages: []x509.ExtKeyUsage{purpose}}
-
-  if len(chain) > 0 {
-    var chainCerts []*x509.Certificate
-
-    // load all PEM-encoded certificates from the provided chain file
-    certChain := loadPemChain(chain)
-    if err != nil {
-      log.Fatal(err)
-    }
-    printDebug(2, "Using PEM chain: %s", chain)
-
-     // construct an array containing all chain certificates
-    for _, cert := range certChain.Certificate {
-      x509Cert, err := x509.ParseCertificate(cert)
-      if err != nil {
-        panic(err)
-      }
-      chainCerts = append(chainCerts, x509Cert)
-    }
-
-    if len(chainCerts) > 0 {
-      // parse chain certificates, assuming that the first in the array is the root
-      // add the root certificate first
-      var rootCert *x509.Certificate = chainCerts[len(chainCerts)-1]
-      opts.Roots.AddCert(rootCert)
-      printDebug(2, "Added Root CA: %s", rootCert.Subject)
-
-      // add remaining certificates as intermediates
-      var intCA *x509.Certificate
-      for i := 1; i < len(chainCerts)-1; i = i + 1 {
-        intCA = chainCerts[i]
-        opts.Intermediates.AddCert(intCA)
-        printDebug(2, "Added Intermediate CA: %s", intCA.Subject)
-      }
-    }
-  }
-
   // perform built-in Golang x509 certificate verification
+  opts := getVerifyOpts(chain, dns_name, purpose)
   _, err = cert.Verify(opts)
   if err != nil {
     fmt.Printf("Go: Verify error: %s\n", err)
