@@ -1006,44 +1006,6 @@ if [ $VERBOSITY -gt 1 ]; then
   VERBOSE_FLAG="-v"
 fi
 
-CERTTOOL_CAN_VERIFY="false"
-CERTTOOL_VERSION=$(certtool --version | head -n1 | grep -Po '(?<=\s)[0-9\.]+$')
-if version_gt $CERTTOOL_VERSION $CERTTOOL_MIN_VER; then
-  CERTTOOL_CAN_VERIFY="true"
-fi
-
-if [ $VERBOSITY -gt 1 ]; then
-  print_info "Detected certtool version ${CERTTOOL_VERSION}"
-fi
-
-OPENSSL_IS_OLD="true"
-OPENSSL_VERSION_NUM=$(openssl version | grep -Po '(?<=OpenSSL\s)\d\.\d\.\d(?=[a-z]\s)')
-OPENSSL_VERSION_EXT=$(openssl version | grep -Po '(?<=OpenSSL\s\d\.\d\.\d)[a-z](?=\s)')
-OPENSSL_FULLVERSION="${OPENSSL_VERSION_NUM}${OPENSSL_VERSION_EXT}"
-OPENSSL_REQ_VERSION="${OPENSSL_MIN_VERSION_NUM}${OPENSSL_MIN_VERSION_EXT}"
-if [ "$OPENSSL_VERSION_NUM" == "$OPENSSL_MIN_VERSION_NUM" ] || version_gt $OPENSSL_VERSION_NUM $OPENSSL_MIN_VERSION_NUM; then
-  REQ_EXT_NUMBER=$(printf '%d' "'$OPENSSL_MIN_VERSION_EXT")
-  CUR_EXT_NUMBER=$(printf '%d' "'$OPENSSL_VERSION_EXT")
-  if [ ${CUR_EXT_NUMBER} -ge ${REQ_EXT_NUMBER} ]; then
-    OPENSSL_IS_OLD="false"
-  fi
-fi
-
-if [ $VERBOSITY -gt 1 ]; then
-  print_info "Detected OpenSSL version ${OPENSSL_FULLVERSION}"
-fi
-
-if [ "${OPENSSL_IS_OLD}" == "true" ]; then
-  print_warn "OpenSSL version ${OPENSSL_FULLVERSION} is too old to perform some validation methods."
-  if [ ! -z "${EV_HOST}" ] || [ ! -z "${OPENSSL_SECLVL}" ]; then
-    print_warn "OpenSSL ${OPENSSL_FULLVERSION} does not support security level or hostname validation."
-  fi
-fi
-
-if [ "${CERTTOOL_CAN_VERIFY}" != "true" ]; then
-  print_warn "GnuTLS certtool version ${CERTTOOL_VERSION} is too old for verification."
-fi
-
 X509_BIN="${DIR}/lints/x509lint/${X509_MODE}"
 ZLINT_BIN="${DIR}/lints/bin/zlint"
 AWS_CLINT_DIR="${DIR}/lints/aws-certlint"
@@ -1085,22 +1047,66 @@ fi
 DER_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).der"
 openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
+#
+## Determine tool versions
+#
+
+CERTTOOL_CAN_VERIFY="false"
+CERTTOOL_VERSION=$(certtool --version | head -n1 | grep -Po '(?<=\s)[0-9\.]+$')
+if version_gt $CERTTOOL_VERSION $CERTTOOL_MIN_VER; then
+  CERTTOOL_CAN_VERIFY="true"
+fi
+
+if [ $VERBOSITY -gt 1 ]; then
+  print_info "Detected certtool version ${CERTTOOL_VERSION}"
+fi
+
+OPENSSL_IS_OLD="true"
+OPENSSL_VERSION_NUM=$(openssl version | grep -Po '(?<=OpenSSL\s)\d\.\d\.\d(?=[a-z]\s)')
+OPENSSL_VERSION_EXT=$(openssl version | grep -Po '(?<=OpenSSL\s\d\.\d\.\d)[a-z](?=\s)')
+OPENSSL_FULLVERSION="${OPENSSL_VERSION_NUM}${OPENSSL_VERSION_EXT}"
+OPENSSL_REQ_VERSION="${OPENSSL_MIN_VERSION_NUM}${OPENSSL_MIN_VERSION_EXT}"
+if [ "$OPENSSL_VERSION_NUM" == "$OPENSSL_MIN_VERSION_NUM" ] || version_gt $OPENSSL_VERSION_NUM $OPENSSL_MIN_VERSION_NUM; then
+  REQ_EXT_NUMBER=$(printf '%d' "'$OPENSSL_MIN_VERSION_EXT")
+  CUR_EXT_NUMBER=$(printf '%d' "'$OPENSSL_VERSION_EXT")
+  if [ ${CUR_EXT_NUMBER} -ge ${REQ_EXT_NUMBER} ]; then
+    OPENSSL_IS_OLD="false"
+  fi
+fi
+
+if [ $VERBOSITY -gt 1 ]; then
+  print_info "Detected OpenSSL version ${OPENSSL_FULLVERSION}"
+fi
+
+#
+## Start linting output
+#
+
 lec=0
 print_bold "Checking certificate '${CERT}' ..."
 
 if [ "${PRINT_MODE}" == "true" ]; then
-  echo
   OPENSSL_RAW=$(openssl x509 -in "${PEM_FILE}" -noout -text)
   print_data "${OPENSSL_RAW}"
-  echo
+fi
+
+if [ "${OPENSSL_IS_OLD}" == "true" ]; then
+  print_warn "OpenSSL version ${OPENSSL_FULLVERSION} is too old to perform some validation methods."
+  if [ ! -z "${EV_HOST}" ] || [ ! -z "${OPENSSL_SECLVL}" ]; then
+    print_warn "OpenSSL ${OPENSSL_FULLVERSION} does not support security level or hostname validation."
+  fi
+fi
+
+if [ "${CERTTOOL_CAN_VERIFY}" != "true" ]; then
+  print_warn "GnuTLS certtool version ${CERTTOOL_VERSION} is too old for verification."
 fi
 
 if [ -e "${ZLINT_BIN}" ]; then
-if ! ZLINT_RAW=$(${ZLINT_BIN} -pretty "${PEM_FILE}"); then
-  # NOTE: zlint appears to return a non-zero exit code even if no warnings are found
-  print_info "zlint returned a non-zero exit code."
-fi
-ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
+  if ! ZLINT_RAW=$(${ZLINT_BIN} -pretty "${PEM_FILE}"); then
+    # NOTE: zlint appears to return a non-zero exit code even if no warnings are found
+    print_info "zlint returned a non-zero exit code."
+  fi
+  ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
 fi
 
 pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
@@ -1133,7 +1139,6 @@ if ! X509LINT=$(${X509_BIN} "${PEM_FILE}"); then
 fi
 
 EC=0
-
 OPENSSL_ERR=0
 OPENSSL_CRL_ERR=0
 GNUTLS_ERR=0
@@ -1208,8 +1213,7 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
   fi
 fi
 
-#echo
-#print_header "Results:"
+#echo; print_header "Results:"
 #print_header "---"
 
 ################## OpenSSL
