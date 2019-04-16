@@ -292,6 +292,7 @@ function usage()
     OPTIONS
 
      -c, --clean             Clean all downloaded and compiled objects.
+     -r, --reset             Reset all third-party modules.
 
      --no-install-missing    Do not install missing packages.
      --no-etckeeper          Do not auto-commit /etc changes under VCS.
@@ -791,6 +792,7 @@ function check_ruby_version()
 DIR=$(get_root_dir)
 MAKE_ARG="all"
 CLEAN_MODE="false"
+RESET_MODE="false"
 
 # process arguments
 while [ $# -gt 0 ]; do
@@ -798,6 +800,10 @@ while [ $# -gt 0 ]; do
     -c|--clean)
       CLEAN_MODE="true"
       MAKE_ARG="clean"
+      shift
+    ;;
+    -r|--reset)
+      RESET_MODE="true"
       shift
     ;;
     --no-install-missing)
@@ -879,8 +885,19 @@ fi
 fi
 
 # Build all modules
+result=0
+print_yellow "Compiling sources..."
 if ! make ${MAKE_ARG}; then
-  exit_script 1 "Failed to build required modules."
+  result=1
+  print_error "Failed to build required modules."
 fi
 
-exit_script 0
+if [ "${RESET_MODE}" == "true" ]; then
+  # Cleanup
+  print_yellow "De-inintializing Git submodules..."
+  if ! git submodule deinit .; then
+    exit_script 1 "Failed to de-init Git submodules."
+  fi
+fi
+
+exit_script ${result}
