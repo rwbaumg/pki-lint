@@ -188,6 +188,38 @@ To run ```make``` with some additional debugging information, run:
 make --debug=v all
 ```
 
+## Releases
+Releases are produced by taking a snapshot of all compiled linting modules in addition to the ```lint.sh``` wrapper and documentation.
+
+First, all sources are compiled:
+```bash
+./build.sh
+```
+
+Next, the release is tagged and signed by running something like:
+```bash
+git tag -a -s master-v1.0.0 -m "Initial release v1.0.0 (master)"
+git push --tags
+```
+
+After the release is tagged an archive is produced containing all of the files:
+```bash
+tar -czvf pki-lint-v1.0.0.tar.gz --exclude-vcs --exclude ".go" --exclude ".gocache" pki-lint-v1.0.0
+```
+
+Finally, a checksum and GPG signature is produced for the release archive:
+```bash
+sha256sum pki-lint-v1.0.0.tar.gz > pki-lint-v1.0.0.tar.gz.sha256
+gpg --output pki-lint-v1.0.0.tar.gz.asc --detach-sign pki-lint-v1.0.0.tar.gz
+```
+
+To validate a release archive you can run:
+```bash
+sha256sum --check pki-lint-v1.0.0.tar.gz.sha256
+gpg --verify pki-lint-v1.0.0.tar.gz.asc
+```
+
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
