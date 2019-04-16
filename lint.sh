@@ -1027,7 +1027,7 @@ if ! openssl x509 -text -noout -in "${CERT}" > /dev/null 2>&1; then
 fi
 
 VERBOSE_FLAG=""
-if [ $VERBOSITY -gt 1 ]; then
+if [ "${SILENT}" != "true" ] && [ $VERBOSITY -gt 1 ]; then
   VERBOSE_FLAG="-v"
 fi
 
