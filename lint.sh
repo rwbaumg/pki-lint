@@ -52,6 +52,7 @@ VERBOSITY=0
 ERROR_LEVEL=0
 DEBUG_LEVEL=0
 SECURITY_LEVEL=0
+SILENT="false"
 NO_COLOR="true"
 BOLD_TAGGED="false"
 NSS_VERIFY_CHAIN="false"
@@ -148,8 +149,26 @@ function is_number()
   return 1
 }
 
+function print_newline()
+{
+  if [ "${SILENT}" != "true" ]; then
+    echo
+  fi
+}
+
+# Print text with optional color
+#   red=31
+#   green=32
+#   yellow=33
+#   blue=34
+#   magenta=35
+#   cyan=36
 function print_ex()
 {
+  if [ "${SILENT}" == "true" ]; then
+    return
+  fi
+
   st=0
   fg=39
   bg=49
@@ -184,6 +203,10 @@ function print_ex()
 
 function print_ex_tagged()
 {
+  if [ "${SILENT}" == "true" ]; then
+    return
+  fi
+
   st=0
   fg=39
   bg=49
@@ -454,6 +477,7 @@ function usage()
 
      -p, --print               Print the input certificate.
      -b, --colors              Print colorful output.
+     -q, --quiet               Do not print results to console.
      -v, --verbose             Make the script more verbose.
      -h, --help                Prints this usage.
 
@@ -679,34 +703,27 @@ function get_errlvl()
 {
   input="${1}"
   if [ -z "${1}" ]; then
-    echo "echo"
+    return 0
   fi
 
   ret=0
   case "${input}" in
-    #pass|0)
-    #;;
-    #info|I|Info)
-    #;;
     warn|W|Warning|1)
       ret=1
     ;;
     error|fatal|E|F|B|Error|2)
       ret=2
     ;;
-    #notice)
-    #;;
-    #*)
-    #;;
   esac
-  return 0
+
+  return ${ret}
 }
 
 function get_print_func()
 {
   input="${1}"
   if [ -z "${1}" ]; then
-    echo "echo"
+    echo "print_normal"
   fi
 
   case "${input}" in
@@ -736,7 +753,7 @@ function get_print_func_raw()
 {
   input="${1}"
   if [ -z "${1}" ]; then
-    echo "echo"
+    echo "print_normal"
   fi
 
   case "${input}" in
@@ -844,6 +861,10 @@ while [ $# -gt 0 ]; do
     ;;
     -h|--help)
       usage
+    ;;
+    -q|--quiet)
+      SILENT="true"
+      shift
     ;;
     -v|--verbose)
       ((VERBOSITY++))
@@ -1239,6 +1260,8 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
   fi
 fi
 
+##################
+
 #echo; print_header "Results:"
 #print_header "---"
 
@@ -1262,20 +1285,20 @@ if [ ! -z "${SECURITY_LEVEL}" ] && [ ! -z "${CERT_ALGO}" ] && [ ! -z "${CERT_BIT
 fi
 
 if [ ${OPENSSL_ERR} -eq 1 ]; then
-  echo
+  print_newline
   print_header "OpenSSL verify:"
   print_red "${OPENSSL_OUT}"
   EC=2
 else
   if [ $lec -ne 0 ]; then
-    echo
+    print_newline
   fi
   lec=0
   print_pass "OpenSSL verify: certificate OK!"
 fi
 
 if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
-  echo
+  print_newline
   text=$(echo "${OPENSSL_CRLCHECK}" | sed 's/'${PEM_FILE//\//\\/}'//')
   print_header "OpenSSL CRL verify:"
   print_yellow "${text}"
@@ -1285,7 +1308,7 @@ if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
   lec=1
 else
   if [[ $lec -ne 0 ]]; then
-    echo
+    print_newline
   fi
   lec=0
   print_pass "OpenSSL verify: certificate CRL check OK!"
@@ -1294,7 +1317,7 @@ fi
 ################## GnuTLS
 
 if [ ${GNUTLS_ERR} -eq 1 ]; then
-  echo
+  print_newline
   print_header "GnuTLS certtool v${CERTTOOL_VERSION}:"
   print_red "${CERTTOOL_OUT}"
   if [[ 2 -gt $EC ]]; then
@@ -1303,7 +1326,7 @@ if [ ${GNUTLS_ERR} -eq 1 ]; then
   lec=1
 else
   if [[ $lec -ne 0 ]]; then
-    echo
+    print_newline
   fi
   lec=0
   if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
@@ -1316,7 +1339,7 @@ fi
 ################## z509lint
 
 if [ ! -z "${X509LINT}" ]; then
-  echo
+  print_newline
   print_header "X.509 lint:"
 
   error_level=0
@@ -1328,7 +1351,6 @@ if [ ! -z "${X509LINT}" ]; then
       error_level=$elvl
     fi
     print_method=$(get_print_func "${temp}")
-    #print_method_raw=$(get_print_func_raw "${temp}")
     ${print_method} "${info}"
   done
 
@@ -1338,7 +1360,7 @@ if [ ! -z "${X509LINT}" ]; then
   fi
 else
   if [[ $lec -ne 0 ]]; then
-    echo
+    print_newline
   fi
   lec=0
   print_pass "X.509 lint: All certificate checks OK."
@@ -1347,7 +1369,7 @@ fi
 ################## aws-certlint
 
 if [ ! -z "${AWS_CERTLINT}" ]; then
-  echo
+  print_newline
   print_header "AWS certlint:"
 
   error_level=0
@@ -1359,11 +1381,8 @@ if [ ! -z "${AWS_CERTLINT}" ]; then
       error_level=$elvl
     fi
     print_method=$(get_print_func "${temp}")
-    #print_method_raw=$(get_print_func_raw "${temp}")
     ${print_method} "${info}"
   done
-
-  #print_red "${AWS_CERTLINT}"
 
   lec=1
   if [[ $error_level -gt $EC ]]; then
@@ -1371,7 +1390,7 @@ if [ ! -z "${AWS_CERTLINT}" ]; then
   fi
 else
   if [[ $lec -ne 0 ]]; then
-    echo
+    print_newline
   fi
   lec=0
   print_pass "AWS certlint: certificate OK"
@@ -1380,7 +1399,7 @@ fi
 ################## aws-cablint
 
 if [ ! -z "${AWS_CABLINT}" ]; then
-  echo
+  print_newline
   print_header "CA/B Forum lint:"
 
   error_level=0
@@ -1397,11 +1416,8 @@ if [ ! -z "${AWS_CABLINT}" ]; then
     fi
 
     print_method=$(get_print_func "${temp}")
-    #print_method_raw=$(get_print_func_raw "${temp}")
     ${print_method} "${info}"
   done
-
-  #print_red "${AWS_CABLINT}"
 
   lec=1
   if [[ $error_level -gt $EC ]]; then
@@ -1409,7 +1425,7 @@ if [ ! -z "${AWS_CABLINT}" ]; then
   fi
 else
   if [[ $lec -ne 0 ]]; then
-    echo
+    print_newline
   fi
   lec=0
   print_pass "CA/B Forum lint: All certificate checks OK."
@@ -1418,9 +1434,8 @@ fi
 ################## zlint
 
 if [ ! -z "${ZLINT}" ]; then
-  echo
+  print_newline
   print_header "ZLint:"
-  #print_header "--"
   IFS=$'\n'; for x in ${ZLINT}; do
     name=$(echo $x | grep -Po '(?<=\")[^\"]+(?=\"\:\s\{)')
     if [ ! -z "$name" ]; then
@@ -1477,7 +1492,7 @@ if [ ! -z "${ZLINT}" ]; then
   fi
 else
   if [[ $lec -ne 0 ]]; then
-    echo
+    print_newline
   fi
   lec=0
   print_pass "ZLint: All certificate checks OK."
@@ -1485,7 +1500,7 @@ fi
 
 ################## Golang
 
-echo
+print_newline
 print_header "Golang:"
 for lint in ${GOLANG_LINTS}; do
   if ! result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
@@ -1503,7 +1518,7 @@ done
 ################## gs-certlint
 
 if [ ! -z "${GS_CERTLINT}" ]; then
-  echo
+  print_newline
   error_level=0
   print_header "GlobalSign certlint:"
   IFS=$'\n'; for line in ${GS_CERTLINT}; do
@@ -1513,7 +1528,6 @@ if [ ! -z "${GS_CERTLINT}" ]; then
 
     temp=$(echo "${line}" | grep -Po '(?<=Priority\:\s)(Error|Warning|Info)' | sort | head -n1)
     print_method=$(get_print_func "${temp}")
-    #print_method_raw=$(get_print_func_raw "${temp}")
 
     elvl=$(get_errlvl "${temp}")
     if [[ $elvl -gt $error_level ]]; then
@@ -1521,10 +1535,11 @@ if [ ! -z "${GS_CERTLINT}" ]; then
     fi
 
     if echo "${line}" | grep -q "Message"; then
-    info=$(echo "${line}" | grep -Po '(?<=Message\:\s).*$')
-    ${print_method} "${info}"
+      info=$(echo "${line}" | grep -Po '(?<=Message\:\s).*$')
+      ${print_method} "${info}"
     #else
-    #print_normal "${line}"
+      # TODO: Special handling for non-Message output?
+      #print_normal "${line}"
     fi
   done
 
@@ -1534,7 +1549,7 @@ if [ ! -z "${GS_CERTLINT}" ]; then
   fi
 else
   if [[ $lec -ne 0 ]]; then
-    echo
+    print_newline
   fi
   lec=0
   print_pass "GlobalSign certlint: certificate OK"
@@ -1542,7 +1557,7 @@ fi
 
 ################## NSS
 
-echo
+print_newline
 if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
   print_header "Mozilla Network Security Service (NSS):"
 
@@ -1595,7 +1610,7 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
     if [ $VERBOSITY -gt 0 ]; then
     print_info "Finished processing CA chain."
     fi
-    echo
+    print_newline
   fi
 
   # add entity certificate
@@ -1622,7 +1637,7 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
 
   if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
     if [ $lec -ne 0 ]; then
-      echo
+      print_newline
     fi
 
     err=0
@@ -1655,7 +1670,7 @@ fi
 ################## ev-checker
 
 if [ "${EV_DETECTED}" == "true" ] && [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
-echo
+print_newline
 if [ "${NO_EV_CHECK}" != "true" ]; then
   print_header "EV Policy check:"
   if ! result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1); then
@@ -1669,7 +1684,7 @@ if [ "${NO_EV_CHECK}" != "true" ]; then
     print_pass "${result}"
   fi
 
-  echo
+  print_newline
 else
   print_warn "Skipping Extended Validation (EV) certificate validation."
   lec=1
@@ -1683,14 +1698,11 @@ rm ${VERBOSE_FLAG} ${DER_FILE} ${PEM_FILE}
 
 errorMsg="${errorMessages[${EC}]}"
 print_method=$(get_print_func "${EC}")
-#print_method_raw=$(get_print_func_raw "${EC}")
 if [ -z "${errorMsg}" ]; then
   exit_script 1 "Unexpected exit code."
 fi
 
-#echo
 ${print_method} "${errorMsg}"
-#${print_method_raw} "${errorMsg}"
 
 if [[ ${EC} -le ${ERROR_LEVEL} ]]; then
   print_debug "Exit-code '${EC}' is below threshold; exiting with code zero..."
