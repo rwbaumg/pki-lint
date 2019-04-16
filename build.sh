@@ -211,7 +211,8 @@ function print_tagged()
 
 function print_info()
 {
-  print_tagged "INFO" "${1}"
+  print_tagged "INFO" "${1}" 33
+  #print_tagged "INFO" "${1}"
 }
 
 function print_error()
@@ -422,14 +423,14 @@ function add_apt_source()
   for f in /etc/apt/sources.list.d/*; do
     if ! echo $f | grep -P '\.save$' > /dev/null 2>&1; then
       if [ ! -z "$(grep -ni $ppa_name $f | grep -v -P '^([\s]+)?\#')" ]; then
-        print_green "Found custom PPA configuration for package source '$ppa_name'."
+        print_pass "Found custom PPA configuration for package source '$ppa_name'."
         return 0
       fi
     fi
   done
 
   if [ $VERBOSITY -gt 0 ]; then
-    print_yellow "Configuring '$ppa_name' package source for apt-get ..."
+    print_info "Configuring '$ppa_name' package source for apt-get ..."
   fi
 
   sudo_cmd=""
@@ -445,7 +446,7 @@ function add_apt_source()
     return 1
   fi
 
-  print_green "Added custom package source '$ppa_name' for apt-get."
+  print_pass "Added custom package source '$ppa_name' for apt-get."
 
   check_etckeeper
   return 0
@@ -454,11 +455,6 @@ function add_apt_source()
 # Attempts to install Golang
 function install_golang()
 {
-  #if hash go 2>/dev/null; then
-  #  print_green "Found Golang; 'go' command is in PATH."
-  #  return
-  #fi
-
   if [ "${INSTALL_MISSING}" != "true" ]; then
     exit_script 1 "You need to install golang-go >= v${GO_MIN_VERSION}; aborting..."
   fi
@@ -471,9 +467,8 @@ function install_golang()
     exit_script 1 "You need to install golang-go >= v${GO_MIN_VERSION}; aborting..."
   fi
 
-  #if [ ! -e "/usr/bin/go" ] && [ ! -e "/usr/local/bin/go" ]; then
   if [ ! -e "/usr/local/bin/go" ]; then
-    print_yellow "Creating /usr/local/bin symlink for Golang 'go' command ..."
+    print_info "Creating /usr/local/bin symlink for Golang 'go' command ..."
 
     # Check if 'sudo' is required
     sudo_cmd=""
@@ -492,14 +487,14 @@ function install_golang()
       print_error "Failed to create /usr/local/bin symlink for /usr/lib/go-${GO_MIN_VERSION}/bin/go command."
       exit_script 1 "The Golang 'go' command must be installed in the system PATH. Aborting."
     fi
-    print_green "Created symlink: /usr/local/bin/go -> /usr/lib/go-${GO_MIN_VERSION}/bin/go"
+    print_pass "Created symlink: /usr/local/bin/go -> /usr/lib/go-${GO_MIN_VERSION}/bin/go"
 
     if ! hash go 2>/dev/null; then
       print_error "Golang 'go' command is still missing from PATH."
       exit_script 1 "You need to install ${pkg_name}. Aborting."
     fi
 
-    print_green "Found Golang v${GO_MIN_VERSION} binaries; 'go' command is in PATH."
+    print_pass "Found Golang v${GO_MIN_VERSION} binaries; 'go' command is in PATH."
     return
   fi
 
@@ -528,7 +523,7 @@ function install_ruby()
       exit_script 1 "The path '${RUBY_PATH}' is already a symlink."
     fi
 
-    print_yellow "Creating /usr/local/bin symlink for '${RUBY_PATH}' command ..."
+    print_info "Creating /usr/local/bin symlink for '${RUBY_PATH}' command ..."
 
     # Check if 'sudo' is required
     sudo_cmd=""
@@ -548,14 +543,14 @@ function install_ruby()
       print_error "Failed to create /usr/local/bin symlink for ${RUBY_PATH} command."
       exit_script 1 "The 'ruby' command must be installed in the system PATH. Aborting."
     fi
-    print_green "Created symlink: /usr/local/bin/ruby -> ${RUBY_PATH}"
+    print_pass "Created symlink: /usr/local/bin/ruby -> ${RUBY_PATH}"
 
     if ! hash ruby 2>/dev/null; then
       print_error "The 'ruby' command is still missing from PATH."
       exit_script 1 "You need to install Ruby >= ${RUBY_MIN_VERSION}. Aborting."
     fi
 
-    print_green "Found Ruby binaries; 'ruby' command is in PATH."
+    print_pass "Found Ruby binaries; 'ruby' command is in PATH."
     return
   fi
 
@@ -572,7 +567,7 @@ function get_sudo_cmd()
       # exit_script 1 "You need to install sudo. Aborting."
     fi
 
-    print_yellow >&2 "Requesting root permissions via sudo invocation..."
+    print_info >&2 "Requesting root permissions via sudo invocation..."
     sudo_cmd="sudo"
   fi
 
@@ -612,7 +607,7 @@ function install_pkg()
   if check_installed "${pkg_name}"; then
     # package is already installed
     #if [ $VERBOSITY -gt 0 ]; then
-    print_green "Package '${pkg_name}' is installed."
+    print_pass "Package '${pkg_name}' is installed."
     #fi
     return 0
   fi
@@ -625,7 +620,7 @@ function install_pkg()
 
   if hash apt-get 2>/dev/null; then
     if [ "${PKG_UPDATED}" != "true" ]; then
-      print_yellow "Updating apt cache..."
+      print_info "Updating apt cache..."
       if ! ${sudo_cmd} apt-get update; then
         print_warn "Failed to update apt cache."
         return 1
@@ -633,7 +628,7 @@ function install_pkg()
       PKG_UPDATED="true"
     fi
 
-    print_yellow "Installing missing package '${pkg_name}' via apt-get ..."
+    print_info "Installing missing package '${pkg_name}' via apt-get ..."
     if ! ${sudo_cmd} apt-get install -V -y ${pkg_name}; then
       exit_script 1 "Failed to install package '${pkg_name}'."
     fi
@@ -659,7 +654,7 @@ function is_source_repo_enabled()
     { read -r os_id; read -r os_release; read -r os_codename; } <<< "$os_info"
 
     if apt-cache policy | grep -q -E "^(\s+)?release\sv=$os_release,o=${os_id},a=$os_codename,n=$os_codename,l=${os_id},c=${source}"; then
-      print_green "Package source '${source}' is already enabled."
+      print_pass "Package source '${source}' is already enabled."
       return 0
     fi
 
@@ -704,7 +699,7 @@ function configure_pkg_manager()
       if ! ${sudo_cmd} add-apt-repository --yes universe; then
         exit_script 1 "Failed to enable 'universe' package repository."
       fi
-      print_green "Enabled APT repository 'universe'."
+      print_pass "Enabled APT repository 'universe'."
       return 0
     fi
   fi
@@ -726,7 +721,7 @@ function install_gem()
   fi
 
   if [ ! -z "$(gem list | grep ${gem_name})" ]; then
-    #print_green "Required Ruby gem '${gem_name}' is already installed."
+    print_pass "Required Ruby gem '${gem_name}' is already installed."
     return 0
   fi
 
@@ -746,7 +741,7 @@ function install_gem()
     if [ $VERBOSITY -gt 0 ]; then
       gem_args="--verbose $gem_args"
     fi
-    print_yellow "Installing Ruby gem '${gem_name}' ..."
+    print_info "Installing Ruby gem '${gem_name}' ..."
     if ! ${sudo_cmd} gem install ${gem_args} ${gem_name}; then
       exit_script 1 "Failed to install Ruby gem '${gem_name}'."
     fi
@@ -847,6 +842,8 @@ fi
 
 if [ "${CLEAN_MODE}" != "true" ]; then
 
+print_info "Checking required packages..."
+
 if ! configure_pkg_manager; then
   exit_script 1 "Failed to configure package manager."
 fi
@@ -877,9 +874,11 @@ install_gem "simpleidn"
 install_gem "public_suffix"
 
 # Update sub-modules
+print_info "Initializing Git submodules..."
 if ! git submodule init; then
   exit_script 1 "Failed to initialize required modules."
 fi
+print_info "Updating Git submodules..."
 if ! git submodule update --recursive; then
   exit_script 1 "Failed to update required modules."
 fi
@@ -888,17 +887,35 @@ fi
 
 # Build all modules
 result=0
-print_yellow "Compiling sources..."
+if [ "${CLEAN_MODE}" != "true" ]; then
+print_info "Compiling sources..."
+else
+print_info "Cleaning sources..."
+fi
 if ! make ${MAKE_ARG}; then
   result=1
-  print_error "Failed to build required modules."
 fi
 
 if [ "${RESET_MODE}" == "true" ]; then
   # Cleanup
-  print_yellow "De-inintializing Git submodules..."
+  print_info "De-inintializing Git submodules..."
   if ! git submodule deinit .; then
-    exit_script 1 "Failed to de-init Git submodules."
+    result=1
+    print_error "Failed to de-init Git submodules."
+  fi
+fi
+
+if [ ${result} -ne 0 ]; then
+  if [ "${CLEAN_MODE}" != "true" ]; then
+  print_error "Problems encountered during build; failed to compile all linting modules."
+  else
+  print_error "Failed to clean all linting module sources."
+  fi
+else
+  if [ "${CLEAN_MODE}" != "true" ]; then
+  print_pass  "Finished compiling all linting modules."
+  else
+  print_pass  "All module sources cleaned without error."
   fi
 fi
 
