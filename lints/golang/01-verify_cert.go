@@ -61,8 +61,6 @@ func loadPemChain(chainInput string) tls.Certificate {
 func getVerifyOpts(chain string, dns_name string, purpose x509.ExtKeyUsage) x509.VerifyOptions {
   // construct verification options
   opts := x509.VerifyOptions{
-    Roots: x509.NewCertPool(),
-    Intermediates: x509.NewCertPool(),
     DNSName: dns_name,
     KeyUsages: []x509.ExtKeyUsage{purpose}}
 
@@ -83,6 +81,10 @@ func getVerifyOpts(chain string, dns_name string, purpose x509.ExtKeyUsage) x509
     }
 
     if len(chainCerts) > 0 {
+      // initialize certificate variables
+      opts.Roots = x509.NewCertPool()
+      opts.Intermediates = x509.NewCertPool()
+
       // parse chain certificates, assuming that the first in the array is the root
       // add the root certificate first
       var rootCert *x509.Certificate = chainCerts[len(chainCerts)-1]

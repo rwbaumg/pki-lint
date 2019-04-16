@@ -1542,8 +1542,8 @@ fi
 
 ################## NSS
 
+echo
 if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
-  echo
   print_header "Mozilla Network Security Service (NSS):"
 
   DB_PATH=$(mktemp -t -d nssdb.XXXXXXXXXX)
@@ -1648,6 +1648,8 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
   if [ -e "${DB_PATH}" ]; then
     rm -rf ${VERBOSE_FLAG} ${DB_PATH}
   fi
+#else
+#  print_warn "Skipping Mozilla NSS verification."
 fi
 
 ################## ev-checker
