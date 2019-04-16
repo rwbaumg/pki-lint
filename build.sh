@@ -804,6 +804,8 @@ while [ $# -gt 0 ]; do
     ;;
     -r|--reset)
       RESET_MODE="true"
+      CLEAN_MODE="true"
+      MAKE_ARG="clean"
       shift
     ;;
     --no-install-missing)
