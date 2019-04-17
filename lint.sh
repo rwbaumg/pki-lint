@@ -1181,7 +1181,7 @@ if [ $err -ne 0 ]; then
   print_warn >&2 "GlobalSign certlint returned a non-zero exit code."
 fi
 
-if ! X509LINT=$(${X509_BIN} "${PEM_FILE}"); then
+if ! X509LINT=$(LD_LIBRARY_PATH=${X509_DIR} ${X509_BIN} "${PEM_FILE}"); then
   print_warn >&2 "x509lint returned a non-zero exit code."
 fi
 
