@@ -1505,7 +1505,11 @@ print_header "Golang:"
 for lint in ${GOLANG_LINTS}; do
   if ! result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
     lec=1
-    print_error "${result}"
+    if [ -z "${result}" ]; then
+      print_error "Go: Failed to run lint script '${lint}'."
+    else
+      print_error "${result}"
+    fi
     if [[ 2 -gt $EC ]]; then
       EC=2
     fi
