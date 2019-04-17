@@ -1,5 +1,8 @@
 # pki-lint TODO list
 
+- [ ] For release, include libssl libcrypto.so used in x509lint source directory
+- [ ] Update ruby commands to redirect stderr and cleanly inform the user
+- [ ] Add option to build.sh to only install missing dependencies.
 - [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source.
 - [x] Update all third-party linting modules to latest versions.
