@@ -1170,12 +1170,16 @@ if [ -e "${ZLINT_BIN}" ]; then
 fi
 
 AWS_LINTED="false"
+AWS_CERTLINT_ERROR=""
+AWS_CABLINT_ERROR=""
 if check_ruby_version; then
   pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
-  if ! AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}"); then
+  if ! AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}" 2>&1); then
+    AWS_CERTLINT_ERROR=$(echo "${AWS_CERTLINT}" | tail -n1)
     print_warn "AWS certlint returned a non-zero exit code."
   fi
-  if ! AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}"); then
+  if ! AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}" 2>&1); then
+    AWS_CABLINT_ERROR=$(echo "${AWS_CABLINT}" | tail -n1)
     print_warn >&2 "AWS cablint returned a non-zero exit code."
   fi
   popd > /dev/null 2>&1
@@ -1388,68 +1392,80 @@ fi
 ################## aws-certlint
 
 if [ "${AWS_LINTED}" == "true" ]; then
-if [ ! -z "${AWS_CERTLINT}" ]; then
-  print_newline
-  print_header "AWS certlint:"
+  if [ ! -z "${AWS_CERTLINT}" ]; then
+    if [ ! -z "${AWS_CERTLINT_ERROR}" ]; then
+      print_newline >&2
+      print_error >&2 "AWS certlint failed: ${AWS_CERTLINT_ERROR}"
+    else
+      print_newline
+      print_header "AWS certificate lint:"
 
-  error_level=0
-  IFS=$'\n'; for line in ${AWS_CERTLINT}; do
-    temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
-    info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
-    elvl=$(get_errlvl "${temp}")
-    if [[ $elvl -gt $error_level ]]; then
-      error_level=$elvl
+      error_level=0
+      IFS=$'\n'; for line in ${AWS_CERTLINT}; do
+        temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
+        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
+        elvl=$(get_errlvl "${temp}")
+        if [[ $elvl -gt $error_level ]]; then
+          error_level=$elvl
+        fi
+        print_method=$(get_print_func "${temp}")
+        ${print_method} "${info}"
+      done
+
+      lec=1
+      if [[ $error_level -gt $EC ]]; then
+        EC=${error_level}
+      fi
     fi
-    print_method=$(get_print_func "${temp}")
-    ${print_method} "${info}"
-  done
-
-  lec=1
-  if [[ $error_level -gt $EC ]]; then
-    EC=${error_level}
+  else
+    if [[ $lec -ne 0 ]]; then
+      print_newline
+    fi
+    lec=0
+    print_pass "AWS certificate lint: certificate OK!"
   fi
-else
-  if [[ $lec -ne 0 ]]; then
-    print_newline
-  fi
-  lec=0
-  print_pass "AWS certlint: certificate OK"
-fi
 fi
 
 ################## aws-cablint
 
-if [ ! -z "${AWS_CABLINT}" ]; then
-  print_newline
-  print_header "CA/B Forum lint:"
+if [ "${AWS_LINTED}" == "true" ]; then
+  if [ ! -z "${AWS_CABLINT}" ]; then
+    if [ ! -z "${AWS_CABLINT_ERROR}" ]; then
+      print_newline >&2
+      print_error >&2 "AWS cablint failed: ${AWS_CABLINT_ERROR}"
+    else
+      print_newline
+      print_header "AWS CA/B Forum lint:"
 
-  error_level=0
-  IFS=$'\n'; for line in ${AWS_CABLINT}; do
-    temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
-    info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
-    elvl=$(get_errlvl "${temp}")
-    if [[ $elvl -gt $error_level ]]; then
-      error_level=$elvl
+      error_level=0
+      IFS=$'\n'; for line in ${AWS_CABLINT}; do
+        temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
+        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
+        elvl=$(get_errlvl "${temp}")
+        if [[ $elvl -gt $error_level ]]; then
+          error_level=$elvl
+        fi
+
+        if echo "${info}" | grep -qP 'EV\scertificate\sidentified'; then
+          EV_DETECTED="true"
+        fi
+
+        print_method=$(get_print_func "${temp}")
+        ${print_method} "${info}"
+      done
+
+      lec=1
+      if [[ $error_level -gt $EC ]]; then
+        EC=${error_level}
+      fi
     fi
-
-    if echo "${info}" | grep -qP 'EV\scertificate\sidentified'; then
-      EV_DETECTED="true"
+  else
+    if [[ $lec -ne 0 ]]; then
+      print_newline
     fi
-
-    print_method=$(get_print_func "${temp}")
-    ${print_method} "${info}"
-  done
-
-  lec=1
-  if [[ $error_level -gt $EC ]]; then
-    EC=${error_level}
+    lec=0
+    print_pass "AWS CA/B Forum lint: All certificate checks OK."
   fi
-else
-  if [[ $lec -ne 0 ]]; then
-    print_newline
-  fi
-  lec=0
-  print_pass "CA/B Forum lint: All certificate checks OK."
 fi
 
 ################## zlint
@@ -1577,7 +1593,7 @@ else
     print_newline
   fi
   lec=0
-  print_pass "GlobalSign certlint: certificate OK"
+  print_pass "GlobalSign certlint: certificate OK!"
 fi
 
 ################## NSS
