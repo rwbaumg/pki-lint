@@ -1,11 +1,11 @@
 # pki-lint TODO list
 
-- [ ] Minimize the number of required commands to run lint.sh to simplify release
-- [ ] Either compile Go lint scripts, or handle instances where Go is not installed in lint.sh wrapper.
-- [ ] For release, include libssl libcrypto.so used in x509lint source directory
-- [ ] Add option to ```build.sh``` to only install missing dependencies.
+- [ ] Minimize the number of required commands to run ```lint.sh``` to simplify release
+- [ ] Either compile Go lint scripts, or handle instances where Go is not installed in ```lint.sh``` wrapper.
+- [ ] For release, include libssl ```libcrypto.so``` used in x509lint source directory
 - [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source.
+- [x] Add option to ```build.sh``` to only install missing dependencies.
 - [x] Update Ruby commands to redirect stderr and cleanly inform the user
 - [x] Check for the correct Ruby version in lint.sh script.
 - [x] Update all third-party linting modules to latest versions.
