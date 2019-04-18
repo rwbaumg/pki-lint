@@ -1,7 +1,6 @@
-*.tmp
-*.bak
-
-.go/
-.gocache/
-
-lints/bin/
+*
+!*.sh
+!*.md
+!*.yml
+!Makefile
+!lints/golang/*.go
