@@ -59,6 +59,7 @@ NSS_VERIFY_CHAIN="false"
 OPENSSL_ARGS="-verbose -x509_strict -policy_print -policy_check"
 
 CERTTOOL_MIN_VER="3.0.0"
+RUBY_MIN_VERSION="2.2"
 
 OPENSSL_MIN_VERSION_NUM="1.1.0"
 OPENSSL_MIN_VERSION_EXT="g"
@@ -110,6 +111,7 @@ OPT_PURPOSE=""
 OPT_LEVEL=""
 OPT_ERROR_LEVEL=0
 OPENSSL_SECLVL=2
+RUBY_VERSION=""
 EV_DETECTED="false"
 NO_EV_CHECK="false"
 
@@ -133,6 +135,17 @@ function get_root_dir()
   dir="$( cd -P "$( dirname "${source}" )" && pwd )"
   echo ${dir}
   return
+}
+
+function check_ruby_version()
+{
+  if hash ruby 2>/dev/null; then
+    RUBY_VERSION=$(ruby --version | head -n1 | grep -Po '(?<=\s)([1-9][0-9]{0,8}|0)(\.([1-9][0-9]{0,8}|0)){1,3}')
+    if version_gt "$RUBY_VERSION" "$RUBY_MIN_VERSION"; then
+      return 0
+    fi
+  fi
+  return 1
 }
 
 function is_number()
@@ -1156,14 +1169,20 @@ if [ -e "${ZLINT_BIN}" ]; then
   ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
 fi
 
-pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
-if ! AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}"); then
-  print_warn "AWS certlint returned a non-zero exit code."
+AWS_LINTED="false"
+if check_ruby_version; then
+  pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
+  if ! AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}"); then
+    print_warn "AWS certlint returned a non-zero exit code."
+  fi
+  if ! AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}"); then
+    print_warn >&2 "AWS cablint returned a non-zero exit code."
+  fi
+  popd > /dev/null 2>&1
+  AWS_LINTED="true"
+else
+  print_warn >&2 "Ruby v${RUBY_VERSION} is too old for AWS linting (requires v${RUBY_MIN_VERSION})."
 fi
-if ! AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}"); then
-  print_warn >&2 "AWS cablint returned a non-zero exit code."
-fi
-popd > /dev/null 2>&1
 
 err=0
 pushd ${GS_CLINT_DIR} > /dev/null 2>&1
@@ -1368,6 +1387,7 @@ fi
 
 ################## aws-certlint
 
+if [ "${AWS_LINTED}" == "true" ]; then
 if [ ! -z "${AWS_CERTLINT}" ]; then
   print_newline
   print_header "AWS certlint:"
@@ -1394,6 +1414,7 @@ else
   fi
   lec=0
   print_pass "AWS certlint: certificate OK"
+fi
 fi
 
 ################## aws-cablint
