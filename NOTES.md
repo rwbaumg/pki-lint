@@ -242,13 +242,25 @@ The [Mozilla Root Store Policy, section 5.3.1](https://github.com/mozilla/pkipol
 > - The ```anyExtendedKeyUsage``` KeyPurposeId *MUST NOT* appear within the EKU extension.
 
 
+## Federal PKI Standards
+You can use the online [Federal PKI X.509 certificate linter](https://cpct.app.cloud.gov/) webapp to validate certificates against U.S. Federal PKI standards.
+
+The source code for the webservice is provided in the [fpkilint](https://github.com/GSA/fpkilint) GitHub repository.
+
+
 ## References
 Relevant source code repositories are listed below:
 - [OpenSSL](https://github.com/openssl/openssl)
 - [GnuTLS](https://gitlab.com/gnutls/gnutls)
 - [Mozilla NSS](https://dxr.mozilla.org/mozilla-central/source/security/nss) ([GitHub Mirror](https://github.com/nss-dev/nss))
+- [Mozilla TLS Observatory](https://github.com/mozilla/tls-observatory)
 - [Go](https://github.com/golang/go)
+- [certigo Go certificate tool](https://github.com/square/certigo)
+- [cert Go certificate tool](https://github.com/genkiroid/cert)
+- [certvalidator Java X.509 Validator](https://github.com/difi/certvalidator)
 - [Google Certificate Transparency](https://github.com/google/certificate-transparency)
+- [Google Certificate Transparency: Go Code](https://github.com/google/certificate-transparency-go)
+- [Federal PKI X.509 certificate linter](https://github.com/GSA/fpkilint)
 
 The following resources provide relavent standards documentation and examples for PKI testing:
 - [ITU-T X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509)
@@ -257,6 +269,7 @@ The following resources provide relavent standards documentation and examples fo
 - [Mozilla PKI Project](http://mozilla.org/projects/security/pki/)
 - [CA/Browser Forum: Baseline Requirements](https://github.com/cabforum/documents/blob/master/docs/BR.md)
 - [CA/Browser Forum: Extended-Validation Guidelines](https://github.com/cabforum/documents/blob/master/docs/EVG.md)
+- [U.S. Federal Public Trust TLS Certificate Policy](https://devicepki.idmanagement.gov/) ([GitHub](https://github.com/uspki/policies))
 - [RFC 5280: Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile](https://tools.ietf.org/html/rfc5280)
 - [RFC 6960: X.509 Internet Public Key Infrastructure Online Certificate Status Protocol - OCSP](https://tools.ietf.org/html/rfc6960)
 - [RFC 4158: Internet X.509 Public Key Infrastructure: Certification Path Building](https://tools.ietf.org/html/rfc4158)
@@ -265,3 +278,6 @@ The following resources provide relavent standards documentation and examples fo
 - [RFC 6962: Certificate Transparency](https://tools.ietf.org/html/rfc6962)
 - [Certificate Transparency](http://www.certificate-transparency.org/) ([GitHub](https://github.com/google/certificate-transparency))
 - [Certificate Transparency Log Policy](https://github.com/chromium/ct-policy/blob/master/log_policy.md#certificate-transparency-log-policy)
+- [Certificate Transparency RFC](https://github.com/google/certificate-transparency-rfcs)
+- [Windows Dev Center: Supported Extensions](https://docs.microsoft.com/en-us/windows/desktop/seccertenroll/supported-extensions)
+- [Windows Dev Center: IX509ExtensionEnhancedKeyUsage](https://docs.microsoft.com/en-us/windows/desktop/api/CertEnroll/nn-certenroll-ix509extensionenhancedkeyusage)
