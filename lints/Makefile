@@ -10,13 +10,15 @@ PATH_GOCACHE=./golang/.gocache
 GO_VERSION=`GOROOT='' go version | head -n1 | grep -Po '(?<=\sgo)[0-9]+\.[0-9]+(?=(\s|\.))'`
 PATH_GOROOT=/usr/lib/go-$(GO_VERSION)
 
-# Uncomment to export GOROOT
-#export GOROOT=$(PATH_GOROOT)
+# Configure static Go script settings
+GOLANG_PATH := golang/
+GOLANG_SRCS := $(wildcard ${GOLANG_PATH}*.go)
+GOLANG_PROGS := $(patsubst ${GOLANG_PATH}%.go,${GOLANG_PATH}%,$(GOLANG_SRCS))
 
-all: x509lint ev-checker aws-certlint gs-certlint zlint bin
+all: x509lint ev-checker aws-certlint gs-certlint zlint golang bin
 
 list:
-	@grep '^[^#[:space:]|SHELL|PATH|$$].*:' Makefile
+	@grep -Po '^[^#[:space:]|SHELL|PATH|$$][a-zA-Z].*(?=\:)' Makefile | sort
 
 test:
 	@echo "GO_VERSION='${GO_VERSION}'"
@@ -25,6 +27,7 @@ test:
 	@echo "GOCACHE='$(abspath ${PATH_GOCACHE})'"
 
 clean:
+	rm -vf $(GOLANG_PROGS);
 	pushd x509lint && ${MAKE} clean && popd;
 	pushd ev-checker && ${MAKE} clean && popd;
 	pushd gs-certlint && GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go clean -x && popd;
@@ -43,9 +46,12 @@ bin:
 	ln -sf -v ../gs-certlint/gs-certlint ${BIN_NAME}
 	ln -sf -v ../zlint/zlint ${BIN_NAME}
 	ln -sf -v ../zlint/zlint-gtld-update ${BIN_NAME}
-	#ln -sf -v ../aws-certlint/bin/certlint ${BIN_NAME}
-	#ln -sf -v ../aws-certlint/bin/cablint ${BIN_NAME}
-	#ln -sf -v ../aws-certlint/bin/cablint-ct ${BIN_NAME}
+
+golang: $(GOLANG_PROGS)
+
+golang/%: ${GOLANG_PATH}%.go
+	@echo "Compiling Go script $< to $(patsubst ${GOLANG_PATH}%.go,${GOLANG_PATH}%,$<) ..."; \
+	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go build -x -v -o $(patsubst ${GOLANG_PATH}%.go,${GOLANG_PATH}%,$<) $<
 
 zlint: ${PATH_GOPATH}/bin/zlint
 

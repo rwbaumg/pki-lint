@@ -294,6 +294,7 @@ function usage()
 
      -c, --clean             Clean all downloaded and compiled objects.
      -r, --reset             Reset all third-party modules.
+     -i, --install-missing   Only install missing packages (do not build).
 
      --no-install-missing    Do not install missing packages.
      --no-etckeeper          Do not auto-commit /etc changes under VCS.
@@ -788,6 +789,7 @@ DIR=$(get_root_dir)
 MAKE_ARG="all"
 CLEAN_MODE="false"
 RESET_MODE="false"
+INSTALL_MODE="false"
 
 # process arguments
 while [ $# -gt 0 ]; do
@@ -805,6 +807,10 @@ while [ $# -gt 0 ]; do
     ;;
     --no-install-missing)
       INSTALL_MISSING="false"
+      shift
+    ;;
+    -i|--install-missing)
+      INSTALL_MODE="true"
       shift
     ;;
     --no-etckeeper)
@@ -885,6 +891,8 @@ fi
 
 fi
 
+if [ "${INSTALL_MODE}" != "true" ]; then
+
 # Build all modules
 result=0
 if [ "${CLEAN_MODE}" != "true" ]; then
@@ -917,6 +925,8 @@ else
   else
   print_pass  "All module sources cleaned without error."
   fi
+fi
+
 fi
 
 exit_script ${result}

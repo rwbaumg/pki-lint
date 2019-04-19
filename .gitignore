@@ -1,7 +1,10 @@
+# Ignore temporary and backup files
 *.tmp
 *.bak
 
+# Ignore build output
+bin/
+
+# Ignore Golang working directories
 .go/
 .gocache/
-
-lints/bin/

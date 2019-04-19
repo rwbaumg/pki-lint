@@ -64,10 +64,14 @@ RUBY_MIN_VERSION="2.2"
 OPENSSL_MIN_VERSION_NUM="1.1.0"
 OPENSSL_MIN_VERSION_EXT="g"
 
+GOLANG_INSTALLED=0
+if hash go 2>/dev/null; then
+  GOLANG_INSTALLED=1
+fi
+
 # Check for required commands in PATH
 hash realpath 2>/dev/null || { echo >&2 "You need to install realpath. Aborting."; exit 1; }
 hash openssl 2>/dev/null || { echo >&2 "You need to install openssl. Aborting."; exit 1; }
-hash go 2>/dev/null || { echo >&2 "You need to install go. Aborting."; exit 1; }
 hash git 2>/dev/null || { echo >&2 "You need to install git. Aborting."; exit 1; }
 hash certtool 2>/dev/null || { echo >&2 "You need to install gnutls-bin. Aborting."; exit 1; }
 hash jq 2>/dev/null || { echo >&2 "You need to install jq. Aborting."; exit 1; }
@@ -1170,12 +1174,16 @@ if [ -e "${ZLINT_BIN}" ]; then
 fi
 
 AWS_LINTED="false"
+AWS_CERTLINT_ERROR=""
+AWS_CABLINT_ERROR=""
 if check_ruby_version; then
   pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
-  if ! AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}"); then
+  if ! AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}" 2>&1); then
+    AWS_CERTLINT_ERROR=$(echo "${AWS_CERTLINT}" | tail -n1)
     print_warn "AWS certlint returned a non-zero exit code."
   fi
-  if ! AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}"); then
+  if ! AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}" 2>&1); then
+    AWS_CABLINT_ERROR=$(echo "${AWS_CABLINT}" | tail -n1)
     print_warn >&2 "AWS cablint returned a non-zero exit code."
   fi
   popd > /dev/null 2>&1
@@ -1388,68 +1396,80 @@ fi
 ################## aws-certlint
 
 if [ "${AWS_LINTED}" == "true" ]; then
-if [ ! -z "${AWS_CERTLINT}" ]; then
-  print_newline
-  print_header "AWS certlint:"
+  if [ ! -z "${AWS_CERTLINT}" ]; then
+    if [ ! -z "${AWS_CERTLINT_ERROR}" ]; then
+      print_newline >&2
+      print_error >&2 "AWS certlint failed: ${AWS_CERTLINT_ERROR}"
+    else
+      print_newline
+      print_header "AWS certificate lint:"
 
-  error_level=0
-  IFS=$'\n'; for line in ${AWS_CERTLINT}; do
-    temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
-    info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
-    elvl=$(get_errlvl "${temp}")
-    if [[ $elvl -gt $error_level ]]; then
-      error_level=$elvl
+      error_level=0
+      IFS=$'\n'; for line in ${AWS_CERTLINT}; do
+        temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
+        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
+        elvl=$(get_errlvl "${temp}")
+        if [[ $elvl -gt $error_level ]]; then
+          error_level=$elvl
+        fi
+        print_method=$(get_print_func "${temp}")
+        ${print_method} "${info}"
+      done
+
+      lec=1
+      if [[ $error_level -gt $EC ]]; then
+        EC=${error_level}
+      fi
     fi
-    print_method=$(get_print_func "${temp}")
-    ${print_method} "${info}"
-  done
-
-  lec=1
-  if [[ $error_level -gt $EC ]]; then
-    EC=${error_level}
+  else
+    if [[ $lec -ne 0 ]]; then
+      print_newline
+    fi
+    lec=0
+    print_pass "AWS certificate lint: certificate OK!"
   fi
-else
-  if [[ $lec -ne 0 ]]; then
-    print_newline
-  fi
-  lec=0
-  print_pass "AWS certlint: certificate OK"
-fi
 fi
 
 ################## aws-cablint
 
-if [ ! -z "${AWS_CABLINT}" ]; then
-  print_newline
-  print_header "CA/B Forum lint:"
+if [ "${AWS_LINTED}" == "true" ]; then
+  if [ ! -z "${AWS_CABLINT}" ]; then
+    if [ ! -z "${AWS_CABLINT_ERROR}" ]; then
+      print_newline >&2
+      print_error >&2 "AWS cablint failed: ${AWS_CABLINT_ERROR}"
+    else
+      print_newline
+      print_header "AWS CA/B Forum lint:"
 
-  error_level=0
-  IFS=$'\n'; for line in ${AWS_CABLINT}; do
-    temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
-    info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
-    elvl=$(get_errlvl "${temp}")
-    if [[ $elvl -gt $error_level ]]; then
-      error_level=$elvl
+      error_level=0
+      IFS=$'\n'; for line in ${AWS_CABLINT}; do
+        temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
+        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
+        elvl=$(get_errlvl "${temp}")
+        if [[ $elvl -gt $error_level ]]; then
+          error_level=$elvl
+        fi
+
+        if echo "${info}" | grep -qP 'EV\scertificate\sidentified'; then
+          EV_DETECTED="true"
+        fi
+
+        print_method=$(get_print_func "${temp}")
+        ${print_method} "${info}"
+      done
+
+      lec=1
+      if [[ $error_level -gt $EC ]]; then
+        EC=${error_level}
+      fi
     fi
-
-    if echo "${info}" | grep -qP 'EV\scertificate\sidentified'; then
-      EV_DETECTED="true"
+  else
+    if [[ $lec -ne 0 ]]; then
+      print_newline
     fi
-
-    print_method=$(get_print_func "${temp}")
-    ${print_method} "${info}"
-  done
-
-  lec=1
-  if [[ $error_level -gt $EC ]]; then
-    EC=${error_level}
+    lec=0
+    print_pass "AWS CA/B Forum lint: All certificate checks OK."
   fi
-else
-  if [[ $lec -ne 0 ]]; then
-    print_newline
-  fi
-  lec=0
-  print_pass "CA/B Forum lint: All certificate checks OK."
 fi
 
 ################## zlint
@@ -1524,14 +1544,38 @@ fi
 print_newline
 print_header "Golang:"
 for lint in ${GOLANG_LINTS}; do
-  if ! result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
-    lec=1
-    if [ -z "${result}" ]; then
-      print_error "Go: Failed to run lint script '${lint}'."
-    else
-      print_error "${result}"
+  lint_name="${lint%.*}"
+  lint_script="${lint}"
+  result=""
+  lint_error=0
+  if [ -e "${lint_name}" ]; then
+    if [ $VERBOSITY -gt 2 ]; then
+      print_debug >&2 "Running Go binary ${lint_name} ..."
     fi
-    if [[ 2 -gt $EC ]]; then
+    lint_script="${lint_name}"
+    if ! result=$(${lint_script} "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
+      lint_error=1
+    fi
+  elif [ $GOLANG_INSTALLED -ne 1 ]; then
+    lint_error=1
+  else
+    if [ $VERBOSITY -gt 2 ]; then
+      print_debug >&2 "Running Go script ${lint_name} ..."
+    fi
+    if ! result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
+      lint_error=1
+    fi
+  fi
+  if [[ $lint_error -eq 1 ]]; then
+    lec=1
+    if [ $GOLANG_INSTALLED -ne 1 ]; then
+      print_warn "Go is not installed; cannot run '${lint_script}'."
+    elif [ ! -z "${result}" ]; then
+      print_error "${result}"
+    else
+      print_error "Go: Failed to run lint script '${lint_script}'."
+    fi
+    if [ $GOLANG_INSTALLED -eq 1 ] && [[ 2 -gt $EC ]]; then
       EC=2
     fi
   else
@@ -1577,7 +1621,7 @@ else
     print_newline
   fi
   lec=0
-  print_pass "GlobalSign certlint: certificate OK"
+  print_pass "GlobalSign certlint: certificate OK!"
 fi
 
 ################## NSS
