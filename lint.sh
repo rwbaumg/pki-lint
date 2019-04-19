@@ -64,10 +64,14 @@ RUBY_MIN_VERSION="2.2"
 OPENSSL_MIN_VERSION_NUM="1.1.0"
 OPENSSL_MIN_VERSION_EXT="g"
 
+GOLANG_INSTALLED=0
+if hash go 2>/dev/null; then
+  GOLANG_INSTALLED=1
+fi
+
 # Check for required commands in PATH
 hash realpath 2>/dev/null || { echo >&2 "You need to install realpath. Aborting."; exit 1; }
 hash openssl 2>/dev/null || { echo >&2 "You need to install openssl. Aborting."; exit 1; }
-hash go 2>/dev/null || { echo >&2 "You need to install go. Aborting."; exit 1; }
 hash git 2>/dev/null || { echo >&2 "You need to install git. Aborting."; exit 1; }
 hash certtool 2>/dev/null || { echo >&2 "You need to install gnutls-bin. Aborting."; exit 1; }
 hash jq 2>/dev/null || { echo >&2 "You need to install jq. Aborting."; exit 1; }
@@ -1540,14 +1544,38 @@ fi
 print_newline
 print_header "Golang:"
 for lint in ${GOLANG_LINTS}; do
-  if ! result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
-    lec=1
-    if [ -z "${result}" ]; then
-      print_error "Go: Failed to run lint script '${lint}'."
-    else
-      print_error "${result}"
+  lint_name="${lint%.*}"
+  lint_script="${lint}"
+  result=""
+  lint_error=0
+  if [ -e "${lint_name}" ]; then
+    if [ $VERBOSITY -gt 2 ]; then
+      print_debug >&2 "Running Go binary ${lint_name} ..."
     fi
-    if [[ 2 -gt $EC ]]; then
+    lint_script="${lint_name}"
+    if ! result=$(${lint_script} "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
+      lint_error=1
+    fi
+  elif [ $GOLANG_INSTALLED -ne 1 ]; then
+    lint_error=1
+  else
+    if [ $VERBOSITY -gt 2 ]; then
+      print_debug >&2 "Running Go script ${lint_name} ..."
+    fi
+    if ! result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
+      lint_error=1
+    fi
+  fi
+  if [[ $lint_error -eq 1 ]]; then
+    lec=1
+    if [ $GOLANG_INSTALLED -ne 1 ]; then
+      print_warn "Go is not installed; cannot run '${lint_script}'."
+    elif [ ! -z "${result}" ]; then
+      print_error "${result}"
+    else
+      print_error "Go: Failed to run lint script '${lint_script}'."
+    fi
+    if [ $GOLANG_INSTALLED -eq 1 ] && [[ 2 -gt $EC ]]; then
       EC=2
     fi
   else
