@@ -2,9 +2,9 @@
 
 - [ ] Fix Makefile targets to actually check all build output instead of just individual files
 - [ ] Minimize the number of required commands to run ```lint.sh``` to simplify release
-- [ ] For release, include libssl ```libcrypto.so``` used in x509lint source directory
 - [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source.
+- [x] For release, include libssl ```libcrypto.so``` used in x509lint source directory (used static link for ```libcrypto.a```)
 - [x] Either compile Go lint scripts, or handle instances where Go is not installed in ```lint.sh``` wrapper.
 - [x] Add option to ```build.sh``` to only install missing dependencies.
 - [x] Update Ruby commands to redirect stderr and cleanly inform the user
