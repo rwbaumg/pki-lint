@@ -1,0 +1,3 @@
+# Ignore binary Go builds of scripts in this folder
+01-verify_cert
+02-test_extensions
