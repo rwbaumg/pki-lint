@@ -1,5 +1,6 @@
 # pki-lint TODO list
 
+- [ ] Fix Makefile targets to actually check all build output instead of individual files
 - [ ] Minimize the number of required commands to run ```lint.sh``` to simplify release
 - [ ] Either compile Go lint scripts, or handle instances where Go is not installed in ```lint.sh``` wrapper.
 - [ ] For release, include libssl ```libcrypto.so``` used in x509lint source directory
