@@ -1212,7 +1212,7 @@ if check_ruby_version; then
   fi
   popd > /dev/null 2>&1
   AWS_LINTED="true"
-elif hash ruby 2>/dev/null;
+elif hash ruby 2>/dev/null; then
   print_warn >&2 "Ruby v${RUBY_VERSION} is too old for AWS linting (requires Ruby >= v${RUBY_MIN_VERSION})."
 else
   print_warn >&2 "Ruby is not installed; cannot run AWS linting (requires Ruby >= v${RUBY_MIN_VERSION})."
