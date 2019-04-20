@@ -90,7 +90,8 @@ Common Extended Key Usage (EKU) OIDs are listed below:
 | etsi-tslSigning    | ```0.4.0.2231.3.0```           |
 
 
-The table below shows Microsoft EKUs defined by the [Windows Dev Center: IX509ExtensionEnhancedKeyUsage interface](https://docs.microsoft.com/en-us/windows/desktop/api/CertEnroll/nn-certenroll-ix509extensionenhancedkeyusage):
+### Microsoft Windows
+The table below shows Extended Key Usage Object Identifiers (OIDs) supported by Microsoft Windows, as defined by the [IX509ExtensionEnhancedKeyUsage](https://docs.microsoft.com/en-us/windows/desktop/api/CertEnroll/nn-certenroll-ix509extensionenhancedkeyusage) interface:
 
 | Name                                       | Object Identifier (OID)        | Description |
 | :--                                        | :--:                           | :--         |
