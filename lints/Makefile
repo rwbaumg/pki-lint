@@ -53,9 +53,9 @@ golang/%: ${GOLANG_PATH}%.go
 	@echo "Compiling Go script $< to $(patsubst ${GOLANG_PATH}%.go,${GOLANG_PATH}%,$<) ..."; \
 	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go build -x -v -o $(patsubst ${GOLANG_PATH}%.go,${GOLANG_PATH}%,$<) $<
 
-zlint: ${PATH_GOPATH}/bin/zlint
+zlint: zlint/zlint zlint/zlint-gtld-update
 
-x509lint: x509lint/x509lint-root
+x509lint: x509lint/x509lint-root x509lint/x509lint-int x509lint/x509lint-sub
 
 ev-checker: ev-checker/ev-checker
 
@@ -63,16 +63,16 @@ gs-certlint: gs-certlint/gs-certlint
 
 aws-certlint: aws-certlint/ext/asn1validator.so
 
-x509lint/x509lint-root:
+x509lint/%:
 	pushd x509lint && ${MAKE} all && popd;
 
-ev-checker/ev-checker:
+ev-checker/%:
 	pushd ev-checker && ${MAKE} all && popd;
 
-aws-certlint/ext/asn1validator.so:
+aws-certlint/%:
 	pushd aws-certlint/ext && ruby extconf.rb && ${MAKE} all && popd;
 
-gs-certlint/gs-certlint:
+gs-certlint/%:
 	pushd gs-certlint && \
 	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -u -v github.com/globalsign/certlint/asn1 && \
 	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -u -v github.com/globalsign/certlint/certdata && \
@@ -87,7 +87,7 @@ gs-certlint/gs-certlint:
 	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go build -a -x -v && \
 	popd;
 
-${PATH_GOPATH}/bin/zlint:
+zlint/%:
 	pushd zlint && \
 	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) ${MAKE} && \
 	popd;
