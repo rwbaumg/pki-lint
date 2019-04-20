@@ -69,15 +69,6 @@ if hash go 2>/dev/null; then
   GOLANG_INSTALLED=1
 fi
 
-# Check for required commands in PATH
-hash realpath 2>/dev/null || { echo >&2 "You need to install realpath. Aborting."; exit 1; }
-hash openssl 2>/dev/null || { echo >&2 "You need to install openssl. Aborting."; exit 1; }
-hash git 2>/dev/null || { echo >&2 "You need to install git. Aborting."; exit 1; }
-hash certtool 2>/dev/null || { echo >&2 "You need to install gnutls-bin. Aborting."; exit 1; }
-hash jq 2>/dev/null || { echo >&2 "You need to install jq. Aborting."; exit 1; }
-hash ruby 2>/dev/null || { echo >&2 "You need to install ruby-dev. Aborting."; exit 1; }
-hash vfychain 2>/dev/null || { echo >&2 "You need to install libnss3-tools. Aborting."; exit 1; }
-
 # define script error messages
 errorMessages=([0]="Certificate passed all checks."
                [1]="Certificate linting produced one or more warnings; manual validation required."
@@ -102,6 +93,39 @@ gnutlsku_opts=( [0]="1.3.6.1.5.5.7.3.2"
                 [3]="1.3.6.1.5.5.7.3.4"
                 [4]="1.3.6.1.5.5.7.3.9"
                 [5]="")
+
+# Check for commands which are required to continue executing.
+# If one of these is missing the script must exit immediately.
+hash grep 2>/dev/null || { echo >&2 "You need to install grep. Aborting."; exit 1; }
+
+# Create an array to track missing packages
+declare -a pkg_missing=();
+function add_missing_pkg()
+{
+  if [ -z "$1" ]; then
+    usage "Package name cannot be null."
+  fi
+  if ! echo ${pkg_missing[@]} | grep -q -w "$1"; then
+    pkg_name="$1"
+    pkg_missing=("${pkg_missing[@]}" "${pkg_name}")
+  fi
+}
+
+# Check for required comamnds in PATH
+hash realpath 2>/dev/null || { add_missing_pkg "realpath"; }
+hash openssl 2>/dev/null || { add_missing_pkg "openssl"; }
+hash git 2>/dev/null || { add_missing_pkg "git"; }
+hash certtool 2>/dev/null || { add_missing_pkg "gnutls-bin"; }
+hash jq 2>/dev/null || { add_missing_pkg "jq"; }
+hash vfychain 2>/dev/null || { add_missing_pkg "libnss3-tools"; }
+
+# Ruby can be required here; otherwise it will only affect AWS linting
+#hash ruby 2>/dev/null || { add_missing_pkg "ruby"; }
+
+if [ ${#pkg_missing[@]} -gt 0 ]; then
+  echo >&2 "ERROR: You need to install the following packages: ${pkg_missing[*]}"
+  exit 1
+fi
 
 # Define additional variables
 CERT=""
@@ -1188,8 +1212,10 @@ if check_ruby_version; then
   fi
   popd > /dev/null 2>&1
   AWS_LINTED="true"
+elif hash ruby 2>/dev/null;
+  print_warn >&2 "Ruby v${RUBY_VERSION} is too old for AWS linting (requires Ruby >= v${RUBY_MIN_VERSION})."
 else
-  print_warn >&2 "Ruby v${RUBY_VERSION} is too old for AWS linting (requires v${RUBY_MIN_VERSION})."
+  print_warn >&2 "Ruby is not installed; cannot run AWS linting (requires Ruby >= v${RUBY_MIN_VERSION})."
 fi
 
 err=0

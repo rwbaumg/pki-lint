@@ -9,6 +9,6 @@ all:
 clean:
 	pushd ${LINTS_DIR} && ${MAKE} clean && popd
 list:
-	@grep -Po '^[^#[:space:]|SHELL|PATH|$$][a-zA-Z].*(?=\:)' Makefile | sort
+	@grep -Po '^[^#[:space:]|SHELL|PATH|$$][a-zA-Z].*(?=\:)' Makefile | grep -v UNAME | sort
 test:
 	pushd ${LINTS_DIR} && ${MAKE} test && popd
