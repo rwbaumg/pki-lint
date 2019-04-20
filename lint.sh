@@ -1619,6 +1619,7 @@ if [ ! -z "${GS_CERTLINT}" ]; then
   IFS=$'\n'; for line in ${GS_CERTLINT}; do
     if echo "${line}" | grep -qP '^Processed\sCertificate\sType\:\sEV$'; then
       EV_DETECTED="true"
+      print_info "EV certificate identified"
     fi
 
     temp=$(echo "${line}" | grep -Po '(?<=Priority\:\s)(Error|Warning|Info)' | sort | head -n1)
