@@ -107,7 +107,7 @@ func getVerifyOpts(chain string, dns_name string, purpose x509.ExtKeyUsage) x509
 func main() {
   // Read and parse the PEM certificate file
   if len(os.Args) < 2 {
-    fmt.Println("Usage: script.go <cert> [chain] [purpose] [hostname]")
+    fmt.Printf("Usage: %s <cert> [chain] [purpose] [hostname]\n", os.Args[0])
     os.Exit(1)
   }
 
