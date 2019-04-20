@@ -1,16 +1,17 @@
 # pki-lint TODO list
 
-- [ ] Fix Makefile targets to actually check all build output instead of just individual files
-- [ ] Minimize the number of required commands to run ```lint.sh``` to simplify release
+- [ ] Minimize the number of required commands to run ```lint.sh``` to simplify release.
 - [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source.
-- [x] For release, include libssl ```libcrypto.so``` used in x509lint source directory (used static link for ```libcrypto.a```)
+- [x] Fix Makefile targets to actually check all build output instead of just individual files.
+- [x] Add ```--update``` option to ```build.sh``` for updating Git submodules.
+- [x] For release, include libssl ```libcrypto.so``` used in x509lint source directory (used static link for ```libcrypto.a```).
 - [x] Either compile Go lint scripts, or handle instances where Go is not installed in ```lint.sh``` wrapper.
 - [x] Add option to ```build.sh``` to only install missing dependencies.
-- [x] Update Ruby commands to redirect stderr and cleanly inform the user
+- [x] Update Ruby commands to redirect stderr and cleanly inform the user.
 - [x] Check for the correct Ruby version in lint.sh script.
 - [x] Update all third-party linting modules to latest versions.
-- [x] Fix output coloring (use regex to check if info/warn/err/etc.)
+- [x] Fix output coloring (use regex to check if info/warn/err/etc.).
 - [x] Add argument to specify OpenSSL validation ```auth_level```.
 - [x] Update ```README.md``` to document added arguments.
 - [x] Fix ```NOTES.md``` markdown.
