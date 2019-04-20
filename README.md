@@ -226,6 +226,10 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## License
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Frwbaumg%2Fpki-lint.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Frwbaumg%2Fpki-lint?ref=badge_shield)
 
 - **[MIT license](http://opensource.org/licenses/mit-license.php)**
 - Unpublished Copyright 2019 © Robert W. Baumgartner. All rights reserved.
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Frwbaumg%2Fpki-lint.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Frwbaumg%2Fpki-lint?ref=badge_large)
