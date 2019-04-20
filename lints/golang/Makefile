@@ -14,7 +14,7 @@ clean:
 	rm -vf $(PROGS)
 
 list:
-	@grep -Po '^[^#[:space:]|SHELL|PATH|$$][a-zA-Z].*(?=\:)' Makefile | sort
+	@grep -Po '^[^#[:space:]|SHELL|PATH|$$][a-zA-Z].*(?=\:)' Makefile | grep -v UNAME | sort
 
 %: %.go
 	@echo "Compiling Go script $< to $(patsubst %.go,%,$<) ..."; \

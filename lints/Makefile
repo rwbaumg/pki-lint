@@ -18,7 +18,7 @@ GOLANG_PROGS := $(patsubst ${GOLANG_PATH}%.go,${GOLANG_PATH}%,$(GOLANG_SRCS))
 all: x509lint ev-checker aws-certlint gs-certlint zlint golang bin
 
 list:
-	@grep -Po '^[^#[:space:]|SHELL|PATH|$$][a-zA-Z].*(?=\:)' Makefile | sort
+	@grep -Po '^[^#[:space:]|SHELL|PATH|$$][a-zA-Z].*(?=\:)' Makefile | grep -v UNAME | sort
 
 test:
 	@echo "GO_VERSION='${GO_VERSION}'"
