@@ -295,6 +295,7 @@ function usage()
      -c, --clean             Clean all downloaded and compiled objects.
      -r, --reset             Reset all third-party modules.
      -i, --install-missing   Only install missing packages (do not build).
+     -u, --update            Only update Git modules (do not build).
 
      --no-install-missing    Do not install missing packages.
      --no-etckeeper          Do not auto-commit /etc changes under VCS.
@@ -790,6 +791,7 @@ MAKE_ARG="all"
 CLEAN_MODE="false"
 RESET_MODE="false"
 INSTALL_MODE="false"
+UPDATE_MODE="false"
 
 # process arguments
 while [ $# -gt 0 ]; do
@@ -811,6 +813,10 @@ while [ $# -gt 0 ]; do
     ;;
     -i|--install-missing)
       INSTALL_MODE="true"
+      shift
+    ;;
+    -u|--update)
+      UPDATE_MODE="true"
       shift
     ;;
     --no-etckeeper)
@@ -846,7 +852,7 @@ if [ ${VERBOSITY} -gt 0 ]; then
   MAKE_ARG="--debug=v ${MAKE_ARG}"
 fi
 
-if [ "${CLEAN_MODE}" != "true" ]; then
+if [ "${CLEAN_MODE}" != "true" ] && [ "${UPDATE_MODE}" != "true" ]; then
 
 print_info "Checking required packages..."
 
@@ -879,6 +885,10 @@ install_pkg "libssl-dev"
 install_gem "simpleidn"
 install_gem "public_suffix"
 
+fi
+
+if [ "${CLEAN_MODE}" != "true" ] && [ "${RESET_MODE}" != "true" ]; then
+
 # Update sub-modules
 print_info "Initializing Git submodules..."
 if ! git submodule init; then
@@ -891,7 +901,7 @@ fi
 
 fi
 
-if [ "${INSTALL_MODE}" != "true" ]; then
+if [ "${INSTALL_MODE}" != "true" ] && [ "${UPDATE_MODE}" != "true" ]; then
 
 # Build all modules
 result=0

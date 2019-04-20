@@ -1,10 +1,10 @@
 # pki-lint TODO list
 
-- [ ] Add ```--update``` option to ```build.sh``` for updating Git submodules.
 - [ ] Fix Makefile targets to actually check all build output instead of just individual files.
 - [ ] Minimize the number of required commands to run ```lint.sh``` to simplify release.
 - [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source.
+- [x] Add ```--update``` option to ```build.sh``` for updating Git submodules.
 - [x] For release, include libssl ```libcrypto.so``` used in x509lint source directory (used static link for ```libcrypto.a```).
 - [x] Either compile Go lint scripts, or handle instances where Go is not installed in ```lint.sh``` wrapper.
 - [x] Add option to ```build.sh``` to only install missing dependencies.
