@@ -1,5 +1,6 @@
 # pki-lint TODO list
 
+- [ ] Exit ```build.sh``` script on first ```sudo``` failure while attempting to update cache.
 - [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source.
 - [x] Minimize the number of required commands to run ```lint.sh``` to simplify release.
