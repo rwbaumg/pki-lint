@@ -2,6 +2,7 @@
 
 X.509 certificate linter
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/59844cfd3b0743b8bad687ccd55c647d)](https://app.codacy.com/app/rwbaumg/pki-lint?utm_source=github.com&utm_medium=referral&utm_content=rwbaumg/pki-lint&utm_campaign=Badge_Grade_Dashboard)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](http://badges.mit-license.org)
 [![Build Status](https://travis-ci.org/rwbaumg/pki-lint.svg?branch=github)](https://travis-ci.org/rwbaumg/pki-lint)
 [![CodeFactor](https://www.codefactor.io/repository/github/rwbaumg/pki-lint/badge)](https://www.codefactor.io/repository/github/rwbaumg/pki-lint)
