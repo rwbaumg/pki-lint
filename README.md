@@ -3,7 +3,6 @@
 X.509 certificate linter
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](http://badges.mit-license.org)
-[![GitHub repo size](https://img.shields.io/github/repo-size/rwbaumg/pki-lint.svg?color=blue&label=repo%20size&logo=github&style=flat)](https://github.com/rwbaumg/pki-lint)
 [![Travis (.org) branch](https://img.shields.io/travis/rwbaumg/pki-lint/github.svg?label=build&logo=travis&style=flat)](https://travis-ci.org/rwbaumg/pki-lint)
 [![CodeFactor](https://www.codefactor.io/repository/github/rwbaumg/pki-lint/badge)](https://www.codefactor.io/repository/github/rwbaumg/pki-lint)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/59844cfd3b0743b8bad687ccd55c647d)](https://app.codacy.com/app/rwbaumg/pki-lint?utm_source=github.com&utm_medium=referral&utm_content=rwbaumg/pki-lint&utm_campaign=Badge_Grade_Dashboard)
@@ -12,7 +11,6 @@ X.509 certificate linter
 [![GitHub release](https://img.shields.io/github/release/rwbaumg/pki-lint.svg?color=blue&label=release&logo=github&style=flat)](https://github.com/rwbaumg/pki-lint/releases/latest)
 [![GitHub All Releases](https://img.shields.io/github/downloads/rwbaumg/pki-lint/total.svg?logo=github&style=flat)](https://github.com/rwbaumg/pki-lint/releases)
 [![GitHub issues](https://img.shields.io/github/issues-raw/rwbaumg/pki-lint.svg?label=open%20issues&logo=github&style=flat)](https://github.com/rwbaumg/pki-lint/issues)
-[![GitHub stars](https://img.shields.io/github/stars/rwbaumg/pki-lint.svg?color=blue&label=stars&logo=github&style=flat)](https://github.com/rwbaumg/pki-lint)
 [![Donate with Bitcoin](https://en.cryptobadges.io/badge/micro/14JFg2GrXM4b45G68s53zEh4sqptHEmRfY)](https://en.cryptobadges.io/donate/14JFg2GrXM4b45G68s53zEh4sqptHEmRfY)
 [![GitHub followers](https://img.shields.io/github/followers/rwbaumg.svg?label=follow%20%40rwbaumg&logo=github&style=flat)](https://github.com/rwbaumg)
 [![Twitter Follow](https://img.shields.io/twitter/follow/rwbaumg.svg?color=blue&logo=twitter&style=flat)](https://twitter.com/intent/follow?screen_name=rwbaumg)
