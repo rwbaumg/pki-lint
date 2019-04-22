@@ -1,5 +1,7 @@
 # pki-lint TODO list
 
+- [ ] Fix OpenSSL CRL validation in ```lint.sh``` script (must handle DER-encoded CRL files).
+- [ ] Fix ```lint.sh``` ```print_debug``` minimum verbosity level (is currently zero).
 - [ ] Exit ```build.sh``` script on first ```sudo``` failure while attempting to update cache.
 - [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source.
