@@ -1382,13 +1382,13 @@ if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
     PEM_CRL_FILE=$(get_pem_file "${RAW_CRL_FILE}")
     TMP_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).tmp.crl"
     cat ${PEM_CHAIN_FILE} ${PEM_CRL_FILE} > ${TMP_CRL_FILE}
-    echo rm ${VERBOSE_FLAG} -f "${PEM_CRL_FILE}"
+    rm ${VERBOSE_FLAG} -f "${PEM_CRL_FILE}"
     CA_FILE="${TMP_CRL_FILE}"
   fi
   rm ${VERBOSE_FLAG} -f "${RAW_CRL_FILE}"
 fi
 
-if [  -z "${CA_FILE}" ]; then
+if [ ! -z "${CA_FILE}" ]; then
   if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check -CAfile "${CA_FILE}" "${PEM_FILE}" 2>&1); then
     OPENSSL_CRL_ERR=1
   fi
