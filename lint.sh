@@ -397,8 +397,8 @@ function print_warn()
 
 function print_debug()
 {
-  if [ $VERBOSITY -gt 0 ]; then
-  print_tagged "DEBUG" "${1}" 36
+  if [ $VERBOSITY -gt 1 ]; then
+  print_tagged "DEBUG" "${1}" 36 >&2
   fi
 }
 
@@ -658,6 +658,63 @@ function add_zlint_lint()
   fi
   lint_name="$1"
   zlint_names=("${zlint_names[@]}" "${lint_name}")
+}
+
+function is_pem_format()
+{
+  local file="$1"
+  if [ -z "${file}" ] || [ ! -e "${file}" ]; then
+    exit_script 1 "No file passed to function."
+  fi
+  if ! openssl x509 -inform PEM -in "${file}" -text -noout > /dev/null 2>&1; then
+    return 1
+  fi
+  return 0
+}
+
+function get_pem_file()
+{
+  local file="$1"
+  if [ -z "${file}" ] || [ ! -e "${file}" ]; then
+    exit_script 1 "Invalid file argument passed to function."
+  fi
+
+  # check if file is already in PEM format
+  if is_pem_format "${file}"; then
+    echo "${file}"
+    return 0
+  fi
+
+  temp_file="$(mktemp -t $(basename ${file}).XXXXXX).pem"
+  if ! openssl crl -inform DER -in "${file}" -outform PEM -out "${temp_file}"; then
+    exit_script 1 "Failed to convert file from DER->PEM encoding: '${file}'"
+  fi
+
+  if ! mv "${temp_file}" "${file}"; then
+    exit_script 1 "Failed to replace file '${file}' with updated encoding."
+  fi
+
+  echo "${file}"
+  return 0
+}
+
+function get_crl_http_from_pem()
+{
+  local pem_file="$1"
+  local crl_url
+
+  if [ -z "${pem_file}" ] || [ ! -e "${pem_file}" ]; then
+    exit_script 1 "Invalid file path passed to function."
+  fi
+
+  if crl_url=$(openssl x509 -noout -text -in "${pem_file}" | grep -A 4 'X509v3 CRL Distribution Points' | grep -Po '(?<=URI\:)(http)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?$'); then
+    if [ ! -z "${crl_url}" ]; then
+      echo "${crl_url}"
+      return 0
+    fi
+  fi
+
+  return 1
 }
 
 function get_purpose()
@@ -1189,6 +1246,10 @@ if [ "${CERTTOOL_CAN_VERIFY}" != "true" ]; then
   print_warn "GnuTLS certtool version ${CERTTOOL_VERSION} is too old for verification."
 fi
 
+#
+## zlint
+#
+
 if [ -e "${ZLINT_BIN}" ]; then
   if ! ZLINT_RAW=$(${ZLINT_BIN} -pretty "${PEM_FILE}"); then
     # NOTE: zlint appears to return a non-zero exit code even if no warnings are found
@@ -1196,6 +1257,10 @@ if [ -e "${ZLINT_BIN}" ]; then
   fi
   ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
 fi
+
+#
+## AWS cablint/certlint
+#
 
 AWS_LINTED="false"
 AWS_CERTLINT_ERROR=""
@@ -1218,6 +1283,10 @@ else
   print_warn >&2 "Ruby is not installed; cannot run AWS linting (requires Ruby >= v${RUBY_MIN_VERSION})."
 fi
 
+#
+## Globalsign certlint
+#
+
 err=0
 pushd ${GS_CLINT_DIR} > /dev/null 2>&1
 if [ ! -z "${CA_CHAIN}" ]; then
@@ -1234,9 +1303,15 @@ if [ $err -ne 0 ]; then
   print_warn >&2 "GlobalSign certlint returned a non-zero exit code."
 fi
 
+#
+## x509lint
+#
+
 if ! X509LINT=$(LD_LIBRARY_PATH=${X509_DIR} ${X509_BIN} "${PEM_FILE}"); then
   print_warn >&2 "x509lint returned a non-zero exit code."
 fi
+
+##
 
 EC=0
 OPENSSL_ERR=0
@@ -1267,6 +1342,10 @@ if [ ! -z "${KU_GNUTLS}" ]; then
   GNUTLS_EXTRA="${GNUTLS_EXTRA} --verify-purpose=${KU_GNUTLS}"
 fi
 
+#
+## OpenSSL verification
+#
+
 err=0
 if [ ! -z "${CA_CHAIN}" ]; then
   if ! OPENSSL_OUT=$(openssl verify ${OPENSSL_ARGS} ${OPENSSL_EXTRA} -CAfile "${PEM_CHAIN_FILE}" "${PEM_FILE}" 2>&1); then
@@ -1282,15 +1361,48 @@ if [ $err -ne 0 ]; then
   print_warn "OpenSSL verification returned a non-zero exit code." >&2
 fi
 
-if [ ! -z "${CA_CHAIN}" ]; then
-  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check_all -CAfile "${PEM_CHAIN_FILE}" "${PEM_FILE}" 2>&1); then
+#
+## OpenSSL CRL verification
+#
+
+# TODO: Refactor to process CRL for every certificate in chain
+# Functions could be added to download CA certificates from AIA URLs to build the chain as well.
+# If we can get the CRL file (in PEM format) for each certificate in the chain, then we could use
+# the 'openssl verify -crl_check_all' command to validate all of them.
+CA_FILE=""
+if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
+  RAW_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).raw.crl"
+  if ! wget -qO "${RAW_CRL_FILE}" "${CRL_URL}"; then
+    # Failed to download CRL file
+    if [ ! -z "${PEM_CHAIN_FILE}" ]; then
+      CA_FILE="${PEM_CHAIN_FILE}"
+    fi
+    print_warn "Failed to download CRL from '${CRL_URL}'."
+  else
+    PEM_CRL_FILE=$(get_pem_file "${RAW_CRL_FILE}")
+    TMP_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).tmp.crl"
+    cat ${PEM_CHAIN_FILE} ${PEM_CRL_FILE} > ${TMP_CRL_FILE}
+    echo rm ${VERBOSE_FLAG} -f "${PEM_CRL_FILE}"
+    CA_FILE="${TMP_CRL_FILE}"
+  fi
+  rm ${VERBOSE_FLAG} -f "${RAW_CRL_FILE}"
+fi
+
+if [  -z "${CA_FILE}" ]; then
+  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check -CAfile "${CA_FILE}" "${PEM_FILE}" 2>&1); then
     OPENSSL_CRL_ERR=1
   fi
 else
-  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check_all "${PEM_FILE}" 2>&1); then
-    OPENSSL_CRL_ERR=1
-  fi
+  OPENSSL_CRL_ERR=1
+  print_warn "Unable to check CRL revocation status; failed to obtain required CRL file."
+#  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check_all "${PEM_FILE}" 2>&1); then
+#    OPENSSL_CRL_ERR=1
+#  fi
 fi
+
+#
+## GnuTLS certtool
+#
 
 if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
   DEBUG_ARG=""
@@ -1313,12 +1425,14 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
   fi
 fi
 
-##################
+###
 
 #echo; print_header "Results:"
 #print_header "---"
 
-################## OpenSSL
+#
+## OpenSSL
+#
 
 # Peform security level checks
 CERT_BITS=$(openssl x509 -in "${PEM_FILE}" -text -noout | grep -Po '(?<=Public-Key:\s\()[0-9]+(?=\sbit\))')
@@ -1351,14 +1465,18 @@ else
 fi
 
 if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
-  print_newline
-  text=$(echo "${OPENSSL_CRLCHECK}" | sed 's/'${PEM_FILE//\//\\/}'//')
-  print_header "OpenSSL CRL verify:"
-  print_yellow "${text}"
-  if [[ 1 -gt $EC ]]; then
-    EC=1
+  if [ ! -z "${OPENSSL_CRLCHECK}" ]; then
+    print_newline
+    text=$(echo "${OPENSSL_CRLCHECK}" | sed 's/'${PEM_FILE//\//\\/}'//')
+    print_header "OpenSSL CRL verify:"
+    print_yellow "${text}"
+    if [[ 1 -gt $EC ]]; then
+      EC=1
+    fi
+    lec=1
+  else
+    lec=0
   fi
-  lec=1
 else
   if [[ $lec -ne 0 ]]; then
     print_newline
@@ -1367,7 +1485,9 @@ else
   print_pass "OpenSSL verify: certificate CRL check OK!"
 fi
 
-################## GnuTLS
+#
+## GnuTLS
+#
 
 if [ ${GNUTLS_ERR} -eq 1 ]; then
   print_newline
@@ -1389,7 +1509,9 @@ else
   fi
 fi
 
-################## z509lint
+#
+## z509lint
+#
 
 if [ ! -z "${X509LINT}" ]; then
   print_newline
@@ -1419,7 +1541,9 @@ else
   print_pass "X.509 lint: All certificate checks OK."
 fi
 
-################## aws-certlint
+#
+## aws-certlint
+#
 
 if [ "${AWS_LINTED}" == "true" ]; then
   if [ ! -z "${AWS_CERTLINT}" ]; then
@@ -1456,7 +1580,9 @@ if [ "${AWS_LINTED}" == "true" ]; then
   fi
 fi
 
-################## aws-cablint
+#
+## aws-cablint
+#
 
 if [ "${AWS_LINTED}" == "true" ]; then
   if [ ! -z "${AWS_CABLINT}" ]; then
@@ -1498,7 +1624,9 @@ if [ "${AWS_LINTED}" == "true" ]; then
   fi
 fi
 
-################## zlint
+#
+## zlint
+#
 
 if [ ! -z "${ZLINT}" ]; then
   print_newline
@@ -1565,7 +1693,9 @@ else
   print_pass "ZLint: All certificate checks OK."
 fi
 
-################## Golang
+#
+## Golang
+#
 
 print_newline
 print_header "Golang:"
@@ -1610,7 +1740,9 @@ for lint in ${GOLANG_LINTS}; do
   fi
 done
 
-################## gs-certlint
+#
+## gs-certlint
+#
 
 if [ ! -z "${GS_CERTLINT}" ]; then
   print_newline
@@ -1651,7 +1783,9 @@ else
   print_pass "GlobalSign certlint: certificate OK!"
 fi
 
-################## NSS
+#
+## Mozilla NSS
+#
 
 print_newline
 if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
@@ -1763,7 +1897,9 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
 #  print_warn "Skipping Mozilla NSS verification."
 fi
 
-################## ev-checker
+#
+## ev-checker
+#
 
 if [ "${EV_DETECTED}" == "true" ] && [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
 print_newline
@@ -1790,7 +1926,15 @@ else
 fi
 fi
 
-rm ${VERBOSE_FLAG} ${DER_FILE} ${PEM_FILE}
+if [ ! -z "${CA_FILE}" ]; then
+  rm ${VERBOSE_FLAG} -f "${CA_FILE}"
+fi
+if [ ! -z "${PEM_FILE}" ]; then
+  rm ${VERBOSE_FLAG} -f "${PEM_FILE}"
+fi
+if [ ! -z "${DER_FILE}" ]; then
+  rm ${VERBOSE_FLAG} -f "${DER_FILE}"
+fi
 
 errorMsg="${errorMessages[${EC}]}"
 print_method=$(get_print_func "${EC}")
