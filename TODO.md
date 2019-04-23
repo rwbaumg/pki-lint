@@ -1,8 +1,12 @@
 # pki-lint TODO list
 
-- [ ] Exit ```build.sh``` script on first ```sudo``` failure while attempting to update cache.
+- [ ] Add support for optional downloading of AIA certificates to attempt to build missing chains.
+- [ ] Add support for OpenSSL CRL validation along the entire chain.
 - [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source.
+- [x] Exit ```build.sh``` script on first ```sudo``` failure while attempting to update cache.
+- [x] Fix OpenSSL CRL validation in ```lint.sh``` script (must handle DER-encoded CRL files).
+- [x] Fix ```lint.sh``` ```print_debug``` minimum verbosity level (is currently zero).
 - [x] Minimize the number of required commands to run ```lint.sh``` to simplify release.
 - [x] Fix Makefile targets to actually check all build output instead of just individual files.
 - [x] Add ```--update``` option to ```build.sh``` for updating Git submodules.

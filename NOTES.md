@@ -26,6 +26,8 @@ openssl verify -verbose \
 
 **Note that the ```auth_level``` argument is only available with newer versions of ```openssl```.**
 
+It is also possible to check revocation information for a certificate (including, optionally, all certificates in the chain), for example, using ```openssl verify```. To do so, use the ```-crl_check``` argument to validate the CRL for the specified certificate, or ```-crl_check_all``` to do the same for every certificate in the trust chain. CRL checking arguments can be passed to ```openssl verify``` in combination with other verification, e.g. by adding the desired argument to the above example.
+
 The following security levels are defined by OpenSSL for certificate verification (taken from ```man SSL_CTX_set_security_level```).
 
 **Certificates must be equivalent to *Level 2* or greater security in order to meet baseline requirements for certificate issuance.**
@@ -38,7 +40,6 @@ The following security levels are defined by OpenSSL for certificate verificatio
 | Level 3 | Security level set to 128 bits of security. As a result RSA, DSA and DH keys shorter than 3072 bits and ECC keys shorter than 256 bits are prohibited.  In addition to the level 2 exclusions ciphersuites not offering forward secrecy are prohibited. TLS versions below 1.1 are not permitted. Session tickets are disabled. |
 | Level 4 | Security level set to 192 bits of security. As a result RSA, DSA and DH keys shorter than 7680 bits and ECC keys shorter than 384 bits are prohibited.  Ciphersuites using SHA1 for the MAC are prohibited. TLS versions below 1.2 are not permitted. |
 | Level 5 | Security level set to 256 bits of security. As a result RSA, DSA and DH keys shorter than 15360 bits and ECC keys shorter than 512 bits are prohibited. |
-
 
 The following ```-purpose``` strings are supported by ```openssl verify```:
 - ```sslclient```
@@ -53,7 +54,6 @@ The ```-verify_name``` option is used to set default verification policies, and 
 - ```smime_sign```
 - ```ssl_client```
 - ```ssl_server```
-
 
 ## Key Purposes
 Common Extended Key Usage (EKU) OIDs are listed below:
@@ -88,7 +88,6 @@ Common Extended Key Usage (EKU) OIDs are listed below:
 | adobePDFSigning    | ```1.2.840.113583.1.1.5```     |
 | intelAMT           | ```2.16.840.1.113741.1.2.3```  |
 | etsi-tslSigning    | ```0.4.0.2231.3.0```           |
-
 
 ### Microsoft Windows
 The table below shows Extended Key Usage Object Identifiers (OIDs) supported by Microsoft Windows, as defined by the [IX509ExtensionEnhancedKeyUsage](https://docs.microsoft.com/en-us/windows/desktop/api/CertEnroll/nn-certenroll-ix509extensionenhancedkeyusage) interface:
@@ -129,7 +128,6 @@ The table below shows Extended Key Usage Object Identifiers (OIDs) supported by 
 | ```XCN_OID_ROOT_LIST_SIGNER```             | ```1.3.6.1.4.1.311.10.3.9```   | The certificate can be used to sign a certificate root list. |
 | ```XCN_OID_WHQL_CRYPTO```                  | ```1.3.6.1.4.1.311.10.3.5```   | The certificate can be used for Windows Hardware Quality Labs (WHQL) cryptography. |
 
-
 ## Mozilla NSS
 The Mozilla Network Security Service (NSS) provides the following tools for certificate validation:
 - ```vfychain```: Verifies certificate chains.
@@ -149,7 +147,6 @@ vfychain -vv -pp -u 4 -T \
   -t ca/root-ca.crt -t ca/int-ca.crt
 ```
 
-
 The following arguments can be passes to ```vfychain``` to control validation:
 
 | Argument              | Description |
@@ -167,7 +164,6 @@ The following arguments can be passes to ```vfychain``` to control validation:
 | ```-h test-flags```   | Sets revocation flags for the test type it follows. Possible flags: "testLocalInfoFirst" and "requireFreshInfo". |
 | ```-m method-type```  | Sets method type for the test type it follows. Possible types are "crl" and "ocsp". |
 | ```-s method-flags``` | Sets revocation flags for the method it follows. Possible types are "doNotUse", "forbidFetching", "ignoreDefaultSrc", "requireInfo" and "failIfNoInfo". |
-
 
 The following certificate purposes are supported by the ```vfychain``` tool via the ```-u <usage>``` option:
 
@@ -203,7 +199,6 @@ The following certificate purposes are supported by the ```certutil``` tool via 
 | OCSP Responder  | ```O```     |
 | Object Signer   | ```J```     |
 
-
 ## Golang
 Golang uses its own implementation for [X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509) certificate validation.
 
@@ -223,7 +218,6 @@ ExtKeyUsageNetscapeServerGatedCrypto = 11
 ExtKeyUsageMicrosoftCommercialCodeSigning = 12
 ExtKeyUsageMicrosoftKernelCodeSigning = 13
 ```
-
 
 ## GnuTLS
 The ```certtool``` utility provided by GnuTLS can be used to validate certificates.
@@ -263,7 +257,6 @@ cat /path/to/chain.pem | certtool --verify-chain
 
 Note that you can use ```--infile <file>``` instead of piping the certificate to ```certtool```. The debug level can be between 0-9999, and controls how much debugging output is printed out.
 
-
 ## Technical Constraints
 For a certificate to be technically constrained, it *MUST* contain an ```extendedKeyUsage``` extension defining the purposes for which it may be used. When an EKU extension is added to a Subordinate CA, the CA is restricted in which purposes it may issue certificates for.
 
@@ -281,12 +274,10 @@ The [Mozilla Root Store Policy, section 5.3.1](https://github.com/mozilla/pkipol
 > - If the certificate includes the ```id-kp-emailProtection``` extended key usage, then to be considered technically constrained, it *MUST* include the Name Constraints X.509v3 extension with constraints on ```rfc822Name```, with at least one name in ```permittedSubtrees```, each such name having its ownership validated according to [section 3.2.2.4 of the Baseline Requirements](https://github.com/cabforum/documents/blob/master/docs/BR.md#3224-validation-of-domain-authorization-or-control).
 > - The ```anyExtendedKeyUsage``` KeyPurposeId *MUST NOT* appear within the EKU extension.
 
-
 ## Federal PKI Standards
 You can use the online [Federal PKI X.509 certificate linter](https://cpct.app.cloud.gov/) webapp to validate certificates against U.S. Federal PKI standards.
 
 The source code for the webservice is provided in the [fpkilint](https://github.com/GSA/fpkilint) GitHub repository.
-
 
 ## References
 Relevant source code repositories are listed below:
@@ -301,12 +292,16 @@ Relevant source code repositories are listed below:
 - [Google Certificate Transparency](https://github.com/google/certificate-transparency)
 - [Google Certificate Transparency: Go Code](https://github.com/google/certificate-transparency-go)
 - [Federal PKI X.509 certificate linter](https://github.com/GSA/fpkilint)
+- [zmap/zcrypto: x509/extended_key_usage.go](https://github.com/zmap/zcrypto/blob/master/x509/extended_key_usage.go)
 
-The following resources provide relavent standards documentation and examples for PKI testing:
+The following resources provide relevant standards documentation and examples for PKI testing:
 - [ITU-T X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509)
 - [NIST Public Key Infrastructure Testing](https://csrc.nist.gov/projects/pki-testing)
 - [Mozilla Root Store Policy](https://github.com/mozilla/pkipolicy/blob/master/rootstore/policy.md)
 - [Mozilla PKI Project](http://mozilla.org/projects/security/pki/)
+- [Mozilla Developer Network: Network Security Services (NSS)](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS)
+- [Mozilla Developer Network: NSS Tools certutil](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/certutil)
+- [Mozilla Developer Network: NSS Tools vfychain](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/vfychain)
 - [CA/Browser Forum: Baseline Requirements](https://github.com/cabforum/documents/blob/master/docs/BR.md)
 - [CA/Browser Forum: Extended-Validation Guidelines](https://github.com/cabforum/documents/blob/master/docs/EVG.md)
 - [U.S. Federal Public Trust TLS Certificate Policy](https://devicepki.idmanagement.gov/) ([GitHub](https://github.com/uspki/policies))
@@ -320,5 +315,6 @@ The following resources provide relavent standards documentation and examples fo
 - [Certificate Transparency](http://www.certificate-transparency.org/) ([GitHub](https://github.com/google/certificate-transparency))
 - [Certificate Transparency Log Policy](https://github.com/chromium/ct-policy/blob/master/log_policy.md#certificate-transparency-log-policy)
 - [Certificate Transparency RFC](https://github.com/google/certificate-transparency-rfcs)
+- [Microsoft Support: Object IDs associated with Microsoft cryptography](https://support.microsoft.com/en-us/help/287547/object-ids-associated-with-microsoft-cryptography)
 - [Windows Dev Center: Supported Extensions](https://docs.microsoft.com/en-us/windows/desktop/seccertenroll/supported-extensions)
 - [Windows Dev Center: IX509ExtensionEnhancedKeyUsage](https://docs.microsoft.com/en-us/windows/desktop/api/CertEnroll/nn-certenroll-ix509extensionenhancedkeyusage)
