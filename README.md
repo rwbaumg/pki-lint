@@ -17,7 +17,6 @@ X.509 certificate linter
 [![Tweet](https://img.shields.io/badge/twitter-share-blue.svg?color=blue&logo=twitter&style=flat)](http://bit.ly/2UheprS)
 [![Keybase PGP](https://img.shields.io/keybase/pgp/rbaumg.svg?color=blue&label=pgp&style=flat)](https://keybase.io/rbaumg)
 
-
 ## Introduction
 The ```pki-lint``` utility is a framework and wrapper for the linting of Public-key Infrastructure (PKI) [X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509) certificates. The included GNU/Linux Bash script, ```lint.sh```, enables quick and easy identification of potential issues with generated [X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509) certificates. The ```lint.sh``` script also doubles as a wrapper for a number of third-party certificate linters, and enables running a large number of compliance checks with a single command.
 
@@ -46,7 +45,6 @@ The following extra packages are also required
 Running the ```build.sh``` script will try to install missing dependencies for you.
 Note that only the [Debian](https://www.debian.org)-based package manager APT is currently supported.
 
-
 ## Installation
 To initialize required modules and compile dependencies, run:
 ```bash
@@ -58,7 +56,6 @@ If you encounter errors building module sources you can use ```--verbose``` to g
 ./build.sh --verbose
 ```
 
-
 ## Usage
 In order to select the appropriate tests, you must specify the type of the certificate being checked. The following certificate types are supported:
 - Root CA certificates
@@ -67,12 +64,11 @@ In order to select the appropriate tests, you must specify the type of the certi
 
 Certificate type switches for ```lint.sh``` are listed below:
 
-| Type switch                   | Certificate type                            |
-| :---                          | :----                                       |
+| Type switch                     | Certificate type                            |
+| :---                            | :----                                       |
 | ```-r``` / ```--root```         | Root CA / trust-anchor certificate.         |
 | ```-i``` / ```--intermediate``` | Intermediate / Subordinate CA certificate.  |
 | ```-s``` / ```--subscriber```   | Subscriber / end-entity certificate.        |
-
 
 To check an end-entity certificate, pass the full path to the PEM-encoded certificate file along with the appropriate type switch (eg. ```--subscriber```):
 ```bash
@@ -130,7 +126,6 @@ Available security levels are:
 EV certificate testing requires a policy OID and hostname, at a minimum.
 If the certificate being tested is not an EV certificate, EV test results can be safely ignored.
 
-
 ## Lints
 The collection of checks and third-party modules used by ```lint.sh``` linter can be found in the ```lints/``` folder.
 
@@ -160,7 +155,6 @@ The main files and directories are:
 - ```Makefile```: The ```make``` configuration for building linting module sources.
 - ```build.sh```: The main build script for the project. Pulls down Git submodules and compiles all of the linting sources. This script will also try to resolve dependency packages for your system.
 - ```lint.sh```: The main linting script. Calls individual lints and reports on the results.
-
 
 ## Building sources manually
 To compile all of the dependencies and linting modules you can call ```make``` directly, so long as you have all of the required compilers and libraries installed on your system.
@@ -229,10 +223,8 @@ sha256sum --check pki-lint-v1.0.0.tar.gz.sha256
 gpg --verify pki-lint-v1.0.0.tar.gz.asc
 ```
 
-
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-
 
 ## License
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
