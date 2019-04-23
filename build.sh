@@ -444,8 +444,7 @@ function add_apt_source()
     exit_script 1 "Failed to configure '$ppa_name' package source for apt command."
   fi
   if ! ${sudo_cmd} apt-get update; then
-    print_warn "Failed to update apt cache."
-    return 1
+    exit_script 1 "Failed to update apt cache."
   fi
 
   print_pass "Added custom package source '$ppa_name' for apt-get."
@@ -624,8 +623,7 @@ function install_pkg()
     if [ "${PKG_UPDATED}" != "true" ]; then
       print_info "Updating apt cache..."
       if ! ${sudo_cmd} apt-get update; then
-        print_warn "Failed to update apt cache."
-        return 1
+        exit_script 1 "Failed to update apt cache."
       fi
       PKG_UPDATED="true"
     fi
