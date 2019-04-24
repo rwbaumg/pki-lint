@@ -1,8 +1,6 @@
 # pki-lint TODO list
 
 - [ ] Support custom error levels for certain messages depending on context?
-- [ ] Fix error handling for ```zlint``` lint module.
-- [ ] Fix error handling for Globalsign ```gs-certlint``` lint module.
 - [ ] Add support for optional downloading of AIA certificates to attempt to build missing chains.
 - [ ] Add support for OpenSSL CRL validation along the entire chain.
 - [ ] Add basic test PKI structure for post-build unit testing.

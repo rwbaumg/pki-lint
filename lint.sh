@@ -843,10 +843,10 @@ function get_errlvl()
 
   ret=0
   case "${input}" in
-    warn|W|Warning|1)
+    warn|WARN|W|Warn|Warning|1)
       ret=1
     ;;
-    error|fatal|E|F|B|Error|2)
+    error|fatal|ERROR|FATAL|E|F|B|Error|Fatal|2)
       ret=2
     ;;
   esac
