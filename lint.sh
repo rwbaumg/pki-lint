@@ -209,6 +209,10 @@ function print_ex()
   if [ "${SILENT}" == "true" ]; then
     return
   fi
+  if [ -z "$1" ]; then
+    echo
+    return
+  fi
 
   st=0
   fg=39
@@ -245,6 +249,10 @@ function print_ex()
 function print_ex_tagged()
 {
   if [ "${SILENT}" == "true" ]; then
+    return
+  fi
+  if [ -z "$1" ]; then
+    echo
     return
   fi
 
@@ -387,7 +395,14 @@ function print_pass()
 
 function print_notice()
 {
-  print_tagged "NOTICE" "${1}" 32
+  print_tagged "NOTICE" "${1}" 35
+
+  #print_tagged "NOTICE" "${1}" 32  # Green
+  #print_tagged "NOTICE" "${1}" 33  # Yellow
+  #print_tagged "NOTICE" "${1}" 34  # Blue
+  #print_tagged "NOTICE" "${1}" 35  # Magenta
+  #print_tagged "NOTICE" "${1}" 36  # Cyan
+  #print_tagged "NOTICE" "${1}" 90  # Grey
 }
 
 function print_warn()
@@ -459,9 +474,9 @@ function exit_script()
   re='[[:alnum:]]'
   if echo "$*" | grep -iq -E "$re"; then
     if [ $exit_code -eq 0 ]; then
-      print_info   "$*"  >&2
+      print_normal  "INFO: $*"  >&2
     else
-      print_error  "$*" 1>&2
+      print_red     "ERROR: $*" 1>&2
     fi
   fi
 
@@ -698,6 +713,25 @@ function get_pem_file()
   return 0
 }
 
+function get_aia_issuer_http_from_pem()
+{
+  local pem_file="$1"
+  local aia_url
+
+  if [ -z "${pem_file}" ] || [ ! -e "${pem_file}" ]; then
+    exit_script 1 "Invalid file path passed to function."
+  fi
+
+  if aia_url=$(openssl x509 -noout -text -in "${pem_file}" | grep -A 1 'Authority Information Access' | grep -Po '(?<=CA\sIssuers\s\-\sURI\:)(http)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?\.(cer|crt)$'); then
+    if [ ! -z "${aia_url}" ]; then
+      echo "${aia_url}"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
 function get_crl_http_from_pem()
 {
   local pem_file="$1"
@@ -707,7 +741,7 @@ function get_crl_http_from_pem()
     exit_script 1 "Invalid file path passed to function."
   fi
 
-  if crl_url=$(openssl x509 -noout -text -in "${pem_file}" | grep -A 4 'X509v3 CRL Distribution Points' | grep -Po '(?<=URI\:)(http)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?$'); then
+  if crl_url=$(openssl x509 -noout -text -in "${pem_file}" | grep -A 3 'X509v3 CRL Distribution Points' | grep -Po '(?<=URI\:)(http)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?$'); then
     if [ ! -z "${crl_url}" ]; then
       echo "${crl_url}"
       return 0
@@ -720,7 +754,7 @@ function get_crl_http_from_pem()
 function get_purpose()
 {
   if [ -z "$1" ]; then
-    exit_script 1 "Purpose cannot be null."
+    usage "Purpose cannot be null."
   fi
 
   temp=$1
@@ -728,14 +762,17 @@ function get_purpose()
   if [[ $temp =~ $re ]] ; then
     temp="${certPurposes[temp]}"
     if [ -z "${temp}" ]; then
-      usage "'$1' is not mapped to a known purpose."
+      return 1
+      #usage "'$1' is not mapped to a known purpose."
     fi
   fi
   if ! echo ${certPurposes[@]} | grep -q -w "$temp"; then
-    usage "'$temp' is not a valid purpose."
+    return 1
+    #usage "'$temp' is not a valid purpose."
   fi
 
   echo ${temp}
+  return 0
 }
 
 function get_level()
@@ -806,10 +843,10 @@ function get_errlvl()
 
   ret=0
   case "${input}" in
-    warn|W|Warning|1)
+    warn|WARN|W|Warn|Warning|1)
       ret=1
     ;;
-    error|fatal|E|F|B|Error|2)
+    error|fatal|ERROR|FATAL|E|F|B|Error|Fatal|2)
       ret=2
     ;;
   esac
@@ -837,7 +874,7 @@ function get_print_func()
     error|fatal|E|F|B|Error|2)
       echo "print_error"
     ;;
-    notice)
+    notice|N)
       echo "print_notice"
     ;;
     *)
@@ -867,7 +904,7 @@ function get_print_func_raw()
     error|fatal|E|F|B|Error|2)
       echo "print_red"
     ;;
-    notice)
+    notice|N)
       echo "print_green"
     ;;
     *)
@@ -930,7 +967,9 @@ while [ $# -gt 0 ]; do
       test_arg "$1" "$2"
       shift
       # try to convert argument to purpose
-      OPT_PURPOSE=$(get_purpose "$1")
+      if ! OPT_PURPOSE=$(get_purpose "$1"); then
+        usage "Invalid certificate usage: $1"
+      fi
       shift
     ;;
     -l|--level)
@@ -981,7 +1020,7 @@ while [ $# -gt 0 ]; do
     ;;
     *)
       if [ ! -z "${CERT}" ]; then
-        usage "Cannot specify multiple input certificates."
+        usage # "Cannot specify multiple input certificates."
       fi
       test_cert
       test_file_arg "$1"
@@ -1370,6 +1409,7 @@ fi
 # If we can get the CRL file (in PEM format) for each certificate in the chain, then we could use
 # the 'openssl verify -crl_check_all' command to validate all of them.
 CA_FILE=""
+CRL_IS_WARNING="false"
 if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
   RAW_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).raw.crl"
   if ! wget -qO "${RAW_CRL_FILE}" "${CRL_URL}"; then
@@ -1377,6 +1417,7 @@ if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
     if [ ! -z "${PEM_CHAIN_FILE}" ]; then
       CA_FILE="${PEM_CHAIN_FILE}"
     fi
+    CRL_IS_WARNING="true"
     print_warn "Failed to download CRL from '${CRL_URL}'."
   else
     PEM_CRL_FILE=$(get_pem_file "${RAW_CRL_FILE}")
@@ -1386,18 +1427,21 @@ if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
     CA_FILE="${TMP_CRL_FILE}"
   fi
   rm ${VERBOSE_FLAG} -f "${RAW_CRL_FILE}"
-fi
 
-if [ ! -z "${CA_FILE}" ]; then
-  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check -CAfile "${CA_FILE}" "${PEM_FILE}" 2>&1); then
+  # Perform actual verification.
+  if [ ! -z "${CA_FILE}" ]; then
+    if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check -CAfile "${CA_FILE}" "${PEM_FILE}" 2>&1); then
+      OPENSSL_CRL_ERR=1
+    fi
+  else
     OPENSSL_CRL_ERR=1
+    print_warn "Unable to check CRL revocation status; failed to obtain required CRL file."
+  #  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check_all "${PEM_FILE}" 2>&1); then
+  #    OPENSSL_CRL_ERR=1
+  #  fi
   fi
 else
-  OPENSSL_CRL_ERR=1
-  print_warn "Unable to check CRL revocation status; failed to obtain required CRL file."
-#  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check_all "${PEM_FILE}" 2>&1); then
-#    OPENSSL_CRL_ERR=1
-#  fi
+  print_warn "Certificate does not declare a CRL distribution point; cannot check CRL revocation status."
 fi
 
 #
@@ -1469,9 +1513,13 @@ if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
     print_newline
     text=$(echo "${OPENSSL_CRLCHECK}" | sed 's/'${PEM_FILE//\//\\/}'//')
     print_header "OpenSSL CRL verify:"
-    print_yellow "${text}"
-    if [[ 1 -gt $EC ]]; then
-      EC=1
+    if [ "${CRL_IS_WARNING}" == "true" ]; then
+      print_yellow "${text}"
+    else
+      print_red    "${text}"
+    fi
+    if [[ 2 -gt $EC ]]; then
+      EC=2
     fi
     lec=1
   else
@@ -1556,8 +1604,8 @@ if [ "${AWS_LINTED}" == "true" ]; then
 
       error_level=0
       IFS=$'\n'; for line in ${AWS_CERTLINT}; do
-        temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
-        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
+        temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B|N)(?=\:\s)' | sort | head -n1)
+        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B|N)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
         elvl=$(get_errlvl "${temp}")
         if [[ $elvl -gt $error_level ]]; then
           error_level=$elvl
@@ -1595,8 +1643,8 @@ if [ "${AWS_LINTED}" == "true" ]; then
 
       error_level=0
       IFS=$'\n'; for line in ${AWS_CABLINT}; do
-        temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
-        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
+        temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B|N)(?=\:\s)' | sort | head -n1)
+        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B|N)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
         elvl=$(get_errlvl "${temp}")
         if [[ $elvl -gt $error_level ]]; then
           error_level=$elvl
@@ -1860,6 +1908,7 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
     fi
     print_error "NSS certutil:"
     print_red "${result}"
+    print_newline
   else
     lec=0
     print_pass "NSS certutil: ${crt_common_name}: ${result}"
@@ -1888,6 +1937,7 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
     else
       print_pass  "NSS vfychain: ${result}"
     fi
+    print_newline
   fi
 
   if [ -e "${DB_PATH}" ]; then
