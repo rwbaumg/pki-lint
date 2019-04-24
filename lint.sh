@@ -1409,6 +1409,7 @@ fi
 # If we can get the CRL file (in PEM format) for each certificate in the chain, then we could use
 # the 'openssl verify -crl_check_all' command to validate all of them.
 CA_FILE=""
+CRL_IS_WARNING="false"
 if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
   RAW_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).raw.crl"
   if ! wget -qO "${RAW_CRL_FILE}" "${CRL_URL}"; then
@@ -1416,6 +1417,7 @@ if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
     if [ ! -z "${PEM_CHAIN_FILE}" ]; then
       CA_FILE="${PEM_CHAIN_FILE}"
     fi
+    CRL_IS_WARNING="true"
     print_warn "Failed to download CRL from '${CRL_URL}'."
   else
     PEM_CRL_FILE=$(get_pem_file "${RAW_CRL_FILE}")
@@ -1511,9 +1513,13 @@ if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
     print_newline
     text=$(echo "${OPENSSL_CRLCHECK}" | sed 's/'${PEM_FILE//\//\\/}'//')
     print_header "OpenSSL CRL verify:"
-    print_yellow "${text}"
-    if [[ 1 -gt $EC ]]; then
-      EC=1
+    if [ "${CRL_IS_WARNING}" == "true" ]; then
+      print_yellow "${text}"
+    else
+      print_red    "${text}"
+    fi
+    if [[ 2 -gt $EC ]]; then
+      EC=2
     fi
     lec=1
   else
@@ -1599,7 +1605,7 @@ if [ "${AWS_LINTED}" == "true" ]; then
       error_level=0
       IFS=$'\n'; for line in ${AWS_CERTLINT}; do
         temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B|N)(?=\:\s)' | sort | head -n1)
-        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B|N)\:\s).*$')
+        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B|N)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
         elvl=$(get_errlvl "${temp}")
         if [[ $elvl -gt $error_level ]]; then
           error_level=$elvl
@@ -1928,10 +1934,10 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
         EC=2
       fi
       print_error "NSS vfychain: ${result}"
-      print_newline
     else
       print_pass  "NSS vfychain: ${result}"
     fi
+    print_newline
   fi
 
   if [ -e "${DB_PATH}" ]; then
