@@ -395,8 +395,14 @@ function print_pass()
 
 function print_notice()
 {
-  print_tagged "NOTICE" "${1}"
-  #print_tagged "NOTICE" "${1}" 32
+  print_tagged "NOTICE" "${1}" 35
+
+  #print_tagged "NOTICE" "${1}" 32  # Green
+  #print_tagged "NOTICE" "${1}" 33  # Yellow
+  #print_tagged "NOTICE" "${1}" 34  # Blue
+  #print_tagged "NOTICE" "${1}" 35  # Magenta
+  #print_tagged "NOTICE" "${1}" 36  # Cyan
+  #print_tagged "NOTICE" "${1}" 90  # Grey
 }
 
 function print_warn()
@@ -707,6 +713,25 @@ function get_pem_file()
   return 0
 }
 
+function get_aia_issuer_http_from_pem()
+{
+  local pem_file="$1"
+  local aia_url
+
+  if [ -z "${pem_file}" ] || [ ! -e "${pem_file}" ]; then
+    exit_script 1 "Invalid file path passed to function."
+  fi
+
+  if aia_url=$(openssl x509 -noout -text -in "${pem_file}" | grep -A 1 'Authority Information Access' | grep -Po '(?<=CA\sIssuers\s\-\sURI\:)(http)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?\.(cer|crt)$'); then
+    if [ ! -z "${aia_url}" ]; then
+      echo "${aia_url}"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
 function get_crl_http_from_pem()
 {
   local pem_file="$1"
@@ -716,7 +741,7 @@ function get_crl_http_from_pem()
     exit_script 1 "Invalid file path passed to function."
   fi
 
-  if crl_url=$(openssl x509 -noout -text -in "${pem_file}" | grep -A 4 'X509v3 CRL Distribution Points' | grep -Po '(?<=URI\:)(http)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?$'); then
+  if crl_url=$(openssl x509 -noout -text -in "${pem_file}" | grep -A 3 'X509v3 CRL Distribution Points' | grep -Po '(?<=URI\:)(http)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?$'); then
     if [ ! -z "${crl_url}" ]; then
       echo "${crl_url}"
       return 0
@@ -995,7 +1020,7 @@ while [ $# -gt 0 ]; do
     ;;
     *)
       if [ ! -z "${CERT}" ]; then
-        usage "Cannot specify multiple input certificates."
+        usage # "Cannot specify multiple input certificates."
       fi
       test_cert
       test_file_arg "$1"
@@ -1400,18 +1425,21 @@ if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
     CA_FILE="${TMP_CRL_FILE}"
   fi
   rm ${VERBOSE_FLAG} -f "${RAW_CRL_FILE}"
-fi
 
-if [ ! -z "${CA_FILE}" ]; then
-  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check -CAfile "${CA_FILE}" "${PEM_FILE}" 2>&1); then
+  # Perform actual verification.
+  if [ ! -z "${CA_FILE}" ]; then
+    if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check -CAfile "${CA_FILE}" "${PEM_FILE}" 2>&1); then
+      OPENSSL_CRL_ERR=1
+    fi
+  else
     OPENSSL_CRL_ERR=1
+    print_warn "Unable to check CRL revocation status; failed to obtain required CRL file."
+  #  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check_all "${PEM_FILE}" 2>&1); then
+  #    OPENSSL_CRL_ERR=1
+  #  fi
   fi
 else
-  OPENSSL_CRL_ERR=1
-  print_warn "Unable to check CRL revocation status; failed to obtain required CRL file."
-#  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check_all "${PEM_FILE}" 2>&1); then
-#    OPENSSL_CRL_ERR=1
-#  fi
+  print_warn "Certificate does not declare a CRL distribution point; cannot check CRL revocation status."
 fi
 
 #
@@ -1874,6 +1902,7 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
     fi
     print_error "NSS certutil:"
     print_red "${result}"
+    print_newline
   else
     lec=0
     print_pass "NSS certutil: ${crt_common_name}: ${result}"
@@ -1899,6 +1928,7 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
         EC=2
       fi
       print_error "NSS vfychain: ${result}"
+      print_newline
     else
       print_pass  "NSS vfychain: ${result}"
     fi
