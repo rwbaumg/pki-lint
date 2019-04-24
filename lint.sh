@@ -1906,18 +1906,17 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
     if [[ 2 -gt $EC ]]; then
       EC=2
     fi
-    print_error "NSS certutil:"
-    print_red "${result}"
-    print_newline
+    print_error "NSS certutil: ${result}"
+    #print_red "${result}"
   else
     lec=0
     print_pass "NSS certutil: ${crt_common_name}: ${result}"
   fi
 
   if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
-    if [ $lec -ne 0 ]; then
-      print_newline
-    fi
+    #if [ $lec -ne 0 ]; then
+    #  print_newline
+    #fi
 
     err=0
     if [ ! -z "${EV_POLICY}" ]; then
@@ -1937,7 +1936,7 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
     else
       print_pass  "NSS vfychain: ${result}"
     fi
-    print_newline
+    #print_newline
   fi
 
   if [ -e "${DB_PATH}" ]; then
@@ -1952,7 +1951,9 @@ fi
 #
 
 if [ "${EV_DETECTED}" == "true" ] && [ ! -z "${EV_POLICY}" ] && [ ! -z "${EV_HOST}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
+# Always print a newlint before EV check output
 print_newline
+
 if [ "${NO_EV_CHECK}" != "true" ]; then
   print_header "EV Policy check:"
   if ! result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1); then
@@ -1966,7 +1967,7 @@ if [ "${NO_EV_CHECK}" != "true" ]; then
     print_pass "${result}"
   fi
 
-  print_newline
+  #print_newline
 else
   print_warn "Skipping Extended Validation (EV) certificate validation."
   lec=1
@@ -1990,6 +1991,10 @@ errorMsg="${errorMessages[${EC}]}"
 print_method=$(get_print_func "${EC}")
 if [ -z "${errorMsg}" ]; then
   exit_script 1 "Unexpected exit code."
+fi
+
+if [ $lec -ne 0 ]; then
+  print_newline
 fi
 
 ${print_method} "${errorMsg}"
