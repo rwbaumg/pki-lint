@@ -209,6 +209,10 @@ function print_ex()
   if [ "${SILENT}" == "true" ]; then
     return
   fi
+  if [ -z "$1" ]; then
+    echo
+    return
+  fi
 
   st=0
   fg=39
@@ -245,6 +249,10 @@ function print_ex()
 function print_ex_tagged()
 {
   if [ "${SILENT}" == "true" ]; then
+    return
+  fi
+  if [ -z "$1" ]; then
+    echo
     return
   fi
 
@@ -387,7 +395,8 @@ function print_pass()
 
 function print_notice()
 {
-  print_tagged "NOTICE" "${1}" 32
+  print_tagged "NOTICE" "${1}"
+  #print_tagged "NOTICE" "${1}" 32
 }
 
 function print_warn()
@@ -459,9 +468,9 @@ function exit_script()
   re='[[:alnum:]]'
   if echo "$*" | grep -iq -E "$re"; then
     if [ $exit_code -eq 0 ]; then
-      print_info   "$*"  >&2
+      print_normal  "INFO: $*"  >&2
     else
-      print_error  "$*" 1>&2
+      print_red     "ERROR: $*" 1>&2
     fi
   fi
 
@@ -720,7 +729,7 @@ function get_crl_http_from_pem()
 function get_purpose()
 {
   if [ -z "$1" ]; then
-    exit_script 1 "Purpose cannot be null."
+    usage "Purpose cannot be null."
   fi
 
   temp=$1
@@ -728,14 +737,17 @@ function get_purpose()
   if [[ $temp =~ $re ]] ; then
     temp="${certPurposes[temp]}"
     if [ -z "${temp}" ]; then
-      usage "'$1' is not mapped to a known purpose."
+      return 1
+      #usage "'$1' is not mapped to a known purpose."
     fi
   fi
   if ! echo ${certPurposes[@]} | grep -q -w "$temp"; then
-    usage "'$temp' is not a valid purpose."
+    return 1
+    #usage "'$temp' is not a valid purpose."
   fi
 
   echo ${temp}
+  return 0
 }
 
 function get_level()
@@ -837,7 +849,7 @@ function get_print_func()
     error|fatal|E|F|B|Error|2)
       echo "print_error"
     ;;
-    notice)
+    notice|N)
       echo "print_notice"
     ;;
     *)
@@ -867,7 +879,7 @@ function get_print_func_raw()
     error|fatal|E|F|B|Error|2)
       echo "print_red"
     ;;
-    notice)
+    notice|N)
       echo "print_green"
     ;;
     *)
@@ -930,7 +942,9 @@ while [ $# -gt 0 ]; do
       test_arg "$1" "$2"
       shift
       # try to convert argument to purpose
-      OPT_PURPOSE=$(get_purpose "$1")
+      if ! OPT_PURPOSE=$(get_purpose "$1"); then
+        usage "Invalid certificate usage: $1"
+      fi
       shift
     ;;
     -l|--level)
@@ -1556,8 +1570,8 @@ if [ "${AWS_LINTED}" == "true" ]; then
 
       error_level=0
       IFS=$'\n'; for line in ${AWS_CERTLINT}; do
-        temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
-        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$')
+        temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B|N)(?=\:\s)' | sort | head -n1)
+        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B|N)\:\s).*$')
         elvl=$(get_errlvl "${temp}")
         if [[ $elvl -gt $error_level ]]; then
           error_level=$elvl
@@ -1595,8 +1609,8 @@ if [ "${AWS_LINTED}" == "true" ]; then
 
       error_level=0
       IFS=$'\n'; for line in ${AWS_CABLINT}; do
-        temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B)(?=\:\s)' | sort | head -n1)
-        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
+        temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B|N)(?=\:\s)' | sort | head -n1)
+        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B|N)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
         elvl=$(get_errlvl "${temp}")
         if [[ $elvl -gt $error_level ]]; then
           error_level=$elvl

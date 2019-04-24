@@ -1,9 +1,15 @@
 # pki-lint TODO list
 
+- [ ] Fix empty line before exit line after NSS output in ```lint.sh``` script.
+- [ ] Support custom error levels for certain messages depending on context?
+- [ ] Add filename filtering to AWS ```certlint``` output.
+- [ ] Fix CRL download error handling and add console output.
+- [ ] Fix error handling for Globalsign ```gs-certlint``` lint module.
 - [ ] Add support for optional downloading of AIA certificates to attempt to build missing chains.
 - [ ] Add support for OpenSSL CRL validation along the entire chain.
 - [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source.
+- [x] Fix AWS ```cablint```/```certlint``` processing for 'Notice' messages.
 - [x] Exit ```build.sh``` script on first ```sudo``` failure while attempting to update cache.
 - [x] Fix OpenSSL CRL validation in ```lint.sh``` script (must handle DER-encoded CRL files).
 - [x] Fix ```lint.sh``` ```print_debug``` minimum verbosity level (is currently zero).
