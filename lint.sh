@@ -56,7 +56,7 @@ SILENT="false"
 NO_COLOR="true"
 BOLD_TAGGED="false"
 NSS_VERIFY_CHAIN="false"
-OPENSSL_ARGS="-verbose -x509_strict -policy_print -policy_check"
+OPENSSL_ARGS="-verbose -x509_strict -policy_print -policy_check -show_chain"
 
 CERTTOOL_MIN_VER="3.0.0"
 RUBY_MIN_VERSION="2.2"
@@ -489,7 +489,7 @@ function exit_script()
 function usage()
 {
     # Prints out usage and exit.
-    sed -e "s/^    //" -e "s|SCRIPT_NAME|$(basename $0)|" << EOF
+    sed -e "s/^    //" -e "s|SCRIPT_NAME|$(basename $0)|" << "EOF"
     USAGE
 
     Performs various linting tests against the specified X.509 certificate.
@@ -744,6 +744,44 @@ function get_crl_http_from_pem()
   if crl_url=$(openssl x509 -noout -text -in "${pem_file}" | grep -A 3 'X509v3 CRL Distribution Points' | grep -Po '(?<=URI\:)(http)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?$'); then
     if [ ! -z "${crl_url}" ]; then
       echo "${crl_url}"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+function get_pem_common_name()
+{
+  local pem_file="$1"
+  local crt_common_name
+
+  if [ -z "${pem_file}" ] || [ ! -e "${pem_file}" ]; then
+    exit_script 1 "Invalid file path passed to function."
+  fi
+
+  if crt_common_name=$(openssl x509 -noout -subject -nameopt multiline -in "${pem_file}" | grep commonName | sed -n 's/ *commonName *= //p'); then
+    if [ ! -z "${crt_common_name}" ]; then
+      echo "${crt_common_name}"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+function get_pem_subject_name()
+{
+  local pem_file="$1"
+  local subject_name
+
+  if [ -z "${pem_file}" ] || [ ! -e "${pem_file}" ]; then
+    exit_script 1 "Invalid file path passed to function."
+  fi
+
+  if subject_name=$(openssl x509 -noout -subject -nameopt multiline -in "${pem_file}" | tail -n1 | awk -F= '{ print $2 }' | sed -e 's/^\s//g'); then
+    if [ ! -z "${subject_name}" ]; then
+      echo "${subject_name}"
       return 0
     fi
   fi
@@ -1306,11 +1344,11 @@ AWS_CERTLINT_ERROR=""
 AWS_CABLINT_ERROR=""
 if check_ruby_version; then
   pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
-  if ! AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}" 2>&1); then
+  if ! AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}" 2>&1 | uniq); then
     AWS_CERTLINT_ERROR=$(echo "${AWS_CERTLINT}" | tail -n1)
     print_warn "AWS certlint returned a non-zero exit code."
   fi
-  if ! AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}" 2>&1); then
+  if ! AWS_CABLINT=$(ruby -I lib:ext bin/cablint "${DER_FILE}" 2>&1 | uniq); then
     AWS_CABLINT_ERROR=$(echo "${AWS_CABLINT}" | tail -n1)
     print_warn >&2 "AWS cablint returned a non-zero exit code."
   fi
@@ -1835,8 +1873,11 @@ fi
 ## Mozilla NSS
 #
 
-print_newline
 if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
+  if [ $lec -ne 0 ]; then
+    print_newline
+  fi
+
   print_header "Mozilla Network Security Service (NSS):"
 
   DB_PATH=$(mktemp -t -d nssdb.XXXXXXXXXX)
@@ -1866,7 +1907,13 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
   for c in ${DB_PATH}/*.pem; do
     ca_count=$((ca_count+1))
 
-    crt_common_name=$(openssl x509 -noout -subject -nameopt multiline -in "${c}" | grep commonName | sed -n 's/ *commonName *= //p')
+    crt_common_name=$(get_pem_common_name "${c}")
+    if [ -z "${crt_common_name}" ]; then
+      crt_common_name=$(get_pem_subject_name "${c}")
+    fi
+    if [ -z "${crt_common_name}" ]; then
+      exit_script 1 "Failed to determine subject name for certificate '${c}'."
+    fi
 
     if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i "${c}" -t CT,CT,CT; then
       ec=1
@@ -1892,7 +1939,14 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
   fi
 
   # add entity certificate
-  crt_common_name=$(openssl x509 -noout -subject -nameopt multiline -in "${DB_PATH}/cert.crt" | grep commonName | sed -n 's/ *commonName *= //p')
+  crt_common_name=$(get_pem_common_name "${DB_PATH}/cert.crt")
+  if [ -z "${crt_common_name}" ]; then
+    crt_common_name=$(get_pem_subject_name "${DB_PATH}/cert.crt")
+  fi
+  if [ -z "${crt_common_name}" ]; then
+    exit_script 1 "Failed to determine subject name for certificate '${c}'."
+  fi
+
   if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i ${DB_PATH}/cert.crt -t P,P,P; then
     lec=1
     if [[ 1 -gt $EC ]]; then
@@ -1993,9 +2047,9 @@ if [ -z "${errorMsg}" ]; then
   exit_script 1 "Unexpected exit code."
 fi
 
-if [ $lec -ne 0 ]; then
-  print_newline
-fi
+#if [ $lec -ne 0 ]; then
+print_newline
+#fi
 
 ${print_method} "${errorMsg}"
 
