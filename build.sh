@@ -281,7 +281,7 @@ function exit_script()
 function usage()
 {
     # Prints out usage and exit.
-    sed -e "s/^    //" -e "s|SCRIPT_NAME|$(basename $0)|" << EOF
+    sed -e "s/^    //" -e "s|SCRIPT_NAME|$(basename $0)|" << "EOF"
     USAGE
 
     Install required packages and build all third-party certificate linters
