@@ -1212,8 +1212,14 @@ if ! openssl x509 -text -noout -in "${CERT}" > /dev/null 2>&1; then
 fi
 
 VERBOSE_FLAG=""
-if [ "${SILENT}" != "true" ] && [ $VERBOSITY -gt 1 ]; then
-  VERBOSE_FLAG="-v"
+VERY_VERBOSE_FLAG=""
+if [ "${SILENT}" != "true" ]; then
+  if [ $VERBOSITY -gt 1 ]; then
+    VERBOSE_FLAG="-v"
+  fi
+  if [ $VERBOSITY -gt 2 ]; then
+    VERY_VERBOSE_FLAG="-v"
+  fi
 fi
 
 # Get the root directory
@@ -1476,10 +1482,10 @@ if [ "${CRL_CHECK_SKIP}" != "true" ]; then
       PEM_CRL_FILE=$(get_pem_file "${RAW_CRL_FILE}")
       TMP_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).tmp.crl"
       cat ${PEM_CHAIN_FILE} ${PEM_CRL_FILE} > ${TMP_CRL_FILE}
-      rm ${VERBOSE_FLAG} -f "${PEM_CRL_FILE}"
+      rm ${VERY_VERBOSE_FLAG} -f "${PEM_CRL_FILE}"
       CA_FILE="${TMP_CRL_FILE}"
     fi
-    rm ${VERBOSE_FLAG} -f "${RAW_CRL_FILE}"
+    rm ${VERY_VERBOSE_FLAG} -f "${RAW_CRL_FILE}"
 
     # Perform actual verification.
     if [ ! -z "${CA_FILE}" ]; then
@@ -1822,6 +1828,9 @@ for lint in ${GOLANG_LINTS}; do
     if [ $VERBOSITY -gt 2 ]; then
       print_debug >&2 "Running Go script ${lint_name} ..."
     fi
+    if [ $VERBOSITY -gt 3 ]; then
+      print_debug >&2 "go run $lint \"${PEM_FILE}\" \"${PEM_CHAIN_FILE}\" ${KU_GOLANG} \"${EV_HOST}\" 2>/dev/null"
+    fi
     if ! result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
       lint_error=1
     fi
@@ -1978,11 +1987,11 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
     if [[ 2 -gt $EC ]]; then
       EC=2
     fi
-    print_error "NSS certutil: ${result}"
+    print_error "NSS: certutil: ${result}"
     #print_red "${result}"
   else
     lec=0
-    print_pass "NSS certutil: ${crt_common_name}: ${result}"
+    print_pass "NSS: ${crt_common_name}: ${result}"
   fi
 
   if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
@@ -2004,15 +2013,17 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
       if [[ 2 -gt $EC ]]; then
         EC=2
       fi
-      print_error "NSS vfychain: ${result}"
+      lec=1
+      print_error "NSS: vfychain: ${result}"
     else
-      print_pass  "NSS vfychain: ${result}"
+      lec=0
+      print_pass  "NSS: vfychain: ${result}"
     fi
     #print_newline
   fi
 
   if [ -e "${DB_PATH}" ]; then
-    rm -rf ${VERBOSE_FLAG} ${DB_PATH}
+    rm -rf ${VERY_VERBOSE_FLAG} ${DB_PATH}
   fi
 #else
 #  print_warn "Skipping Mozilla NSS verification."
@@ -2042,7 +2053,7 @@ if [ "${NO_EV_CHECK}" != "true" ]; then
   #print_newline
 else
   print_warn "Skipping Extended Validation (EV) certificate validation."
-  lec=1
+  lec=0
   if [[ 1 -gt $EC ]]; then
     EC=1
   fi
@@ -2050,13 +2061,13 @@ fi
 fi
 
 if [ ! -z "${CA_FILE}" ]; then
-  rm ${VERBOSE_FLAG} -f "${CA_FILE}"
+  rm ${VERY_VERBOSE_FLAG} -f "${CA_FILE}"
 fi
 if [ ! -z "${PEM_FILE}" ]; then
-  rm ${VERBOSE_FLAG} -f "${PEM_FILE}"
+  rm ${VERY_VERBOSE_FLAG} -f "${PEM_FILE}"
 fi
 if [ ! -z "${DER_FILE}" ]; then
-  rm ${VERBOSE_FLAG} -f "${DER_FILE}"
+  rm ${VERY_VERBOSE_FLAG} -f "${DER_FILE}"
 fi
 
 errorMsg="${errorMessages[${EC}]}"
@@ -2065,10 +2076,9 @@ if [ -z "${errorMsg}" ]; then
   exit_script 1 "Unexpected exit code."
 fi
 
-#if [ $lec -ne 0 ]; then
-print_newline
-#fi
-
+if [ $lec -ne 0 ]; then
+  print_newline
+fi
 ${print_method} "${errorMsg}"
 
 if [[ ${EC} -le ${ERROR_LEVEL} ]]; then
