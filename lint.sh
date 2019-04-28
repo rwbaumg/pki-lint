@@ -54,8 +54,8 @@ DEBUG_LEVEL=0
 SECURITY_LEVEL=0
 SILENT="false"
 NO_COLOR="true"
-BOLD_TAGGED="false"
 NSS_VERIFY_CHAIN="false"
+CRL_CHECK_SKIP="false"
 OPENSSL_ARGS="-verbose -x509_strict -policy_print -policy_check -show_chain"
 
 CERTTOOL_MIN_VER="3.0.0"
@@ -395,7 +395,7 @@ function print_pass()
 
 function print_notice()
 {
-  print_tagged "NOTICE" "${1}" 35
+  print_tagged "NOTICE" "${1}" #35
 
   #print_tagged "NOTICE" "${1}" 32  # Green
   #print_tagged "NOTICE" "${1}" 33  # Yellow
@@ -1433,7 +1433,11 @@ else
     err=1
   fi
 fi
+if [ ! -z "${OPENSSL_OUT}" ]; then
+  OPENSSL_OUT=$(echo "${OPENSSL_OUT}" | sed 's/\/tmp\/'$(basename ${PEM_FILE})'//' | sed 's/error\s\:\sverification\sfailed//')
+fi
 if [ $err -ne 0 ]; then
+  CRL_CHECK_SKIP="true"
   OPENSSL_ERR=1
   print_warn "OpenSSL verification returned a non-zero exit code." >&2
 fi
@@ -1448,38 +1452,45 @@ fi
 # the 'openssl verify -crl_check_all' command to validate all of them.
 CA_FILE=""
 CRL_IS_WARNING="false"
-if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
-  RAW_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).raw.crl"
-  if ! wget -qO "${RAW_CRL_FILE}" "${CRL_URL}"; then
-    # Failed to download CRL file
-    if [ ! -z "${PEM_CHAIN_FILE}" ]; then
-      CA_FILE="${PEM_CHAIN_FILE}"
+if [ "${CRL_CHECK_SKIP}" != "true" ]; then
+  if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
+    RAW_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).raw.crl"
+    if ! wget -qO "${RAW_CRL_FILE}" "${CRL_URL}"; then
+      # Failed to download CRL file
+      if [ ! -z "${PEM_CHAIN_FILE}" ]; then
+        CA_FILE="${PEM_CHAIN_FILE}"
+      fi
+      CRL_IS_WARNING="true"
+      print_warn "Failed to download CRL from '${CRL_URL}'."
+    else
+      PEM_CRL_FILE=$(get_pem_file "${RAW_CRL_FILE}")
+      TMP_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).tmp.crl"
+      cat ${PEM_CHAIN_FILE} ${PEM_CRL_FILE} > ${TMP_CRL_FILE}
+      rm ${VERBOSE_FLAG} -f "${PEM_CRL_FILE}"
+      CA_FILE="${TMP_CRL_FILE}"
     fi
-    CRL_IS_WARNING="true"
-    print_warn "Failed to download CRL from '${CRL_URL}'."
-  else
-    PEM_CRL_FILE=$(get_pem_file "${RAW_CRL_FILE}")
-    TMP_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).tmp.crl"
-    cat ${PEM_CHAIN_FILE} ${PEM_CRL_FILE} > ${TMP_CRL_FILE}
-    rm ${VERBOSE_FLAG} -f "${PEM_CRL_FILE}"
-    CA_FILE="${TMP_CRL_FILE}"
-  fi
-  rm ${VERBOSE_FLAG} -f "${RAW_CRL_FILE}"
+    rm ${VERBOSE_FLAG} -f "${RAW_CRL_FILE}"
 
-  # Perform actual verification.
-  if [ ! -z "${CA_FILE}" ]; then
-    if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check -CAfile "${CA_FILE}" "${PEM_FILE}" 2>&1); then
+    # Perform actual verification.
+    if [ ! -z "${CA_FILE}" ]; then
+      if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check -CAfile "${CA_FILE}" "${PEM_FILE}" 2>&1); then
+        OPENSSL_CRL_ERR=1
+      fi
+    else
       OPENSSL_CRL_ERR=1
+      print_warn "Unable to check CRL revocation status; failed to obtain required CRL file."
+    #  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check_all "${PEM_FILE}" 2>&1); then
+    #    OPENSSL_CRL_ERR=1
+    #  fi
+    fi
+    if [ ! -z "${OPENSSL_CRLCHECK}" ]; then
+      OPENSSL_CRLCHECK=$(echo "${OPENSSL_CRLCHECK}" | sed 's/\/tmp\/'$(basename ${PEM_FILE})'//' | sed 's/error\s\:\sverification\sfailed//')
     fi
   else
-    OPENSSL_CRL_ERR=1
-    print_warn "Unable to check CRL revocation status; failed to obtain required CRL file."
-  #  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check_all "${PEM_FILE}" 2>&1); then
-  #    OPENSSL_CRL_ERR=1
-  #  fi
+    print_warn "Certificate does not declare a CRL distribution point; cannot check CRL revocation status."
   fi
 else
-  print_warn "Certificate does not declare a CRL distribution point; cannot check CRL revocation status."
+  print_warn "Skipped OpenSSL CRL check due to verification failure."
 fi
 
 #
@@ -1536,7 +1547,9 @@ fi
 if [ ${OPENSSL_ERR} -eq 1 ]; then
   print_newline
   print_header "OpenSSL verify:"
-  print_red "${OPENSSL_OUT}"
+  print_error  "OpenSSL certificate verification failed:"
+  print_red    "${OPENSSL_OUT}"
+  lec=1
   EC=2
 else
   if [ $lec -ne 0 ]; then
@@ -1554,6 +1567,7 @@ if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
     if [ "${CRL_IS_WARNING}" == "true" ]; then
       print_yellow "${text}"
     else
+      print_error  "OpenSSL CRL revocation verification failed:"
       print_red    "${text}"
     fi
     if [[ 2 -gt $EC ]]; then
@@ -1564,11 +1578,13 @@ if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
     lec=0
   fi
 else
-  if [[ $lec -ne 0 ]]; then
-    print_newline
+  if [ "${CRL_CHECK_SKIP}" != "true" ]; then
+    lec=0
+    if [[ $lec -ne 0 ]]; then
+      print_newline
+    fi
+    print_pass "OpenSSL verify: certificate CRL check OK!"
   fi
-  lec=0
-  print_pass "OpenSSL verify: certificate CRL check OK!"
 fi
 
 #
@@ -2015,10 +2031,10 @@ if [ "${NO_EV_CHECK}" != "true" ]; then
       EC=2
     fi
     lec=1
-    print_red  "${result}"
+    print_error  "${result}"
   else
     lec=0
-    print_pass "${result}"
+    print_pass   "${result}"
   fi
 
   #print_newline
