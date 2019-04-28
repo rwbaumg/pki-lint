@@ -48,26 +48,11 @@
 # SOFTWARE.
 
 # Script variables
-VERBOSITY=0
-ERROR_LEVEL=0
-DEBUG_LEVEL=0
-SECURITY_LEVEL=0
-SILENT="false"
-NO_COLOR="true"
-NSS_VERIFY_CHAIN="false"
-CRL_CHECK_SKIP="false"
-OPENSSL_ARGS="-verbose -x509_strict -policy_print -policy_check"
-
 CERTTOOL_MIN_VER="3.0.0"
 RUBY_MIN_VERSION="2.2"
 
 OPENSSL_MIN_VERSION_NUM="1.1.0"
 OPENSSL_MIN_VERSION_EXT="g"
-
-GOLANG_INSTALLED=0
-if hash go 2>/dev/null; then
-  GOLANG_INSTALLED=1
-fi
 
 # define script error messages
 errorMessages=([0]="Certificate passed all checks."
@@ -97,6 +82,11 @@ gnutlsku_opts=( [0]="1.3.6.1.5.5.7.3.2"
 # Check for commands which are required to continue executing.
 # If one of these is missing the script must exit immediately.
 hash grep 2>/dev/null || { echo >&2 "You need to install grep. Aborting."; exit 1; }
+
+GOLANG_INSTALLED=0
+if hash go 2>/dev/null; then
+  GOLANG_INSTALLED=1
+fi
 
 # Create an array to track missing packages
 declare -a pkg_missing=();
@@ -142,6 +132,26 @@ OPENSSL_SECLVL=2
 RUBY_VERSION=""
 EV_DETECTED="false"
 NO_EV_CHECK="false"
+ERROR_LEVEL=0
+DEBUG_LEVEL=0
+SECURITY_LEVEL=0
+NSS_VERIFY_CHAIN="false"
+CRL_CHECK_SKIP="false"
+OPENSSL_ARGS="-verbose -x509_strict -policy_print -policy_check"
+
+# check for required env. variables and set if missing
+if [ -z "${VERBOSITY}" ]; then
+  VERBOSITY=0
+fi
+if [ -z "${SILENT}" ]; then
+  SILENT="false"
+fi
+if [ -z "${NO_COLOR}" ]; then
+  NO_COLOR="true"
+fi
+if [ -z "${BOLD_TAGGED}" ]; then
+  BOLD_TAGGED="true"
+fi
 
 # usage: version_gt( current_version, required_version )
 function version_gt() { test "$(printf '%s\n' "$@" | sort -bt. -k1,1 -k2,2n -k3,3n -k4,4n -k5,5n | head -n 1)" != "$1"; }
