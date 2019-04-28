@@ -901,6 +901,8 @@ fi
 
 if [ "${INSTALL_MODE}" != "true" ] && [ "${UPDATE_MODE}" != "true" ]; then
 
+if ! [ "${RESET_MODE}" == "true" && "${CLEAN_MODE}" != "false" ]; then
+
 # Build all modules
 result=0
 if [ "${CLEAN_MODE}" != "true" ]; then
@@ -912,12 +914,36 @@ if ! make ${MAKE_ARG}; then
   result=1
 fi
 
+fi
+
 if [ "${RESET_MODE}" == "true" ]; then
-  # Cleanup
+  # De-initialize submodules
   print_info "De-inintializing Git submodules..."
   if ! git submodule deinit .; then
     result=1
-    print_error "Failed to de-init Git submodules."
+    print_error "Failed to de-initialize Git submodules."
+  fi
+
+  # The sequence below will perform a hard-reset, including all sub-modules
+  #if ! git clean -xfd; then
+  #  result=1
+  #  print_error "Git cleanup failed."
+  #fi
+  if ! git submodule foreach --recursive git clean -xfd; then
+    result=1
+    print_error "Git submodule cleanup failed."
+  fi
+  #if ! git reset --hard; then
+  #  result=1
+  #  print_error "Failed to perform Git hard reset."
+  #fi
+  if ! git submodule foreach --recursive git reset --hard; then
+    result=1
+    print_error "Failed to reset all Git submodules."
+  fi
+  if ! git submodule update --init --recursive; then
+    result=1
+    print_error "Git submodule initialization failed."
   fi
 fi
 
