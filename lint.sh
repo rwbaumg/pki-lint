@@ -1987,11 +1987,11 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
     if [[ 2 -gt $EC ]]; then
       EC=2
     fi
-    print_error "NSS certutil: ${result}"
+    print_error "NSS: certutil: ${result}"
     #print_red "${result}"
   else
     lec=0
-    print_pass "NSS certutil: ${crt_common_name}: ${result}"
+    print_pass "NSS: ${crt_common_name}: ${result}"
   fi
 
   if [ ! -z "${KU_VFYCHAIN}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
@@ -2013,9 +2013,11 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
       if [[ 2 -gt $EC ]]; then
         EC=2
       fi
-      print_error "NSS vfychain: ${result}"
+      lec=1
+      print_error "NSS: vfychain: ${result}"
     else
-      print_pass  "NSS vfychain: ${result}"
+      lec=0
+      print_pass  "NSS: vfychain: ${result}"
     fi
     #print_newline
   fi
