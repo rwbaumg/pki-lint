@@ -947,7 +947,7 @@ if [ "${RESET_MODE}" == "true" ]; then
   fi
 fi
 
-if [ ${result} -ne 0 ]; then
+if [[ ${result} -ne 0 ]]; then
   if [ "${CLEAN_MODE}" != "true" ]; then
   print_error "Problems encountered during build; failed to compile all linting modules."
   else
