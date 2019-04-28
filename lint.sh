@@ -56,7 +56,7 @@ SILENT="false"
 NO_COLOR="true"
 NSS_VERIFY_CHAIN="false"
 CRL_CHECK_SKIP="false"
-OPENSSL_ARGS="-verbose -x509_strict -policy_print -policy_check -show_chain"
+OPENSSL_ARGS="-verbose -x509_strict -policy_print -policy_check"
 
 CERTTOOL_MIN_VER="3.0.0"
 RUBY_MIN_VERSION="2.2"
@@ -1479,9 +1479,6 @@ if [ "${CRL_CHECK_SKIP}" != "true" ]; then
     else
       OPENSSL_CRL_ERR=1
       print_warn "Unable to check CRL revocation status; failed to obtain required CRL file."
-    #  if ! OPENSSL_CRLCHECK=$(openssl verify -crl_check_all "${PEM_FILE}" 2>&1); then
-    #    OPENSSL_CRL_ERR=1
-    #  fi
     fi
     if [ ! -z "${OPENSSL_CRLCHECK}" ]; then
       OPENSSL_CRLCHECK=$(echo "${OPENSSL_CRLCHECK}" | sed 's/\/tmp\/'$(basename ${PEM_FILE})'//' | sed 's/error\s\:\sverification\sfailed//')
@@ -1520,7 +1517,6 @@ fi
 
 ###
 
-#echo; print_header "Results:"
 #print_header "---"
 
 #
@@ -1594,21 +1590,17 @@ fi
 if [ ${GNUTLS_ERR} -eq 1 ]; then
   print_newline
   print_header "GnuTLS certtool v${CERTTOOL_VERSION}:"
-  print_red "${CERTTOOL_OUT}"
+  print_error "${CERTTOOL_OUT}"
   if [[ 2 -gt $EC ]]; then
     EC=2
   fi
   lec=1
-else
+elif [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
   if [[ $lec -ne 0 ]]; then
     print_newline
   fi
   lec=0
-  if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
-    print_pass "GnuTLS certtool v${CERTTOOL_VERSION}: certificate OK!"
-  else
-    print_warn "GnuTLS certtool is too old; unable to validate certificate."
-  fi
+  print_pass "GnuTLS certtool v${CERTTOOL_VERSION}: certificate OK!"
 fi
 
 #
