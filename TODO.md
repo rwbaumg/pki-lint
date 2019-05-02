@@ -1,5 +1,6 @@
 # pki-lint TODO list
 
+- [ ] Fix cases where output is null (eg. certain GlobalSign lint output not processed).
 - [ ] Support custom error levels for certain messages depending on context?
 - [ ] Add support for optional downloading of AIA certificates to attempt to build missing chains.
 - [ ] Add support for OpenSSL CRL validation along the entire chain (use ```-crl_check_all```).

@@ -2076,9 +2076,9 @@ if [ -z "${errorMsg}" ]; then
   exit_script 1 "Unexpected exit code."
 fi
 
-if [ $lec -ne 0 ]; then
+#if [ $lec -ne 0 ]; then
   print_newline
-fi
+#fi
 ${print_method} "${errorMsg}"
 
 if [[ ${EC} -le ${ERROR_LEVEL} ]]; then
