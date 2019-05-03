@@ -1873,8 +1873,26 @@ if [ ! -z "${GS_CERTLINT}" ]; then
       EV_DETECTED="true"
       print_info "EV certificate identified"
     ;;
+    OV)
+      print_info "OV certificate identified"
+    ;;
+    IV)
+      print_info "IV certificate identified"
+    ;;
+    CA)
+      print_info "CA certificate identified"
+    ;;
     CS)
       print_info "Code-signing certificate identified"
+    ;;
+    TS)
+      print_info "Timestamp certificate identified"
+    ;;
+    PS)
+      print_info "PS certificate identified"
+    ;;
+    OCSP)
+      print_info "OCSP certificate identified"
     ;;
   esac
   IFS=$'\n'; for line in ${GS_CERTLINT}; do
