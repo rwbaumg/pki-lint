@@ -1,5 +1,6 @@
 # pki-lint TODO list
 
+- [ ] Check/fix zlint output processing for accuracy.
 - [ ] Support custom error levels for certain messages depending on context?
 - [ ] Add support for optional downloading of AIA certificates to attempt to build missing chains.
 - [ ] Add support for OpenSSL CRL validation along the entire chain (use ```-crl_check_all```).
