@@ -1384,11 +1384,17 @@ err=0
 pushd ${GS_CLINT_DIR} > /dev/null 2>&1
 if [ ! -z "${CA_CHAIN}" ]; then
   if ! GS_CERTLINT=$(./gs-certlint -issuer "${CA_CHAIN_FULL_PATH}" -cert "${PEM_FILE}"); then
-    err=1
+    GS_ERR_COUNT=$(echo "${GS_CERTLINT}" | grep -Po "(?<=^Certificate\sErrors\:\s)[0-9]+(?=$)")
+    if [ ! -z "${GS_ERR_COUNT}" ] && [ ${GS_ERR_COUNT} -gt 0 ]; then
+      err=1
+    fi
   fi
 else
   if ! GS_CERTLINT=$(./gs-certlint -cert "${PEM_FILE}"); then
-    err=1
+    GS_ERR_COUNT=$(echo "${GS_CERTLINT}" | grep -Po "(?<=^Certificate\sErrors\:\s)[0-9]+(?=$)")
+    if [ ! -z "${GS_ERR_COUNT}" ] && [ ${GS_ERR_COUNT} -gt 0 ]; then
+      err=1
+    fi
   fi
 fi
 popd > /dev/null 2>&1
@@ -1861,12 +1867,17 @@ if [ ! -z "${GS_CERTLINT}" ]; then
   print_newline
   error_level=0
   print_header "GlobalSign certlint:"
-  IFS=$'\n'; for line in ${GS_CERTLINT}; do
-    if echo "${line}" | grep -qP '^Processed\sCertificate\sType\:\sEV$'; then
+  cert_type=$(echo "${GS_CERTLINT}" | grep -Po "(?<=^Processed\sCertificate\sType\:\s)[A-Za-z\s]+(?=$)")
+  case "${cert_type}" in
+    EV)
       EV_DETECTED="true"
       print_info "EV certificate identified"
-    fi
-
+    ;;
+    CS)
+      print_info "Code-signing certificate identified"
+    ;;
+  esac
+  IFS=$'\n'; for line in ${GS_CERTLINT}; do
     temp=$(echo "${line}" | grep -Po '(?<=Priority\:\s)(Error|Warning|Info)' | sort | head -n1)
     print_method=$(get_print_func "${temp}")
 
