@@ -1348,7 +1348,7 @@ if [ -e "${ZLINT_BIN}" ]; then
     # NOTE: zlint appears to return a non-zero exit code even if no warnings are found
     print_info "zlint returned a non-zero exit code."
   fi
-  ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|warn|error|fatal)\"')
+  ZLINT=$(echo "${ZLINT_RAW}" | grep -1 -i -P '\"result\"\:\s\"(info|notice|warn|error|fatal)\"')
 fi
 
 #

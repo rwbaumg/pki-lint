@@ -1,11 +1,11 @@
 # pki-lint TODO list
 
-- [ ] Check/fix zlint output processing for accuracy.
 - [ ] Support custom error levels for certain messages depending on context?
 - [ ] Add support for optional downloading of AIA certificates to attempt to build missing chains.
 - [ ] Add support for OpenSSL CRL validation along the entire chain (use ```-crl_check_all```).
 - [ ] Add basic test PKI structure for post-build unit testing.
 - [ ] Refactor LLVM / clang++ installation to use upstream source.
+- [x] Check/fix zlint output processing for accuracy.
 - [x] Fix cases where output is null (eg. certain GlobalSign lint output not processed).
 - [x] Add PEM file name filtering to OpenSSL verify commands.
 - [x] Fix CRL download error handling and add console output.
