@@ -919,7 +919,7 @@ fi
 if [ "${RESET_MODE}" == "true" ]; then
   # De-initialize submodules
   print_info "De-inintializing Git submodules..."
-  if ! git submodule deinit .; then
+  if ! git submodule deinit --force .; then
     result=1
     print_error "Failed to de-initialize Git submodules."
   fi
@@ -941,7 +941,7 @@ if [ "${RESET_MODE}" == "true" ]; then
     result=1
     print_error "Failed to reset all Git submodules."
   fi
-  if ! git submodule update --init --recursive; then
+  if ! git submodule update --init --remote --recursive; then
     result=1
     print_error "Git submodule initialization failed."
   fi
