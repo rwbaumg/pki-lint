@@ -42,18 +42,18 @@ The following security levels are defined by OpenSSL for certificate verificatio
 | Level 5 | Security level set to 256 bits of security. As a result RSA, DSA and DH keys shorter than 15360 bits and ECC keys shorter than 512 bits are prohibited. |
 
 The following ```-purpose``` strings are supported by ```openssl verify```:
-- ```sslclient```
-- ```sslserver```
-- ```nssslserver```
-- ```smimesign```
-- ```smimeencrypt```
+  - ```sslclient```
+  - ```sslserver```
+  - ```nssslserver```
+  - ```smimesign```
+  - ```smimeencrypt```
 
 The ```-verify_name``` option is used to set default verification policies, and is inferred from ```-purpose``` when not specified (making them functionally equivalent). The following names are supported:
-- ```default```
-- ```pkcs7```
-- ```smime_sign```
-- ```ssl_client```
-- ```ssl_server```
+  - ```default```
+  - ```pkcs7```
+  - ```smime_sign```
+  - ```ssl_client```
+  - ```ssl_server```
 
 ## Key Purposes
 Common Extended Key Usage (EKU) OIDs are listed below:
@@ -130,8 +130,8 @@ The table below shows Extended Key Usage Object Identifiers (OIDs) supported by 
 
 ## Mozilla NSS
 The Mozilla Network Security Service (NSS) provides the following tools for certificate validation:
-- ```vfychain```: Verifies certificate chains.
-- ```certutil```: Manages keys and certificate in both NSS databases and other NSS tokens.
+  - ```vfychain```: Verifies certificate chains.
+  - ```certutil```: Manages keys and certificate in both NSS databases and other NSS tokens.
 
 To validate a certificate chain using ```vfychain```, pass each CA certificate in the chain using ```-t /path/to/ca.crt```, and pass the PEM-encoded certificate to be validated using ```-a /path/to/cert.crt```. For example:
 ```bash
@@ -188,7 +188,7 @@ certutil -V -n "test_cert" -u S -e -l -d /path/to/nssdb
 The following certificate purposes are supported by the ```certutil``` tool via the ```-u <purpose>``` option:
 
 | Purpose         | Code        |
-| :---            |    :----:   |
+| :---            | :----:      |
 | SSL Client      | ```C```     |
 | SSL Server      | ```V```     |
 | SSL CA          | ```L```     |
@@ -261,60 +261,64 @@ Note that you can use ```--infile <file>``` instead of piping the certificate to
 For a certificate to be technically constrained, it *MUST* contain an ```extendedKeyUsage``` extension defining the purposes for which it may be used. When an EKU extension is added to a Subordinate CA, the CA is restricted in which purposes it may issue certificates for.
 
 According to the [CA/Browser Forum Baseline Requirements, section 7.1.5](https://github.com/cabforum/documents/blob/master/docs/BR.md#715-name-constraints):
-> If the Subordinate CA Certificate includes the id-kp-serverAuth extended key usage, then the Subordinate CA Certificate MUST include the Name Constraints X.509v3 extension with constraints on dNSName, iPAddress and DirectoryName.
+  > If the Subordinate CA Certificate includes the id-kp-serverAuth extended key usage, then the Subordinate CA Certificate MUST include the Name Constraints X.509v3 extension with constraints on dNSName, iPAddress and DirectoryName.
 
 The [Mozilla Root Store Policy, section 5.3](https://github.com/mozilla/pkipolicy/blob/master/rootstore/policy.md#53-intermediate-certificates) states the following:
-> Intermediate certificates created after January 1, 2019, with the exception of cross-certificates that share a private key with a corresponding root certificate:
-> - *MUST* contain an EKU extension; and,
-> - *MUST NOT* include the ```anyExtendedKeyUsage``` KeyPurposeId; and,
-> - *MUST NOT* include both the ```id-kp-serverAuth``` and ```id-kp-emailProtection``` KeyPurposeIds in the same certificate.
+  > Intermediate certificates created after January 1, 2019, with the exception of cross-certificates that share a private key with a corresponding root certificate:
+  > - *MUST* contain an EKU extension; and,
+  > - *MUST NOT* include the ```anyExtendedKeyUsage``` KeyPurposeId; and,
+  > - *MUST NOT* include both the ```id-kp-serverAuth``` and ```id-kp-emailProtection``` KeyPurposeIds in the same certificate.
 
 The [Mozilla Root Store Policy, section 5.3.1](https://github.com/mozilla/pkipolicy/blob/master/rootstore/policy.md#531-technically-constrained) states:
-> - If the certificate includes the ```id-kp-serverAuth``` extended key usage, then to be considered technically constrained, the certificate *MUST* be Name Constrained.
-> - If the certificate includes the ```id-kp-emailProtection``` extended key usage, then to be considered technically constrained, it *MUST* include the Name Constraints X.509v3 extension with constraints on ```rfc822Name```, with at least one name in ```permittedSubtrees```, each such name having its ownership validated according to [section 3.2.2.4 of the Baseline Requirements](https://github.com/cabforum/documents/blob/master/docs/BR.md#3224-validation-of-domain-authorization-or-control).
-> - The ```anyExtendedKeyUsage``` KeyPurposeId *MUST NOT* appear within the EKU extension.
+  > - If the certificate includes the ```id-kp-serverAuth``` extended key usage, then to be considered technically constrained, the certificate *MUST* be Name Constrained.
+  > - If the certificate includes the ```id-kp-emailProtection``` extended key usage, then to be considered technically constrained, it *MUST* include the Name Constraints X.509v3 extension with constraints on ```rfc822Name```, with at least one name in ```permittedSubtrees```, each such name having its ownership validated according to [section 3.2.2.4 of the Baseline Requirements](https://github.com/cabforum/documents/blob/master/docs/BR.md#3224-validation-of-domain-authorization-or-control).
+  > - The ```anyExtendedKeyUsage``` KeyPurposeId *MUST NOT* appear within the EKU extension.
 
 ## Federal PKI Standards
 You can use the online [Federal PKI X.509 certificate linter](https://cpct.app.cloud.gov/) webapp to validate certificates against U.S. Federal PKI standards.
 
 The source code for the webservice is provided in the [fpkilint](https://github.com/GSA/fpkilint) GitHub repository.
 
+## Lint module notes
+  - The ```gs-certlint`` module currently requires either a dnsName or ipAddress for ```subjectAltName``` on Extended-Validation (EV) certificates.
+    This may  not be the correct behavior, as EV code-signing certificates may be issued to an individual. More research is needed.
+
 ## References
 Relevant source code repositories are listed below:
-- [OpenSSL](https://github.com/openssl/openssl)
-- [GnuTLS](https://gitlab.com/gnutls/gnutls)
-- [Mozilla NSS](https://dxr.mozilla.org/mozilla-central/source/security/nss) ([GitHub Mirror](https://github.com/nss-dev/nss))
-- [Mozilla TLS Observatory](https://github.com/mozilla/tls-observatory)
-- [Golang](https://github.com/golang/go)
-- [certigo Go certificate tool](https://github.com/square/certigo)
-- [cert Go certificate tool](https://github.com/genkiroid/cert)
-- [certvalidator Java X.509 Validator](https://github.com/difi/certvalidator)
-- [Google Certificate Transparency](https://github.com/google/certificate-transparency)
-- [Google Certificate Transparency: Go Code](https://github.com/google/certificate-transparency-go)
-- [Federal PKI X.509 certificate linter](https://github.com/GSA/fpkilint)
-- [zmap/zcrypto: x509/extended_key_usage.go](https://github.com/zmap/zcrypto/blob/master/x509/extended_key_usage.go)
+  - [OpenSSL](https://github.com/openssl/openssl)
+  - [GnuTLS](https://gitlab.com/gnutls/gnutls)
+  - [Mozilla NSS](https://dxr.mozilla.org/mozilla-central/source/security/nss) ([GitHub Mirror](https://github.com/nss-dev/nss))
+  - [Mozilla TLS Observatory](https://github.com/mozilla/tls-observatory)
+  - [Golang](https://github.com/golang/go)
+  - [certigo Go certificate tool](https://github.com/square/certigo)
+  - [cert Go certificate tool](https://github.com/genkiroid/cert)
+  - [certvalidator Java X.509 Validator](https://github.com/difi/certvalidator)
+  - [Google Certificate Transparency](https://github.com/google/certificate-transparency)
+  - [Google Certificate Transparency: Go Code](https://github.com/google/certificate-transparency-go)
+  - [Federal PKI X.509 certificate linter](https://github.com/GSA/fpkilint)
+  - [zmap/zcrypto: x509/extended_key_usage.go](https://github.com/zmap/zcrypto/blob/master/x509/extended_key_usage.go)
 
 The following resources provide relevant standards documentation and examples for PKI testing:
-- [ITU-T X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509)
-- [NIST Public Key Infrastructure Testing](https://csrc.nist.gov/projects/pki-testing)
-- [Mozilla Root Store Policy](https://github.com/mozilla/pkipolicy/blob/master/rootstore/policy.md)
-- [Mozilla PKI Project](http://mozilla.org/projects/security/pki/)
-- [Mozilla Developer Network: Network Security Services (NSS)](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS)
-- [Mozilla Developer Network: NSS Tools certutil](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/certutil)
-- [Mozilla Developer Network: NSS Tools vfychain](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/vfychain)
-- [CA/Browser Forum: Baseline Requirements](https://github.com/cabforum/documents/blob/master/docs/BR.md)
-- [CA/Browser Forum: Extended-Validation Guidelines](https://github.com/cabforum/documents/blob/master/docs/EVG.md)
-- [U.S. Federal Public Trust TLS Certificate Policy](https://devicepki.idmanagement.gov/) ([GitHub](https://github.com/uspki/policies))
-- [RFC 5280: Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile](https://tools.ietf.org/html/rfc5280)
-- [RFC 6960: X.509 Internet Public Key Infrastructure Online Certificate Status Protocol - OCSP](https://tools.ietf.org/html/rfc6960)
-- [RFC 4158: Internet X.509 Public Key Infrastructure: Certification Path Building](https://tools.ietf.org/html/rfc4158)
-- [RFC 5913: Clearance Attribute and Authority Clearance Constraints Certificate Extension](https://tools.ietf.org/html/rfc5913)
-- [RFC 5055: Server-Based Certificate Validation Protocol (SCVP)](https://tools.ietf.org/html/rfc5055)
-- [RFC 6962: Certificate Transparency](https://tools.ietf.org/html/rfc6962)
-- [Go Programming Language: x509 Package](https://golang.org/pkg/crypto/x509/)
-- [Certificate Transparency](http://www.certificate-transparency.org/) ([GitHub](https://github.com/google/certificate-transparency))
-- [Certificate Transparency Log Policy](https://github.com/chromium/ct-policy/blob/master/log_policy.md#certificate-transparency-log-policy)
-- [Certificate Transparency RFC](https://github.com/google/certificate-transparency-rfcs)
-- [Microsoft Support: Object IDs associated with Microsoft cryptography](https://support.microsoft.com/en-us/help/287547/object-ids-associated-with-microsoft-cryptography)
-- [Windows Dev Center: Supported Extensions](https://docs.microsoft.com/en-us/windows/desktop/seccertenroll/supported-extensions)
-- [Windows Dev Center: IX509ExtensionEnhancedKeyUsage](https://docs.microsoft.com/en-us/windows/desktop/api/CertEnroll/nn-certenroll-ix509extensionenhancedkeyusage)
+  - [ITU-T X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509)
+  - [NIST Public Key Infrastructure Testing](https://csrc.nist.gov/projects/pki-testing)
+  - [Mozilla Root Store Policy](https://github.com/mozilla/pkipolicy/blob/master/rootstore/policy.md)
+  - [Mozilla PKI Project](http://mozilla.org/projects/security/pki/)
+  - [Mozilla Developer Network: Network Security Services (NSS)](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS)
+  - [Mozilla Developer Network: NSS Tools certutil](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/certutil)
+  - [Mozilla Developer Network: NSS Tools vfychain](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/vfychain)
+  - [CA/Browser Forum: Baseline Requirements](https://github.com/cabforum/documents/blob/master/docs/BR.md)
+  - [CA/Browser Forum: Extended-Validation Guidelines](https://github.com/cabforum/documents/blob/master/docs/EVG.md)
+  - [U.S. Federal Public Trust TLS Certificate Policy](https://devicepki.idmanagement.gov/) ([GitHub](https://github.com/uspki/policies))
+  - [RFC 5280: Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile](https://tools.ietf.org/html/rfc5280)
+  - [RFC 6960: X.509 Internet Public Key Infrastructure Online Certificate Status Protocol - OCSP](https://tools.ietf.org/html/rfc6960)
+  - [RFC 4158: Internet X.509 Public Key Infrastructure: Certification Path Building](https://tools.ietf.org/html/rfc4158)
+  - [RFC 5913: Clearance Attribute and Authority Clearance Constraints Certificate Extension](https://tools.ietf.org/html/rfc5913)
+  - [RFC 5055: Server-Based Certificate Validation Protocol (SCVP)](https://tools.ietf.org/html/rfc5055)
+  - [RFC 6962: Certificate Transparency](https://tools.ietf.org/html/rfc6962)
+  - [Go Programming Language: x509 Package](https://golang.org/pkg/crypto/x509/)
+  - [Certificate Transparency](http://www.certificate-transparency.org/) ([GitHub](https://github.com/google/certificate-transparency))
+  - [Certificate Transparency Log Policy](https://github.com/chromium/ct-policy/blob/master/log_policy.md#certificate-transparency-log-policy)
+  - [Certificate Transparency RFC](https://github.com/google/certificate-transparency-rfcs)
+  - [Microsoft Support: Object IDs associated with Microsoft cryptography](https://support.microsoft.com/en-us/help/287547/object-ids-associated-with-microsoft-cryptography)
+  - [Windows Dev Center: Supported Extensions](https://docs.microsoft.com/en-us/windows/desktop/seccertenroll/supported-extensions)
+  - [Windows Dev Center: IX509ExtensionEnhancedKeyUsage](https://docs.microsoft.com/en-us/windows/desktop/api/CertEnroll/nn-certenroll-ix509extensionenhancedkeyusage)

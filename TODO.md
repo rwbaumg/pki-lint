@@ -1,37 +1,37 @@
 # pki-lint TODO list
 
-- [ ] Support custom error levels for certain messages depending on context?
-- [ ] Add support for optional downloading of AIA certificates to attempt to build missing chains.
-- [ ] Add support for OpenSSL CRL validation along the entire chain (use ```-crl_check_all```).
-- [ ] Add basic test PKI structure for post-build unit testing.
-- [ ] Refactor LLVM / clang++ installation to use upstream source.
-- [x] Check/fix zlint output processing for accuracy.
-- [x] Fix cases where output is null (eg. certain GlobalSign lint output not processed).
-- [x] Add PEM file name filtering to OpenSSL verify commands.
-- [x] Fix CRL download error handling and add console output.
-- [x] Add filename filtering to AWS ```certlint``` output.
-- [x] Make CRL errors critical (currently treated as warnings).
-- [x] Fix empty line before exit line after NSS output in ```lint.sh``` script.
-- [x] Fix AWS ```cablint```/```certlint``` processing for 'Notice' messages.
-- [x] Exit ```build.sh``` script on first ```sudo``` failure while attempting to update cache.
-- [x] Fix OpenSSL CRL validation in ```lint.sh``` script (must handle DER-encoded CRL files).
-- [x] Fix ```lint.sh``` ```print_debug``` minimum verbosity level (is currently zero).
-- [x] Minimize the number of required commands to run ```lint.sh``` to simplify release.
-- [x] Fix Makefile targets to actually check all build output instead of just individual files.
-- [x] Add ```--update``` option to ```build.sh``` for updating Git submodules.
-- [x] For release, include libssl ```libcrypto.so``` used in x509lint source directory (used static link for ```libcrypto.a```).
-- [x] Either compile Go lint scripts, or handle instances where Go is not installed in ```lint.sh``` wrapper.
-- [x] Add option to ```build.sh``` to only install missing dependencies.
-- [x] Update Ruby commands to redirect stderr and cleanly inform the user.
-- [x] Check for the correct Ruby version in lint.sh script.
-- [x] Update all third-party linting modules to latest versions.
-- [x] Fix output coloring (use regex to check if info/warn/err/etc.).
-- [x] Add argument to specify OpenSSL validation ```auth_level```.
-- [x] Update ```README.md``` to document added arguments.
-- [x] Fix ```NOTES.md``` markdown.
-- [x] Fix ```lints/README.md``` markdown formatting.
-- [x] Cleanup dependency package handling in ```build.sh``` script.
-- [x] Add Ruby and Golang version checks to ```lint.sh``` script.
-- [x] Update ```README.md``` to include more detailed information.
-- [x] Add support for ```vfychain``` command (eg. ```vfychain -v -pp -u 11 -a ca/subCA.crt -a ca/int.crt -t -a ca/root.crt```; see https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/vfychain)
-- [x] Add support for ```certutil``` verification (eg. ```certutil -u Y -d sql:${HOME}/.pki/nssdb```; see https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/tools/NSS_Tools_certutil)
+  - [ ] Support custom error levels for certain messages depending on context?
+  - [ ] Add support for optional downloading of AIA certificates to attempt to build missing chains.
+  - [ ] Add support for OpenSSL CRL validation along the entire chain (use ```-crl_check_all```).
+  - [ ] Add basic test PKI structure for post-build unit testing.
+  - [ ] Refactor LLVM / clang++ installation to use upstream source.
+  - [x] Check/fix zlint output processing for accuracy.
+  - [x] Fix cases where output is null (eg. certain GlobalSign lint output not processed).
+  - [x] Add PEM file name filtering to OpenSSL verify commands.
+  - [x] Fix CRL download error handling and add console output.
+  - [x] Add filename filtering to AWS ```certlint``` output.
+  - [x] Make CRL errors critical (currently treated as warnings).
+  - [x] Fix empty line before exit line after NSS output in ```lint.sh``` script.
+  - [x] Fix AWS ```cablint```/```certlint``` processing for 'Notice' messages.
+  - [x] Exit ```build.sh``` script on first ```sudo``` failure while attempting to update cache.
+  - [x] Fix OpenSSL CRL validation in ```lint.sh``` script (must handle DER-encoded CRL files).
+  - [x] Fix ```lint.sh``` ```print_debug``` minimum verbosity level (is currently zero).
+  - [x] Minimize the number of required commands to run ```lint.sh``` to simplify release.
+  - [x] Fix Makefile targets to actually check all build output instead of just individual files.
+  - [x] Add ```--update``` option to ```build.sh``` for updating Git submodules.
+  - [x] For release, include libssl ```libcrypto.so``` used in x509lint source directory (used static link for ```libcrypto.a```).
+  - [x] Either compile Go lint scripts, or handle instances where Go is not installed in ```lint.sh``` wrapper.
+  - [x] Add option to ```build.sh``` to only install missing dependencies.
+  - [x] Update Ruby commands to redirect stderr and cleanly inform the user.
+  - [x] Check for the correct Ruby version in lint.sh script.
+  - [x] Update all third-party linting modules to latest versions.
+  - [x] Fix output coloring (use regex to check if info/warn/err/etc.).
+  - [x] Add argument to specify OpenSSL validation ```auth_level```.
+  - [x] Update ```README.md``` to document added arguments.
+  - [x] Fix ```NOTES.md``` markdown.
+  - [x] Fix ```lints/README.md``` markdown formatting.
+  - [x] Cleanup dependency package handling in ```build.sh``` script.
+  - [x] Add Ruby and Golang version checks to ```lint.sh``` script.
+  - [x] Update ```README.md``` to include more detailed information.
+  - [x] Add support for ```vfychain``` command (eg. ```vfychain -v -pp -u 11 -a ca/subCA.crt -a ca/int.crt -t -a ca/root.crt```; see https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/vfychain)
+  - [x] Add support for ```certutil``` verification (eg. ```certutil -u Y -d sql:${HOME}/.pki/nssdb```; see https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/tools/NSS_Tools_certutil)

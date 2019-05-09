@@ -473,7 +473,6 @@ function exit_script()
 {
   # Default exit code is 1
   local exit_code=1
-  local re var
 
   re='^([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$'
   if echo "$1" | grep -q -E "$re"; then
@@ -851,7 +850,7 @@ function get_seclvl()
   fi
 
   value="$1"
-  temp="0"
+  temp=0
 
   for i in "${!securityLevels[@]}"; do
     if [[ "${securityLevels[$i]}" = "${value}" ]]; then
@@ -870,7 +869,7 @@ function get_openssl_seclvl()
   fi
 
   value="$1"
-  temp=""
+  temp=0
 
   for i in "${!securityLevels[@]}"; do
     if [[ "${securityLevels[$i]}" = "${value}" ]]; then
@@ -879,7 +878,7 @@ function get_openssl_seclvl()
     fi
   done
 
-  echo "$((${temp}+2))"
+  echo "$((temp+2))"
 }
 
 function get_errlvl()
@@ -959,6 +958,38 @@ function get_print_func_raw()
       echo "print_normal"
     ;;
   esac
+  return 0
+}
+
+function check_min_bits()
+{
+  local algo="$1"
+  local bits="$2"
+  local algoName=""
+  local minBits=0
+
+  test_number_arg "minimumBits" "$bits"
+
+  case "${CERT_ALGO}" in
+    rsaEncryption|RSA)
+      algoName="RSA"
+      minBits=${RSA_MIN_BITS}
+    ;;
+    id-ecPublicKey|ECC)
+      algoName="ECC"
+      minBits=${ECC_MIN_BITS}
+    ;;
+    *)
+      usage "Invalid algorithm identifier passed to function."
+    ;;
+  esac
+
+  if [[ $bits -lt $min_bits ]]; then
+    print_error "An ${algoName} key of at least ${minBits} bits is required (certificate: ${bits} bits)."
+    return 1
+  fi
+
+  print_pass "${algoName} certificate key length of ${bits} bits (${minBits} bits required)."
   return 0
 }
 
@@ -1303,7 +1334,6 @@ OPENSSL_IS_OLD="true"
 OPENSSL_VERSION_NUM=$(openssl version | grep -Po '(?<=OpenSSL\s)\d\.\d\.\d(?=[a-z]\s)')
 OPENSSL_VERSION_EXT=$(openssl version | grep -Po '(?<=OpenSSL\s\d\.\d\.\d)[a-z](?=\s)')
 OPENSSL_FULLVERSION="${OPENSSL_VERSION_NUM}${OPENSSL_VERSION_EXT}"
-OPENSSL_REQ_VERSION="${OPENSSL_MIN_VERSION_NUM}${OPENSSL_MIN_VERSION_EXT}"
 if [ "$OPENSSL_VERSION_NUM" == "$OPENSSL_MIN_VERSION_NUM" ] || version_gt $OPENSSL_VERSION_NUM $OPENSSL_MIN_VERSION_NUM; then
   REQ_EXT_NUMBER=$(printf '%d' "'$OPENSSL_MIN_VERSION_EXT")
   CUR_EXT_NUMBER=$(printf '%d' "'$OPENSSL_VERSION_EXT")
@@ -1549,17 +1579,11 @@ fi
 CERT_BITS=$(openssl x509 -in "${PEM_FILE}" -text -noout | grep -Po '(?<=Public-Key:\s\()[0-9]+(?=\sbit\))')
 CERT_ALGO=$(openssl x509 -in "${PEM_FILE}" -text -noout | grep -Po '(?<=Public\sKey\sAlgorithm:\s)([a-zA-Z]+)$')
 if [ ! -z "${SECURITY_LEVEL}" ] && [ ! -z "${CERT_ALGO}" ] && [ ! -z "${CERT_BITS}" ]; then
-  case "${CERT_ALGO}" in
-    rsaEncryption)
-      if [ $CERT_BITS -lt $RSA_MIN_BITS ]; then
-        lec=1
-        print_error "An RSA key of at least ${RSA_MIN_BITS} bits is required (certificate: ${CERT_BITS} bits)."
-      else
-        lec=0
-        print_pass "RSA certificate key length of ${CERT_BITS} bits (${RSA_MIN_BITS} bits required)."
-      fi
-    ;;
-  esac
+  if ! check_min_bits "${CERT_ALGO}" "${CERT_BITS}"; then
+    lec=1
+  else
+    lec=0
+  fi
 fi
 
 if [ ${OPENSSL_ERR} -eq 1 ]; then
@@ -1972,7 +1996,7 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
     fi
 
     if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i "${c}" -t CT,CT,CT; then
-      ec=1
+      exit_script 1 "Failed to import certificate using NSS certutil."
     elif [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
       if ! result=$(certutil -V -n "${crt_common_name}" -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} 2>&1); then
         if [[ 2 -gt $EC ]]; then
