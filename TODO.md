@@ -1,5 +1,5 @@
 # pki-lint TODO list
-
+  - [ ] Create new development branch for ```gs-certlint``` module to fix multiple bugs and/or contact upstream devs
   - [ ] Support custom error levels for certain messages depending on context?
   - [ ] Add support for optional downloading of AIA certificates to attempt to build missing chains.
   - [ ] Add support for OpenSSL CRL validation along the entire chain (use ```-crl_check_all```).
