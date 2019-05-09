@@ -58,10 +58,10 @@ func loadPemChain(chainInput string) tls.Certificate {
   return cert
 }
 
-func getVerifyOpts(chain string, dns_name string, purpose x509.ExtKeyUsage) x509.VerifyOptions {
+func getVerifyOpts(chain string, dnsName string, purpose x509.ExtKeyUsage) x509.VerifyOptions {
   // construct verification options
   opts := x509.VerifyOptions{
-    DNSName: dns_name,
+    DNSName: dnsName,
     KeyUsages: []x509.ExtKeyUsage{purpose}}
 
   if len(chain) > 0 {
@@ -126,11 +126,11 @@ func main() {
     printDebug(2, "Checking EKU purpose ID: %d", purpose)
   }
 
-  var dns_name string
+  var dnsName string
   if len(os.Args) >= 5 {
-    dns_name = os.Args[4]
-    if len(dns_name) > 0 {
-      printDebug(2, "Checking DNS Name: %s", dns_name)
+    dnsName = os.Args[4]
+    if len(dnsName) > 0 {
+      printDebug(2, "Checking DNS Name: %s", dnsName)
     }
   }
 
@@ -156,7 +156,7 @@ func main() {
   }
 
   // perform built-in Golang x509 certificate verification
-  opts := getVerifyOpts(chain, dns_name, purpose)
+  opts := getVerifyOpts(chain, dnsName, purpose)
   _, err = cert.Verify(opts)
   if err != nil {
     fmt.Printf("Go: Verify error: %s\n", err)
