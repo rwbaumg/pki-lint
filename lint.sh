@@ -970,7 +970,7 @@ function check_min_bits()
 
   test_number_arg "minimumBits" "$bits"
 
-  case "${CERT_ALGO}" in
+  case "${algo}" in
     rsaEncryption|RSA)
       algoName="RSA"
       minBits=${RSA_MIN_BITS}
