@@ -255,7 +255,6 @@ function exit_script()
 {
   # Default exit code is 1
   local exit_code=1
-  local re var
 
   re='^([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$'
   if echo "$1" | grep -q -E "$re"; then
@@ -784,7 +783,6 @@ function check_ruby_version()
   install_ruby
 }
 
-DIR=$(get_root_dir)
 MAKE_ARG="all"
 CLEAN_MODE="false"
 RESET_MODE="false"
