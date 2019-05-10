@@ -1410,6 +1410,7 @@ fi
 ## Globalsign certlint
 #
 
+GS_CERTTYPE=""
 err=0
 pushd ${GS_CLINT_DIR} > /dev/null 2>&1
 if [ ! -z "${CA_CHAIN}" ]; then
@@ -1430,14 +1431,22 @@ fi
 popd > /dev/null 2>&1
 if [ $err -ne 0 ]; then
   print_warn >&2 "GlobalSign certlint returned a non-zero exit code."
+elif [ ! -z "${GS_CERTLINT}" ]; then
+  GS_CERTTYPE=$(echo "${GS_CERTLINT}" | grep -Po "(?<=^Processed\sCertificate\sType\:\s)[A-Za-z\s]+(?=$)")
 fi
 
 #
 ## x509lint
 #
 
+if [ "${GS_CERTTYPE}" != "OCSP" ]; then
+
 if ! X509LINT=$(LD_LIBRARY_PATH=${X509_DIR} ${X509_BIN} "${PEM_FILE}"); then
   print_warn >&2 "x509lint returned a non-zero exit code."
+fi
+
+else
+  print_warn >&2 "Skipping x509lint for OCSP certificate (not supported)."
 fi
 
 ##
