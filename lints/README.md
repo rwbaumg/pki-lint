@@ -1,10 +1,8 @@
 # Certificate Lints
 
-
 ## Description
 This directory contains linting modules used by the ```lint.sh``` wrapper to validate X.509 certificates.
 This directory is populated in part through Git submodules configured in the ```../.gitmodules``` file, while others represent static tests.
-
 
 ## Building
 You can build all of the submodules in this folder by running ```make```:
@@ -32,18 +30,18 @@ After building the ```zlint``` module a symlink is created under ```./bin/zlint`
 A few example ```zlint``` commands are shown below:
 
 - To list the names of every lint:
-```bash
-./bin/zlint -list-lints-json \
-  | while read x; do echo $x \
-  | grep -Po '(?<=name\"\:\")[^\"]+(?=\"\,\")'; done
-```
+  ```bash
+  ./bin/zlint -list-lints-json \
+    | while read x; do echo $x \
+    | grep -Po '(?<=name\"\:\")[^\"]+(?=\"\,\")'; done
+  ```
 
 - To list the description text for every lint:
-```bash
-./bin/zlint -list-lints-json \
-  | while read x; do echo $x \
-  | grep -Po '(?<=description\"\:\")[^\"]+(?=\"\,\")'; done
-```
+  ```bash
+  ./bin/zlint -list-lints-json \
+    | while read x; do echo $x \
+    | grep -Po '(?<=description\"\:\")[^\"]+(?=\"\,\")'; done
+  ```
 
 ---
 
