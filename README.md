@@ -38,9 +38,9 @@ The following third-party linting tools are used by this project:
 | [zlint](https://github.com/rwbaumg/zlint.git)                   | [zmap/zlint](https://github.com/zmap/zlint)                     |
 
 The following extra packages are also required
-- Golang ```go``` ≥ v1.11
-- Ruby ```ruby``` & ```ruby-dev``` ≥ v2.2, and
-- Ruby Gems ```simpleidn``` & ```public_suffix```
+-   Golang ```go``` ≥ v1.11
+-   Ruby ```ruby``` & ```ruby-dev``` ≥ v2.2, and
+-   Ruby Gems ```simpleidn``` & ```public_suffix```
 
 Running the ```build.sh``` script will try to install missing dependencies for you.
 Note that only the [Debian](https://www.debian.org)-based package manager APT is currently supported.
@@ -58,9 +58,9 @@ If you encounter errors building module sources you can use ```--verbose``` to g
 
 ## Usage
 In order to select the appropriate tests, you must specify the type of the certificate being checked. The following certificate types are supported:
-- Root CA certificates
-- Intermediate CA certificates
-- End-entity / subscriber certificates
+-   Root CA certificates
+-   Intermediate CA certificates
+-   End-entity / subscriber certificates
 
 Certificate type switches for ```lint.sh``` are listed below:
 
@@ -149,12 +149,12 @@ The basic folder structure is shown in the diagram below:
   ```
 
 The main files and directories are:
-- ```lints/```: The top-level directory for all checks and third-party modules.
-- ```bin/```: Directory containing symlinks to compiled linting tools.
-- ```golang```: Golang ```.go``` scripts for performing simple compatibility checks. Each ```.go``` script in this directory is run by ```lint.sh```.
-- ```Makefile```: The ```make``` configuration for building linting module sources.
-- ```build.sh```: The main build script for the project. Pulls down Git submodules and compiles all of the linting sources. This script will also try to resolve dependency packages for your system.
-- ```lint.sh```: The main linting script. Calls individual lints and reports on the results.
+-   ```lints/```: The top-level directory for all checks and third-party modules.
+-   ```bin/```: Directory containing symlinks to compiled linting tools.
+-   ```golang```: Golang ```.go``` scripts for performing simple compatibility checks. Each ```.go``` script in this directory is run by ```lint.sh```.
+-   ```Makefile```: The ```make``` configuration for building linting module sources.
+-   ```build.sh```: The main build script for the project. Pulls down Git submodules and compiles all of the linting sources. This script will also try to resolve dependency packages for your system.
+-   ```lint.sh```: The main linting script. Calls individual lints and reports on the results.
 
 ## Building sources manually
 To compile all of the dependencies and linting modules you can call ```make``` directly, so long as you have all of the required compilers and libraries installed on your system.
@@ -229,5 +229,5 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 ## License
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
 
-- **[MIT license](http://opensource.org/licenses/mit-license.php)**
-- Unpublished Copyright 2019 © Robert W. Baumgartner. All rights reserved.
+-   **[MIT license](http://opensource.org/licenses/mit-license.php)**
+-   Unpublished Copyright 2019 © Robert W. Baumgartner. All rights reserved.
