@@ -29,19 +29,19 @@ After building the ```zlint``` module a symlink is created under ```./bin/zlint`
 
 A few example ```zlint``` commands are shown below:
 
-- To list the names of every lint:
-  ```bash
-  ./bin/zlint -list-lints-json \
-    | while read x; do echo $x \
-    | grep -Po '(?<=name\"\:\")[^\"]+(?=\"\,\")'; done
-  ```
+-   To list the names of every lint:
+    ```bash
+    ./bin/zlint -list-lints-json \
+      | while read x; do echo $x \
+      | grep -Po '(?<=name\"\:\")[^\"]+(?=\"\,\")'; done
+    ```
 
-- To list the description text for every lint:
-  ```bash
-  ./bin/zlint -list-lints-json \
-    | while read x; do echo $x \
-    | grep -Po '(?<=description\"\:\")[^\"]+(?=\"\,\")'; done
-  ```
+-   To list the description text for every lint:
+    ```bash
+    ./bin/zlint -list-lints-json \
+      | while read x; do echo $x \
+      | grep -Po '(?<=description\"\:\")[^\"]+(?=\"\,\")'; done
+    ```
 
 ---
 
