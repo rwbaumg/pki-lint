@@ -280,8 +280,7 @@ You can use the online [Federal PKI X.509 certificate linter](https://cpct.app.c
 The source code for the webservice is provided in the [fpkilint](https://github.com/GSA/fpkilint) GitHub repository.
 
 ## Lint module notes
-- The ```gs-certlint`` module currently requires either a dnsName or ipAddress for ```subjectAltName``` on Extended-Validation (EV) certificates.
-  This may  not be the correct behavior, as EV code-signing certificates may be issued to an individual. More research is needed.
+- The ```gs-certlint`` module currently requires either a dnsName or ipAddress for ```subjectAltName``` on Extended-Validation (EV) certificates. This may not be the correct behavior, as EV code-signing certificates may be issued to an individual. More research is needed.
 
 ## References
 Relevant source code repositories are listed below:
