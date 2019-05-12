@@ -899,7 +899,7 @@ fi
 
 if [ "${INSTALL_MODE}" != "true" ] && [ "${UPDATE_MODE}" != "true" ]; then
 
-if ! { [ "${RESET_MODE}" == "true" ] && [ "${CLEAN_MODE}" != "false" ] }; then
+if ! { [ "${RESET_MODE}" == "true" ] && [ "${CLEAN_MODE}" != "false" ]; }; then
 
 # Build all modules
 result=0
