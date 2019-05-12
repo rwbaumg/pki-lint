@@ -3,11 +3,11 @@
 X.509 certificate linter
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](http://badges.mit-license.org)
-[![Travis (.org) branch](https://img.shields.io/travis/rwbaumg/pki-lint/github.svg?label=build&logo=travis&style=flat)](https://travis-ci.org/rwbaumg/pki-lint)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Frwbaumg%2Fpki-lint.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Frwbaumg%2Fpki-lint?ref=badge_shield)
 [![CodeFactor](https://www.codefactor.io/repository/github/rwbaumg/pki-lint/badge)](https://www.codefactor.io/repository/github/rwbaumg/pki-lint)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/59844cfd3b0743b8bad687ccd55c647d)](https://app.codacy.com/app/rwbaumg/pki-lint?utm_source=github.com&utm_medium=referral&utm_content=rwbaumg/pki-lint&utm_campaign=Badge_Grade_Dashboard)
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Frwbaumg%2Fpki-lint.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Frwbaumg%2Fpki-lint?ref=badge_shield)
 [![CII Best Practices Summary](https://img.shields.io/cii/summary/2735.svg)](https://bestpractices.coreinfrastructure.org/en/projects/2735)
+[![Travis (.org) branch](https://img.shields.io/travis/rwbaumg/pki-lint/github.svg?label=build&logo=travis&style=flat)](https://travis-ci.org/rwbaumg/pki-lint)
 [![GitHub release](https://img.shields.io/github/release/rwbaumg/pki-lint.svg?color=blue&label=release&logo=github&style=flat)](https://github.com/rwbaumg/pki-lint/releases/latest)
 [![GitHub All Releases](https://img.shields.io/github/downloads/rwbaumg/pki-lint/total.svg?logo=github&style=flat)](https://github.com/rwbaumg/pki-lint/releases)
 [![GitHub issues](https://img.shields.io/github/issues-raw/rwbaumg/pki-lint.svg?label=open%20issues&logo=github&style=flat)](https://github.com/rwbaumg/pki-lint/issues)
