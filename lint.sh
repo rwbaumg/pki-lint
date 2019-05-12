@@ -1613,7 +1613,7 @@ fi
 if [ ${OPENSSL_CRL_ERR} -eq 1 ]; then
   if [ ! -z "${OPENSSL_CRLCHECK}" ]; then
     print_newline
-    text=$(echo "${OPENSSL_CRLCHECK//${PEM_FILE//\//\\/}}")
+    text="${OPENSSL_CRLCHECK//${PEM_FILE//\//\\/}}"
     print_header "OpenSSL CRL verify:"
     if [ "${CRL_IS_WARNING}" == "true" ]; then
       print_yellow "${text}"
