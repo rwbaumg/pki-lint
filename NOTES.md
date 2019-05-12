@@ -130,8 +130,8 @@ The table below shows Extended Key Usage Object Identifiers (OIDs) supported by 
 
 ## Mozilla NSS
 The Mozilla Network Security Service (NSS) provides the following tools for certificate validation:
-- ```vfychain```: Verifies certificate chains.
-- ```certutil```: Manages keys and certificate in both NSS databases and other NSS tokens.
+-   ```vfychain```: Verifies certificate chains.
+-   ```certutil```: Manages keys and certificate in both NSS databases and other NSS tokens.
 
 To validate a certificate chain using ```vfychain```, pass each CA certificate in the chain using ```-t /path/to/ca.crt```, and pass the PEM-encoded certificate to be validated using ```-a /path/to/cert.crt```. For example:
 ```bash
