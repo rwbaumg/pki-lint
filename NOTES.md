@@ -130,8 +130,8 @@ The table below shows Extended Key Usage Object Identifiers (OIDs) supported by 
 
 ## Mozilla NSS
 The Mozilla Network Security Service (NSS) provides the following tools for certificate validation:
-  -   ```vfychain```: Verifies certificate chains.
-  -   ```certutil```: Manages keys and certificate in both NSS databases and other NSS tokens.
+- ```vfychain```: Verifies certificate chains.
+- ```certutil```: Manages keys and certificate in both NSS databases and other NSS tokens.
 
 To validate a certificate chain using ```vfychain```, pass each CA certificate in the chain using ```-t /path/to/ca.crt```, and pass the PEM-encoded certificate to be validated using ```-a /path/to/cert.crt```. For example:
 ```bash
@@ -203,7 +203,7 @@ The following certificate purposes are supported by the ```certutil``` tool via 
 Golang uses its own implementation for [X.509](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.509) certificate validation.
 
 The following enumeration defines the EKU usage codes Golang uses internally:
-```
+```plain
 ExtKeyUsageServerAuth = 1
 ExtKeyUsageClientAuth = 2
 ExtKeyUsageCodeSigning = 3
@@ -222,7 +222,7 @@ ExtKeyUsageMicrosoftKernelCodeSigning = 13
 ## GnuTLS
 The ```certtool``` utility provided by GnuTLS can be used to validate certificates.
 
-**Note that ```certtool``` version below ```3.0.0``` do not support certificate validation.**
+Note that ```certtool``` version below ```3.0.0``` do not support certificate validation.
 
 To display a certificate:
 ```bash
@@ -280,8 +280,8 @@ You can use the online [Federal PKI X.509 certificate linter](https://cpct.app.c
 The source code for the webservice is provided in the [fpkilint](https://github.com/GSA/fpkilint) GitHub repository.
 
 ## Lint module notes
-  -   The ```gs-certlint`` module currently requires either a dnsName or ipAddress for ```subjectAltName``` on Extended-Validation (EV) certificates.
-      This may  not be the correct behavior, as EV code-signing certificates may be issued to an individual. More research is needed.
+- The ```gs-certlint`` module currently requires either a dnsName or ipAddress for ```subjectAltName``` on Extended-Validation (EV) certificates.
+  This may  not be the correct behavior, as EV code-signing certificates may be issued to an individual. More research is needed.
 
 ## References
 Relevant source code repositories are listed below:
