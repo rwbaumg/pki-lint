@@ -1962,7 +1962,7 @@ fi
 ## Mozilla NSS
 #
 
-if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
+if [ ! -z "${KU_CERTUTIL}" ]; then
   if [ $lec -ne 0 ]; then
     print_newline
   fi
@@ -1990,35 +1990,40 @@ if [ ! -z "${KU_CERTUTIL}" ] && [ ! -z "${PEM_CHAIN_FILE}" ]; then
 
   # add all certificates from chain
   ca_count=0
-  pushd ${DB_PATH} > /dev/null 2>&1
-  awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "ca-cert." c ".pem"}' < chain.tmp
-  popd > /dev/null 2>&1
-  for c in ${DB_PATH}/*.pem; do
-    ca_count=$((ca_count+1))
+  if [ ! -z "${PEM_CHAIN_FILE}" ]; then
 
-    crt_common_name=$(get_pem_common_name "${c}")
-    if [ -z "${crt_common_name}" ]; then
-      crt_common_name=$(get_pem_subject_name "${c}")
-    fi
-    if [ -z "${crt_common_name}" ]; then
-      exit_script 1 "Failed to determine subject name for certificate '${c}'."
-    fi
+    pushd ${DB_PATH} > /dev/null 2>&1
+    awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "ca-cert." c ".pem"}' < chain.tmp
+    popd > /dev/null 2>&1
 
-    if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i "${c}" -t CT,CT,CT; then
-      exit_script 1 "Failed to import certificate using NSS certutil."
-    elif [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
-      if ! result=$(certutil -V -n "${crt_common_name}" -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} 2>&1); then
-        if [[ 2 -gt $EC ]]; then
-          EC=2
-        fi
-        lec=1
-        print_red "CA ERROR : ${result}"
-      else
-        lec=0
-        print_green "Valid CA : ${crt_common_name}: ${result}"
+    for c in ${DB_PATH}/*.pem; do
+      ca_count=$((ca_count+1))
+
+      crt_common_name=$(get_pem_common_name "${c}")
+      if [ -z "${crt_common_name}" ]; then
+        crt_common_name=$(get_pem_subject_name "${c}")
       fi
-    fi
-  done
+      if [ -z "${crt_common_name}" ]; then
+        exit_script 1 "Failed to determine subject name for certificate '${c}'."
+      fi
+
+      if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i "${c}" -t CT,CT,CT; then
+        exit_script 1 "Failed to import certificate using NSS certutil."
+      elif [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
+        if ! result=$(certutil -V -n "${crt_common_name}" -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} 2>&1); then
+          if [[ 2 -gt $EC ]]; then
+            EC=2
+          fi
+          lec=1
+          print_red "CA ERROR : ${result}"
+        else
+          lec=0
+          print_green "Valid CA : ${crt_common_name}: ${result}"
+        fi
+      fi
+    done
+
+  fi
 
   if [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
     if [ $VERBOSITY -gt 0 ]; then
