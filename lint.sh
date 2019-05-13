@@ -696,7 +696,7 @@ function is_pem_format()
   return 0
 }
 
-function get_pem_file()
+function convert2pem()
 {
   local file="$1"
   if [ -z "${file}" ] || [ ! -e "${file}" ]; then
@@ -709,13 +709,8 @@ function get_pem_file()
     return 0
   fi
 
-  temp_file="$(mktemp -t $(basename ${file}).XXXXXX).pem"
-  if ! openssl crl -inform DER -in "${file}" -outform PEM -out "${temp_file}"; then
+  if ! openssl crl -inform DER -in "${file}" -outform PEM -out "${file}"; then
     exit_script 1 "Failed to convert file from DER->PEM encoding: '${file}'"
-  fi
-
-  if ! mv "${temp_file}" "${file}"; then
-    exit_script 1 "Failed to replace file '${file}' with updated encoding."
   fi
 
   echo "${file}"
@@ -1300,20 +1295,20 @@ if [ ! -z "${CA_CHAIN}" ]; then
   CA_CHAIN_FULL_PATH=$(realpath "${CA_CHAIN}")
 fi
 
-PEM_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).pem"
+PEM_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX.pem)"
 if ! openssl x509 -outform pem -in "${CERT}" -out "${PEM_FILE}" > /dev/null 2>&1; then
   usage "Failed to parse input file '${CERT}' as PEM certificate."
 fi
 
 if [ ! -z "${CA_CHAIN}" ]; then
-PEM_CHAIN_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).chain.pem"
+PEM_CHAIN_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX.chain.pem)"
 openssl x509 -outform pem -in "${CERT}" -out "${PEM_CHAIN_FILE}" > /dev/null 2>&1
 if [ ! -z "${CA_CHAIN}" ]; then
 cat "${CA_CHAIN}" >> "${PEM_CHAIN_FILE}"
 fi
 fi
 
-DER_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).der"
+DER_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX.der)"
 openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
 #
@@ -1515,7 +1510,7 @@ CA_FILE=""
 CRL_IS_WARNING="false"
 if [ "${CRL_CHECK_SKIP}" != "true" ]; then
   if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
-    RAW_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).raw.crl"
+    RAW_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX.raw.crl)"
     if ! wget -qO "${RAW_CRL_FILE}" "${CRL_URL}"; then
       # Failed to download CRL file
       if [ ! -z "${PEM_CHAIN_FILE}" ]; then
@@ -1524,8 +1519,8 @@ if [ "${CRL_CHECK_SKIP}" != "true" ]; then
       CRL_IS_WARNING="true"
       print_warn "Failed to download CRL from '${CRL_URL}'."
     else
-      PEM_CRL_FILE=$(get_pem_file "${RAW_CRL_FILE}")
-      TMP_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX).tmp.crl"
+      PEM_CRL_FILE=$(convert2pem "${RAW_CRL_FILE}")
+      TMP_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX.tmp.crl)"
       cat ${PEM_CHAIN_FILE} ${PEM_CRL_FILE} > ${TMP_CRL_FILE}
       rm ${VERY_VERBOSE_FLAG} -f "${PEM_CRL_FILE}"
       CA_FILE="${TMP_CRL_FILE}"
