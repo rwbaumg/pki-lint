@@ -6,7 +6,7 @@
 [submodule "lints/gs-certlint"]
 	path = lints/gs-certlint
 	url = https://git.0x19e.net/security/gs-certlint.git
-	branch = master
+	branch = x19e-master
 	ignore = untracked
 [submodule "lints/ev-checker"]
 	path = lints/ev-checker
