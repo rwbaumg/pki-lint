@@ -153,7 +153,7 @@ function print_normal()
     bg="${3}"
   fi
 
-  print_ex "${str}" 0 ${fg} ${bg}
+  print_ex "${str}" 0 "${fg}" "${bg}"
 }
 
 function print_bold()
@@ -169,7 +169,7 @@ function print_bold()
     bg="${3}"
   fi
 
-  print_ex "${str}" 1 ${fg} ${bg}
+  print_ex "${str}" 1 "${fg}" "${bg}"
 }
 
 function print_ul()
@@ -185,7 +185,7 @@ function print_ul()
     bg="${3}"
   fi
 
-  print_ex "${str}" 4 ${fg} ${bg}
+  print_ex "${str}" 4 "${fg}" "${bg}"
 }
 
 function print_tagged()
@@ -203,9 +203,9 @@ function print_tagged()
   fi
 
   if [ "${BOLD_TAGGED}" == "true" ]; then
-    print_ex_tagged "${tag}" "${str}" 0 ${fg} ${bg}
+    print_ex_tagged "${tag}" "${str}" 0 "${fg}" "${bg}"
   else
-    print_ex "${tag}: ${str}" 0 ${fg} ${bg}
+    print_ex "${tag}: ${str}" 0 "${fg}" "${bg}"
   fi
 }
 
@@ -264,7 +264,7 @@ function exit_script()
 
   re='[[:alnum:]]'
   if echo "$*" | grep -iq -E "$re"; then
-    if [ $exit_code -eq 0 ]; then
+    if [ "$exit_code" -eq 0 ]; then
       print_info  "$*"
     else
       print_error "$*" 1>&2
@@ -272,15 +272,15 @@ function exit_script()
   fi
 
   # Print 'aborting' string if exit code is not 0
-  [ $exit_code -ne 0 ] && echo >&2 "Aborting script..."
+  [ "$exit_code" -ne 0 ] && echo >&2 "Aborting script..."
 
-  exit $exit_code
+  exit "$exit_code"
 }
 
 function usage()
 {
     # Prints out usage and exit.
-    sed -e "s/^    //" -e "s|SCRIPT_NAME|$(basename $0)|" << "EOF"
+    sed -e "s/^    //" -e "s|SCRIPT_NAME|$(basename "$0")|" << "EOF"
     USAGE
 
     Install required packages and build all third-party certificate linters
@@ -340,7 +340,7 @@ function get_root_dir()
     [[ ${source} != /* ]] && source="${dir}/${source}"
   done
   dir="$( cd -P "$( dirname "${source}" )" && pwd )"
-  echo ${dir}
+  echo "${dir}"
   return
 }
 
@@ -423,8 +423,8 @@ function add_apt_source()
   fi
 
   for f in /etc/apt/sources.list.d/*; do
-    if ! echo $f | grep -P '\.save$' > /dev/null 2>&1; then
-      if [ ! -z "$(grep -ni $ppa_name $f | grep -v -P '^([\s]+)?\#')" ]; then
+    if ! echo "$f" | grep -P '\.save$' > /dev/null 2>&1; then
+      if grep -ni "$ppa_name" "$f" | grep -q -v -P '^([\s]+)?\#'; then
         print_pass "Found custom PPA configuration for package source '$ppa_name'."
         return 0
       fi
@@ -440,7 +440,7 @@ function add_apt_source()
     exit_script 1 "You need to install sudo. Aborting."
   fi
 
-  if ! ${sudo_cmd} add-apt-repository --yes ppa:${ppa_name}; then
+  if ! ${sudo_cmd} add-apt-repository --yes "ppa:${ppa_name}"; then
     exit_script 1 "Failed to configure '$ppa_name' package source for apt command."
   fi
   if ! ${sudo_cmd} apt-get update; then
@@ -484,7 +484,8 @@ function install_golang()
     fi
 
     # Symlink in /usr/local/bin
-    if ! ${sudo_cmd} ln ${ln_args} /usr/lib/go-${GO_MIN_VERSION}/bin/go /usr/local/bin/go; then
+    symlink_cmd="${sudo_cmd} ln ${ln_args}"
+    if ! ${symlink_cmd} "/usr/lib/go-${GO_MIN_VERSION}/bin/go" "/usr/local/bin/go"; then
       print_error "Failed to create /usr/local/bin symlink for /usr/lib/go-${GO_MIN_VERSION}/bin/go command."
       exit_script 1 "The Golang 'go' command must be installed in the system PATH. Aborting."
     fi
@@ -540,7 +541,8 @@ function install_ruby()
     fi
 
     # Symlink in /usr/local/bin
-    if ! ${sudo_cmd} ln ${ln_args} ${RUBY_PATH} /usr/local/bin/ruby; then
+    symlink_cmd="${sudo_cmd} ln ${ln_args}"
+    if ! ${symlink_cmd} "${RUBY_PATH}" "/usr/local/bin/ruby"; then
       print_error "Failed to create /usr/local/bin symlink for ${RUBY_PATH} command."
       exit_script 1 "The 'ruby' command must be installed in the system PATH. Aborting."
     fi
@@ -585,7 +587,7 @@ function check_installed()
   fi
 
   if hash apt-cache 2>/dev/null; then
-    if [ ! -z "$(apt-cache policy ${pkg_name} | grep -v '(none)' | grep Installed)" ]; then
+    if apt-cache policy "${pkg_name}" | grep -v '(none)' | grep -q Installed; then
       return 0
     fi
   fi
@@ -629,7 +631,7 @@ function install_pkg()
     fi
 
     print_info "Installing missing package '${pkg_name}' via apt-get ..."
-    if ! ${sudo_cmd} apt-get install -V -y ${pkg_name}; then
+    if ! ${sudo_cmd} apt-get install -V -y "${pkg_name}"; then
       exit_script 1 "Failed to install package '${pkg_name}'."
     fi
     return 0
@@ -663,7 +665,7 @@ function is_source_repo_enabled()
       exit_script 1 "You need to install sudo. Aborting."
     fi
 
-    if ${sudo_cmd} add-apt-repository --yes ${source}; then
+    if ${sudo_cmd} add-apt-repository --yes "${source}"; then
       print_pass "Enabled package source '${source}'."
       return 0
     else
@@ -720,7 +722,7 @@ function install_gem()
     return 0
   fi
 
-  if [ ! -z "$(gem list | grep ${gem_name})" ]; then
+  if gem list | grep -q "${gem_name}"; then
     print_pass "Required Ruby gem '${gem_name}' is already installed."
     return 0
   fi
@@ -742,7 +744,8 @@ function install_gem()
       gem_args="--verbose $gem_args"
     fi
     print_info "Installing Ruby gem '${gem_name}' ..."
-    if ! ${sudo_cmd} gem install ${gem_args} ${gem_name}; then
+    gem_cmd="${sudo_cmd} gem install ${gem_args}"
+    if ! ${gem_cmd} "${gem_name}"; then
       exit_script 1 "Failed to install Ruby gem '${gem_name}'."
     fi
     return 0
@@ -756,7 +759,7 @@ function check_golang_version()
   if hash go 2>/dev/null; then
     GO_VERSION_FULL=$(go version | head -n1 | grep -Po '(?<=\sgo)[0-9\.]+(?=\s)')
     GO_VERSION=$(go version | head -n1 | grep -Po '(?<=\sgo)[0-9]+\.[0-9]+(?=(\s|\.))')
-    if version_gt $GO_VERSION_FULL $GO_MIN_VERSION; then
+    if version_gt "$GO_VERSION_FULL" "$GO_MIN_VERSION"; then
       if [ -e "/usr/lib/go-${GO_VERSION}" ]; then
         return 0
       else
@@ -775,7 +778,7 @@ function check_ruby_version()
 
   if hash ruby 2>/dev/null; then
     RUBY_VERSION=$(ruby --version | head -n1 | grep -Po '(?<=\s)([1-9][0-9]{0,8}|0)(\.([1-9][0-9]{0,8}|0)){1,3}')
-    if version_gt $RUBY_VERSION $RUBY_MIN_VERSION; then
+    if version_gt "$RUBY_VERSION" "$RUBY_MIN_VERSION"; then
       return 0
     fi
   fi
@@ -917,7 +920,8 @@ print_info "Compiling sources..."
 else
 print_info "Cleaning sources..."
 fi
-if ! make ${MAKE_ARG}; then
+MAKE_CMD="make ${MAKE_ARG}"
+if ! ${MAKE_CMD}; then
   result=1
 fi
 
