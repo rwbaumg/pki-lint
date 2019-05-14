@@ -364,10 +364,10 @@ function check_etckeeper()
           return
         fi
         print_info "Auto-commit changes to /etc/apt (directory under version control) ..."
-        pushd /etc > /dev/null 2>&1
+        pushd /etc > /dev/null 2>&1 || exit_script 1 "Failed to change directories."
         sudo git add --all /etc/apt
         sudo git commit -v -m "apt: auto-commit configuration changes."
-        popd > /dev/null 2>&1
+        popd > /dev/null 2>&1 || exit_script 1 "Failed to change directories."
       fi
     fi
   fi
