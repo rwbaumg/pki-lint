@@ -231,7 +231,7 @@ function print_ex()
 
   if [ "${NO_COLOR}" == "false" ]; then
 
-  str=$(echo "${str}" | sed -e 's/\\/\\\\/g')
+  str="${str//\\/\\\\}"
 
   if [ ! -z "${2}" ]; then
     if ! echo "${2}" | grep -qPo '^[0-9\;]+$'; then
@@ -280,7 +280,7 @@ function print_ex_tagged()
 
   if [ "${NO_COLOR}" == "false" ]; then
 
-  str=$(echo "${str}" | sed -e 's/\\/\\\\/g')
+  str="${str//\\/\\\\}"
 
   if [ ! -z "${3}" ]; then
     if ! echo "${3}" | grep -qPo '^[0-9\;]+$'; then
