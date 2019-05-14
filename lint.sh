@@ -231,6 +231,8 @@ function print_ex()
 
   if [ "${NO_COLOR}" == "false" ]; then
 
+  str=$(echo "${str}" | sed -e 's/\\/\\\\/g')
+
   if [ ! -z "${2}" ]; then
     if ! echo "${2}" | grep -qPo '^[0-9\;]+$'; then
       exit_script 1 "Invalid argument passed to function: '${2}' is not a valid number."
@@ -277,6 +279,8 @@ function print_ex_tagged()
   fi
 
   if [ "${NO_COLOR}" == "false" ]; then
+
+  str=$(echo "${str}" | sed -e 's/\\/\\\\/g')
 
   if [ ! -z "${3}" ]; then
     if ! echo "${3}" | grep -qPo '^[0-9\;]+$'; then
