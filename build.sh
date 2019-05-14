@@ -263,7 +263,7 @@ function exit_script()
   fi
 
   re='[[:alnum:]]'
-  if echo "$@" | grep -iq -E "$re"; then
+  if echo "$*" | grep -iq -E "$re"; then
     if [ $exit_code -eq 0 ]; then
       print_info  "$*"
     else
@@ -295,6 +295,7 @@ function usage()
      -r, --reset             Reset all third-party modules.
      -i, --install-missing   Only install missing packages (do not build).
      -u, --update            Only update Git modules (do not build).
+     -t, --test              Run automated source code quality tests.
 
      --no-install-missing    Do not install missing packages.
      --no-etckeeper          Do not auto-commit /etc changes under VCS.
@@ -304,7 +305,7 @@ function usage()
 
 EOF
 
-    exit_script $@
+    exit_script "$@"
 }
 
 function test_arg()
@@ -354,7 +355,7 @@ function check_etckeeper()
 
   # git handling for etckeeper (check if /etc/.git exists)
   if [ -d /etc/.git  ] && hash git 2>/dev/null; then
-    if $(git -C "/etc" rev-parse > /dev/null 2>&1); then
+    if git -C "/etc" rev-parse > /dev/null 2>&1; then
       # check /etc/apt for modifications
       # if there are changes, commit them
       if [[ "$(git --git-dir=/etc/.git --work-tree=/etc status --porcelain -- /etc/apt|grep -E '^(M| M)')" != "" ]]; then
@@ -788,6 +789,7 @@ CLEAN_MODE="false"
 RESET_MODE="false"
 INSTALL_MODE="false"
 UPDATE_MODE="false"
+TEST_MODE="false"
 
 # process arguments
 while [ $# -gt 0 ]; do
@@ -809,6 +811,10 @@ while [ $# -gt 0 ]; do
     ;;
     -i|--install-missing)
       INSTALL_MODE="true"
+      shift
+    ;;
+    -t|--test)
+      TEST_MODE="true"
       shift
     ;;
     -u|--update)
@@ -865,6 +871,9 @@ hash clang++ 2>/dev/null || { install_pkg "clang"; }
 hash openssl 2>/dev/null || { install_pkg "openssl"; }
 hash git 2>/dev/null || { install_pkg "git"; }
 hash jq 2>/dev/null || { install_pkg "jq"; }
+
+# Check for missing source code lint tools
+hash shellcheck 2>/dev/null || { install_pkg "shellcheck"; }
 
 # Install Golang and Ruby
 check_ruby_version
@@ -956,6 +965,21 @@ else
   print_pass  "Finished compiling all linting modules."
   else
   print_pass  "All module sources cleaned without error."
+  fi
+fi
+
+if [ "${TEST_MODE}" == "true" ]; then
+  print_info "Running source code tests...."
+  check_result=0
+  if ! make check; then
+    check_result=1
+  elif ! make test; then
+    check_result=1
+  fi
+  if [ ${check_result} -ne 0 ]; then
+    print_error  "Source code test failed."
+  else
+    print_pass   "Source code tests passed."
   fi
 fi
 

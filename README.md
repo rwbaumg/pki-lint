@@ -174,7 +174,8 @@ sudo apt-get install make gcc clang \
    libcurl4-openssl-dev libnss3-dev \
    libnss3-tools libssl-dev && \
 sudo gem install simpleidn && \
-sudo gem install public_suffix
+sudo gem install public_suffix && \
+sudo apt-get install shellcheck
 ```
 
 The ```Makefile``` included in the top-level directory simply calls to ```lints/Makefile```. For more control over the process, it's best to run ```make``` from within the ```lints/``` subdirectory:
