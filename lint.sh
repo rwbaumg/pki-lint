@@ -1389,7 +1389,7 @@ AWS_LINTED="false"
 AWS_CERTLINT_ERROR=""
 AWS_CABLINT_ERROR=""
 if check_ruby_version; then
-  pushd ${AWS_CLINT_DIR} > /dev/null 2>&1
+  pushd ${AWS_CLINT_DIR} > /dev/null 2>&1 || exit_script 1 "Failed to change directories."
   if ! AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}" 2>&1 | uniq); then
     AWS_CERTLINT_ERROR=$(echo "${AWS_CERTLINT}" | tail -n1)
     print_warn "AWS certlint returned a non-zero exit code."
@@ -1398,7 +1398,7 @@ if check_ruby_version; then
     AWS_CABLINT_ERROR=$(echo "${AWS_CABLINT}" | tail -n1)
     print_warn >&2 "AWS cablint returned a non-zero exit code."
   fi
-  popd > /dev/null 2>&1
+  popd > /dev/null 2>&1 || exit_script 1 "Failed to change directories."
   AWS_LINTED="true"
 elif hash ruby 2>/dev/null; then
   print_warn >&2 "Ruby v${RUBY_VERSION} is too old for AWS linting (requires Ruby >= v${RUBY_MIN_VERSION})."
@@ -1412,7 +1412,7 @@ fi
 
 GS_CERTTYPE=""
 err=0
-pushd ${GS_CLINT_DIR} > /dev/null 2>&1
+pushd ${GS_CLINT_DIR} > /dev/null 2>&1 || exit_script 1 "Failed to change directories."
 if [ ! -z "${CA_CHAIN}" ]; then
   if ! GS_CERTLINT=$(./gs-certlint -issuer "${CA_CHAIN_FULL_PATH}" -cert "${PEM_FILE}"); then
     GS_ERR_COUNT=$(echo "${GS_CERTLINT}" | grep -Po "(?<=^Certificate\sErrors\:\s)[0-9]+(?=$)")
@@ -1428,7 +1428,7 @@ else
     fi
   fi
 fi
-popd > /dev/null 2>&1
+popd > /dev/null 2>&1 || exit_script 1 "Failed to change directories."
 if [ $err -ne 0 ]; then
   print_warn >&2 "GlobalSign certlint returned a non-zero exit code."
 elif [ ! -z "${GS_CERTLINT}" ]; then
@@ -1996,11 +1996,11 @@ if [ ! -z "${KU_CERTUTIL}" ]; then
   ca_count=0
   if [ ! -z "${PEM_CHAIN_FILE}" ]; then
 
-    pushd "${DB_PATH}" > /dev/null 2>&1
+    pushd "${DB_PATH}" > /dev/null 2>&1 || exit_script 1 "Failed to change directories."
     awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "ca-cert." c ".pem"}' < chain.tmp
-    popd > /dev/null 2>&1
+    popd > /dev/null 2>&1 || exit_script 1 "Failed to change directories."
 
-    for c in ${DB_PATH}/*.pem; do
+    for c in "${DB_PATH}"/*.pem; do
       ca_count=$((ca_count+1))
 
       crt_common_name=$(get_pem_common_name "${c}")
