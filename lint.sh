@@ -817,7 +817,7 @@ function get_purpose()
     #usage "'$temp' is not a valid purpose."
   fi
 
-  echo ${temp}
+  echo "${temp}"
   return 0
 }
 
@@ -839,7 +839,7 @@ function get_level()
     usage "'$temp' is not a valid security level."
   fi
 
-  echo ${temp}
+  echo "${temp}"
 }
 
 function get_seclvl()
