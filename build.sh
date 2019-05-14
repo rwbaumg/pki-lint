@@ -76,19 +76,19 @@ function print_ex()
 
   if [ "${NO_COLOR}" == "false" ]; then
 
-  if [ ! -z "${2}" ]; then
+  if [ -n "${2}" ]; then
     if ! is_number "${2}"; then
       exit_script 1 "Invalid argument passed to function: '${2}' is not a valid number."
     fi
     st="${2}"
   fi
-  if [ ! -z "${3}" ]; then
+  if [ -n "${3}" ]; then
     if ! is_number "${3}"; then
       exit_script 1 "Invalid argument passed to function: '${3}' is not a valid number."
     fi
     fg="${3}"
   fi
-  if [ ! -z "${4}" ]; then
+  if [ -n "${4}" ]; then
     if ! is_number "${4}"; then
       exit_script 1 "Invalid argument passed to function: '${4}' is not a valid number."
     fi
@@ -115,19 +115,19 @@ function print_ex_tagged()
 
   if [ "${NO_COLOR}" == "false" ]; then
 
-  if [ ! -z "${3}" ]; then
+  if [ -n "${3}" ]; then
     if ! is_number "${3}"; then
       exit_script 1 "ERROR: Invalid argument passed to function: '${3}' is not a valid number."
     fi
     st="${3}"
   fi
-  if [ ! -z "${4}" ]; then
+  if [ -n "${4}" ]; then
     if ! is_number "${4}"; then
       exit_script 1 "Invalid argument passed to function: '${4}' is not a valid number."
     fi
     fg="${4}"
   fi
-  if [ ! -z "${5}" ]; then
+  if [ -n "${5}" ]; then
     if ! is_number "${5}"; then
       exit_script "Invalid argument passed to function: '${5}' is not a valid number."
     fi
@@ -146,10 +146,10 @@ function print_normal()
   bg=49
   str="${1}"
 
-  if [ ! -z "${2}" ]; then
+  if [ -n "${2}" ]; then
     fg="${2}"
   fi
-  if [ ! -z "${3}" ]; then
+  if [ -n "${3}" ]; then
     bg="${3}"
   fi
 
@@ -162,10 +162,10 @@ function print_bold()
   bg=49
   str="${1}"
 
-  if [ ! -z "${2}" ]; then
+  if [ -n "${2}" ]; then
     fg="${2}"
   fi
-  if [ ! -z "${3}" ]; then
+  if [ -n "${3}" ]; then
     bg="${3}"
   fi
 
@@ -178,10 +178,10 @@ function print_ul()
   bg=49
   str="${1}"
 
-  if [ ! -z "${2}" ]; then
+  if [ -n "${2}" ]; then
     fg="${2}"
   fi
-  if [ ! -z "${3}" ]; then
+  if [ -n "${3}" ]; then
     bg="${3}"
   fi
 
@@ -195,10 +195,10 @@ function print_tagged()
   tag="${1}"
   str="${2}"
 
-  if [ ! -z "${3}" ]; then
+  if [ -n "${3}" ]; then
     fg="${3}"
   fi
-  if [ ! -z "${4}" ]; then
+  if [ -n "${4}" ]; then
     bg="${4}"
   fi
 
