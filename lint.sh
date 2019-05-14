@@ -2000,7 +2000,7 @@ if [ ! -z "${KU_CERTUTIL}" ]; then
     awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "ca-cert." c ".pem"}' < chain.tmp
     popd > /dev/null 2>&1
 
-    for c in ${DB_PATH}/*.pem; do
+    for c in "${DB_PATH}"/*.pem; do
       ca_count=$((ca_count+1))
 
       crt_common_name=$(get_pem_common_name "${c}")
