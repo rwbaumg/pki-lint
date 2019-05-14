@@ -95,7 +95,7 @@ function add_missing_pkg()
   if [ -z "$1" ]; then
     usage "Package name cannot be null."
   fi
-  if ! echo ${pkg_missing[@]} | grep -q -w "$1"; then
+  if ! echo "${pkg_missing[@]}" | grep -q -w "$1"; then
     pkg_name="$1"
     pkg_missing=("${pkg_missing[@]}" "${pkg_name}")
   fi
@@ -552,7 +552,7 @@ function usage()
 
 EOF
 
-    exit_script $@
+    exit_script "$@"
 }
 
 function test_arg()
@@ -635,7 +635,7 @@ function test_host_arg()
   fi
 
   host_regex='^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
-  if ! $(echo "$argv" | grep -qPo ${host_regex}); then
+  if ! echo "$argv" | grep -qPo ${host_regex}; then
     usage "Invalid hostname: '${argv}'"
   fi
 }
@@ -681,7 +681,7 @@ function add_zlint_lint()
   if [ -z "$1" ]; then
     exit_script 1 "zlint lint name cannot be null."
   fi
-  if echo ${alt_names[@]} | grep -q -w "$1"; then
+  if echo "${zlint_names[@]}" | grep -q -w "$1"; then
     exit_script 1 "zlint lint name processed twice."
   fi
   lint_name="$1"
@@ -812,7 +812,7 @@ function get_purpose()
       #usage "'$1' is not mapped to a known purpose."
     fi
   fi
-  if ! echo ${certPurposes[@]} | grep -q -w "$temp"; then
+  if ! echo "${certPurposes[@]}" | grep -q -w "$temp"; then
     return 1
     #usage "'$temp' is not a valid purpose."
   fi
@@ -835,7 +835,7 @@ function get_level()
       usage "'$1' is not mapped to a known security level."
     fi
   fi
-  if ! echo ${securityLevels[@]} | grep -q -w "$temp"; then
+  if ! echo "${securityLevels[@]}" | grep -q -w "$temp"; then
     usage "'$temp' is not a valid security level."
   fi
 
@@ -983,7 +983,7 @@ function check_min_bits()
     ;;
   esac
 
-  if [[ $bits -lt $min_bits ]]; then
+  if [[ $bits -lt $minBits ]]; then
     print_error "An ${algoName} key of at least ${minBits} bits is required (certificate: ${bits} bits)."
     return 1
   fi
@@ -1256,6 +1256,7 @@ fi
 DIR=$(get_root_dir)
 
 X509_BIN="${DIR}/lints/x509lint/${X509_MODE}"
+X509_DIR="${DIR}/lints/x509lint/"
 ZLINT_BIN="${DIR}/lints/bin/zlint"
 AWS_CLINT_DIR="${DIR}/lints/aws-certlint"
 GS_CLINT_DIR="${DIR}/lints/gs-certlint"
@@ -1299,20 +1300,20 @@ if [ ! -z "${CA_CHAIN}" ]; then
   CA_CHAIN_FULL_PATH=$(realpath "${CA_CHAIN}")
 fi
 
-PEM_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX.pem)"
+PEM_FILE=$(mktemp -t "$(basename ${CERT})".XXXXXX.pem)
 if ! openssl x509 -outform pem -in "${CERT}" -out "${PEM_FILE}" > /dev/null 2>&1; then
   usage "Failed to parse input file '${CERT}' as PEM certificate."
 fi
 
 if [ ! -z "${CA_CHAIN}" ]; then
-PEM_CHAIN_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX.chain.pem)"
+PEM_CHAIN_FILE=$(mktemp -t "$(basename ${CERT})".XXXXXX.chain.pem)
 openssl x509 -outform pem -in "${CERT}" -out "${PEM_CHAIN_FILE}" > /dev/null 2>&1
 if [ ! -z "${CA_CHAIN}" ]; then
 cat "${CA_CHAIN}" >> "${PEM_CHAIN_FILE}"
 fi
 fi
 
-DER_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX.der)"
+DER_FILE=$(mktemp -t "$(basename ${CERT})".XXXXXX.der)
 openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
 #
@@ -1494,7 +1495,7 @@ else
   fi
 fi
 if [ ! -z "${OPENSSL_OUT}" ]; then
-  OPENSSL_OUT=$(echo "${OPENSSL_OUT}" | sed 's/\/tmp\/'$(basename ${PEM_FILE})'//' | sed 's/error\s\:\sverification\sfailed//')
+  OPENSSL_OUT=$(echo "${OPENSSL_OUT}" | sed 's/\/tmp\/'"$(basename ${PEM_FILE})"'//' | sed 's/error\s\:\sverification\sfailed//')
 fi
 if [ $err -ne 0 ]; then
   CRL_CHECK_SKIP="true"
@@ -1514,7 +1515,7 @@ CA_FILE=""
 CRL_IS_WARNING="false"
 if [ "${CRL_CHECK_SKIP}" != "true" ]; then
   if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
-    RAW_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX.raw.crl)"
+    RAW_CRL_FILE=$(mktemp -t "$(basename ${CERT})".XXXXXX.raw.crl)
     if ! wget -qO "${RAW_CRL_FILE}" "${CRL_URL}"; then
       # Failed to download CRL file
       if [ ! -z "${PEM_CHAIN_FILE}" ]; then
@@ -1524,8 +1525,12 @@ if [ "${CRL_CHECK_SKIP}" != "true" ]; then
       print_warn "Failed to download CRL from '${CRL_URL}'."
     else
       PEM_CRL_FILE=$(convert2pem "${RAW_CRL_FILE}")
-      TMP_CRL_FILE="$(mktemp -t $(basename ${CERT}).XXXXXX.tmp.crl)"
-      cat ${PEM_CHAIN_FILE} ${PEM_CRL_FILE} > ${TMP_CRL_FILE}
+      TMP_CRL_FILE=$(mktemp -t "$(basename ${CERT})".XXXXXX.tmp.crl)
+      if [ ! -z "${PEM_CHAIN_FILE}" ]; then
+        cat "${PEM_CHAIN_FILE}" "${PEM_CRL_FILE}" > "${TMP_CRL_FILE}"
+      else
+        cat "${PEM_CRL_FILE}" > "${TMP_CRL_FILE}"
+      fi
       rm ${VERY_VERBOSE_FLAG} -f "${PEM_CRL_FILE}"
       CA_FILE="${TMP_CRL_FILE}"
     fi
@@ -1541,7 +1546,7 @@ if [ "${CRL_CHECK_SKIP}" != "true" ]; then
       print_warn "Unable to check CRL revocation status; failed to obtain required CRL file."
     fi
     if [ ! -z "${OPENSSL_CRLCHECK}" ]; then
-      OPENSSL_CRLCHECK=$(echo "${OPENSSL_CRLCHECK}" | sed 's/\/tmp\/'$(basename ${PEM_FILE})'//' | sed 's/error\s\:\sverification\sfailed//')
+      OPENSSL_CRLCHECK=$(echo "${OPENSSL_CRLCHECK}" | sed 's/\/tmp\/'"$(basename "${PEM_FILE}")"'//' | sed 's/error\s\:\sverification\sfailed//')
     fi
   else
     print_warn "Certificate does not declare a CRL distribution point; cannot check CRL revocation status."
@@ -1705,7 +1710,7 @@ if [ "${AWS_LINTED}" == "true" ]; then
       error_level=0
       IFS=$'\n'; for line in ${AWS_CERTLINT}; do
         temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B|N)(?=\:\s)' | sort | head -n1)
-        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B|N)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
+        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B|N)\:\s).*$' | sed 's/'"$(basename "${DER_FILE}")"'//')
         elvl=$(get_errlvl "${temp}")
         if [[ $elvl -gt $error_level ]]; then
           error_level=$elvl
@@ -1744,7 +1749,7 @@ if [ "${AWS_LINTED}" == "true" ]; then
       error_level=0
       IFS=$'\n'; for line in ${AWS_CABLINT}; do
         temp=$(echo "${line}" | grep -Po '(?<=^)(W|E|I|F|B|N)(?=\:\s)' | sort | head -n1)
-        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B|N)\:\s).*$' | sed 's/'$(basename ${DER_FILE})'//')
+        info=$(echo "${line}" | grep -Po '(?<=^(W|E|I|F|B|N)\:\s).*$' | sed 's/'"$(basename "${DER_FILE}")"'//')
         elvl=$(get_errlvl "${temp}")
         if [[ $elvl -gt $error_level ]]; then
           error_level=$elvl
@@ -1780,7 +1785,7 @@ if [ ! -z "${ZLINT}" ]; then
   print_newline
   print_header "ZLint:"
   IFS=$'\n'; for x in ${ZLINT}; do
-    name=$(echo $x | grep -Po '(?<=\")[^\"]+(?=\"\:\s\{)')
+    name=$(echo "$x" | grep -Po '(?<=\")[^\"]+(?=\"\:\s\{)')
     if [ ! -z "$name" ]; then
       add_zlint_lint "$name"
     fi
@@ -1857,7 +1862,7 @@ for lint in ${GOLANG_LINTS}; do
       print_debug >&2 "Running Go binary ${lint_name} ..."
     fi
     lint_script="${lint_name}"
-    if ! result=$(${lint_script} "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
+    if ! result=$(${lint_script} "${PEM_FILE}" "${PEM_CHAIN_FILE}" "${KU_GOLANG}" "${EV_HOST}" 2>/dev/null); then
       lint_error=1
     fi
   elif [ $GOLANG_INSTALLED -ne 1 ]; then
@@ -1869,7 +1874,7 @@ for lint in ${GOLANG_LINTS}; do
     if [ $VERBOSITY -gt 3 ]; then
       print_debug >&2 "go run $lint \"${PEM_FILE}\" \"${PEM_CHAIN_FILE}\" ${KU_GOLANG} \"${EV_HOST}\" 2>/dev/null"
     fi
-    if ! result=$(go run $lint "${PEM_FILE}" "${PEM_CHAIN_FILE}" ${KU_GOLANG} "${EV_HOST}" 2>/dev/null); then
+    if ! result=$(go run "$lint" "${PEM_FILE}" "${PEM_CHAIN_FILE}" "${KU_GOLANG}" "${EV_HOST}" 2>/dev/null); then
       lint_error=1
     fi
   fi
@@ -1970,16 +1975,16 @@ if [ ! -z "${KU_CERTUTIL}" ]; then
 
   DB_PATH=$(mktemp -t -d nssdb.XXXXXXXXXX)
 
-  cp ${PEM_FILE} ${DB_PATH}/cert.crt
+  cp "${PEM_FILE}" "${DB_PATH}/cert.crt"
 
   if [ ! -z "${PEM_CHAIN_FILE}" ]; then
-    cp ${PEM_CHAIN_FILE} ${DB_PATH}/chain.tmp
+    cp "${PEM_CHAIN_FILE}" "${DB_PATH}/chain.tmp"
   else
-    touch ${DB_PATH}/chain.tmp
+    touch "${DB_PATH}/chain.tmp"
   fi
 
   # create temp. database
-  certutil -N -d ${DB_PATH} --empty-password
+  certutil -N -d "${DB_PATH}" --empty-password
 
   if [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
     if [ $VERBOSITY -gt 0 ]; then
@@ -1991,7 +1996,7 @@ if [ ! -z "${KU_CERTUTIL}" ]; then
   ca_count=0
   if [ ! -z "${PEM_CHAIN_FILE}" ]; then
 
-    pushd ${DB_PATH} > /dev/null 2>&1
+    pushd "${DB_PATH}" > /dev/null 2>&1
     awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "ca-cert." c ".pem"}' < chain.tmp
     popd > /dev/null 2>&1
 
@@ -2006,10 +2011,10 @@ if [ ! -z "${KU_CERTUTIL}" ]; then
         exit_script 1 "Failed to determine subject name for certificate '${c}'."
       fi
 
-      if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i "${c}" -t CT,CT,CT; then
+      if ! certutil -n "${crt_common_name}" -A -d "${DB_PATH}" -a -i "${c}" -t CT,CT,CT; then
         exit_script 1 "Failed to import certificate using NSS certutil."
       elif [ "${NSS_VERIFY_CHAIN}" == "true" ]; then
-        if ! result=$(certutil -V -n "${crt_common_name}" -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} 2>&1); then
+        if ! result=$(certutil -V -n "${crt_common_name}" -u "${KU_CERTUTIL}" -e -l -d "${DB_PATH}" 2>&1); then
           if [[ 2 -gt $EC ]]; then
             EC=2
           fi
@@ -2040,7 +2045,7 @@ if [ ! -z "${KU_CERTUTIL}" ]; then
     exit_script 1 "Failed to determine subject name for certificate '${c}'."
   fi
 
-  if ! certutil -n "${crt_common_name}" -A -d ${DB_PATH} -a -i ${DB_PATH}/cert.crt -t P,P,P; then
+  if ! certutil -n "${crt_common_name}" -A -d "${DB_PATH}" -a -i "${DB_PATH}/cert.crt" -t P,P,P; then
     lec=1
     if [[ 1 -gt $EC ]]; then
       EC=1
@@ -2048,7 +2053,7 @@ if [ ! -z "${KU_CERTUTIL}" ]; then
   fi
 
   # check end-entity certificate
-  if ! result=$(certutil -V -u ${KU_CERTUTIL} -e -l -d ${DB_PATH} -n "${crt_common_name}" 2>&1); then
+  if ! result=$(certutil -V -u "${KU_CERTUTIL}" -e -l -d "${DB_PATH}" -n "${crt_common_name}" 2>&1); then
     lec=1
     if [[ 2 -gt $EC ]]; then
       EC=2
@@ -2067,11 +2072,11 @@ if [ ! -z "${KU_CERTUTIL}" ]; then
 
     err=0
     if [ ! -z "${EV_POLICY}" ]; then
-      if ! result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -o ${EV_POLICY} -d ${DB_PATH} "${crt_common_name}" 2>&1); then
+      if ! result=$(vfychain -v ${VERBOSE_FLAG} -pp -u "${KU_VFYCHAIN}" -o "${EV_POLICY}" -d "${DB_PATH}" "${crt_common_name}" 2>&1); then
         err=1
       fi
     else
-      if ! result=$(vfychain -v ${VERBOSE_FLAG} -pp -u ${KU_VFYCHAIN} -d ${DB_PATH} "${crt_common_name}" 2>&1); then
+      if ! result=$(vfychain -v ${VERBOSE_FLAG} -pp -u "${KU_VFYCHAIN}" -d "${DB_PATH}" "${crt_common_name}" 2>&1); then
         err=1
       fi
     fi
@@ -2089,7 +2094,7 @@ if [ ! -z "${KU_CERTUTIL}" ]; then
   fi
 
   if [ -e "${DB_PATH}" ]; then
-    rm -rf ${VERY_VERBOSE_FLAG} ${DB_PATH}
+    rm -rf ${VERY_VERBOSE_FLAG} "${DB_PATH}"
   fi
 #else
 #  print_warn "Skipping Mozilla NSS verification."
@@ -2105,7 +2110,7 @@ print_newline
 
 if [ "${NO_EV_CHECK}" != "true" ]; then
   print_header "EV Policy check:"
-  if ! result=$(${EV_CHECK_BIN} -c ${PEM_CHAIN_FILE} -o "${EV_POLICY}" -h ${EV_HOST} 2>&1); then
+  if ! result=$(${EV_CHECK_BIN} -c "${PEM_CHAIN_FILE}" -o "${EV_POLICY}" -h "${EV_HOST}" 2>&1); then
     if [[ 2 -gt $EC ]]; then
       EC=2
     fi
