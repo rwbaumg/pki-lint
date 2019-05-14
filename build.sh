@@ -519,7 +519,7 @@ function install_ruby()
   fi
 
   if [ ! -e "/usr/local/bin/ruby" ]; then
-    RUBY_PATH=$(which ruby${RUBY_MIN_VERSION})
+    RUBY_PATH=$(command -v ruby${RUBY_MIN_VERSION})
     if [ -L "${RUBY_PATH}" ]; then
       exit_script 1 "The path '${RUBY_PATH}' is already a symlink."
     fi
