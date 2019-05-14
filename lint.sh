@@ -171,7 +171,7 @@ function get_root_dir()
     [[ ${source} != /* ]] && source="${dir}/${source}"
   done
   dir="$( cd -P "$( dirname "${source}" )" && pwd )"
-  echo ${dir}
+  echo "${dir}"
   return
 }
 
@@ -320,7 +320,7 @@ function print_normal()
     bg="${3}"
   fi
 
-  print_ex "${str}" 0 ${fg} ${bg}
+  print_ex "${str}" 0 "${fg}" "${bg}"
 }
 
 function print_bold_ul()
@@ -336,7 +336,7 @@ function print_bold_ul()
     bg="${3}"
   fi
 
-  print_ex "${str}" "1;4" ${fg} ${bg}
+  print_ex "${str}" "1;4" "${fg}" "${bg}"
 }
 
 function print_bold()
@@ -352,7 +352,7 @@ function print_bold()
     bg="${3}"
   fi
 
-  print_ex "${str}" 1 ${fg} ${bg}
+  print_ex "${str}" 1 "${fg}" "${bg}"
 }
 
 function print_ul()
@@ -368,7 +368,7 @@ function print_ul()
     bg="${3}"
   fi
 
-  print_ex "${str}" 4 ${fg} ${bg}
+  print_ex "${str}" 4 "${fg}" "${bg}"
 }
 
 function print_tagged()
@@ -386,9 +386,9 @@ function print_tagged()
   fi
 
   if [ "${BOLD_TAGGED}" == "true" ]; then
-    print_ex_tagged "${tag}" "${str}" 0 ${fg} ${bg}
+    print_ex_tagged "${tag}" "${str}" 0 "${fg}" "${bg}"
   else
-    print_ex "${tag}: ${str}" 0 ${fg} ${bg}
+    print_ex "${tag}: ${str}" 0 "${fg}" "${bg}"
   fi
 }
 
@@ -486,7 +486,7 @@ function exit_script()
 
   re='[[:alnum:]]'
   if echo "$*" | grep -iq -E "$re"; then
-    if [ $exit_code -eq 0 ]; then
+    if [ "$exit_code" -eq 0 ]; then
       print_normal  "INFO: $*"  >&2
     else
       print_red     "ERROR: $*" 1>&2
@@ -494,15 +494,15 @@ function exit_script()
   fi
 
   # Print 'aborting' string if exit code is not 0
-  [ $exit_code -ne 0 ] && echo >&2 "Aborting script..."
+  [ "$exit_code" -ne 0 ] && echo >&2 "Aborting script..."
 
-  exit $exit_code
+  exit "$exit_code"
 }
 
 function usage()
 {
     # Prints out usage and exit.
-    sed -e "s/^    //" -e "s|SCRIPT_NAME|$(basename $0)|" << "EOF"
+    sed -e "s/^    //" -e "s|SCRIPT_NAME|$(basename "$0")|" << "EOF"
     USAGE
 
     Performs various linting tests against the specified X.509 certificate.
@@ -583,7 +583,7 @@ function test_number_arg()
     argv="$arg"
   fi
 
-  if ! is_number $argv; then
+  if ! is_number "$argv"; then
     usage "Value is not a valid number: '$argv'."
   fi
 }
@@ -618,7 +618,7 @@ function test_oid_arg()
     argv="$arg"
   fi
 
-  if ! echo $argv | grep -qPo '^([1-9][0-9]{0,8}|0)(\.([1-9][0-9]{0,8}|0)){5,16}$'; then
+  if ! echo "$argv" | grep -qPo '^([1-9][0-9]{0,8}|0)(\.([1-9][0-9]{0,8}|0)){5,16}$'; then
     usage "Argument is not a valid object identifier: '$argv'"
   fi
 }
@@ -635,7 +635,7 @@ function test_host_arg()
   fi
 
   host_regex='^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
-  if ! echo "$argv" | grep -qPo ${host_regex}; then
+  if ! echo "$argv" | grep -qPo "${host_regex}"; then
     usage "Invalid hostname: '${argv}'"
   fi
 }
@@ -1300,20 +1300,20 @@ if [ ! -z "${CA_CHAIN}" ]; then
   CA_CHAIN_FULL_PATH=$(realpath "${CA_CHAIN}")
 fi
 
-PEM_FILE=$(mktemp -t "$(basename ${CERT})".XXXXXX.pem)
+PEM_FILE=$(mktemp -t "$(basename "${CERT}")".XXXXXX.pem)
 if ! openssl x509 -outform pem -in "${CERT}" -out "${PEM_FILE}" > /dev/null 2>&1; then
   usage "Failed to parse input file '${CERT}' as PEM certificate."
 fi
 
 if [ ! -z "${CA_CHAIN}" ]; then
-PEM_CHAIN_FILE=$(mktemp -t "$(basename ${CERT})".XXXXXX.chain.pem)
+PEM_CHAIN_FILE=$(mktemp -t "$(basename "${CERT}")".XXXXXX.chain.pem)
 openssl x509 -outform pem -in "${CERT}" -out "${PEM_CHAIN_FILE}" > /dev/null 2>&1
 if [ ! -z "${CA_CHAIN}" ]; then
 cat "${CA_CHAIN}" >> "${PEM_CHAIN_FILE}"
 fi
 fi
 
-DER_FILE=$(mktemp -t "$(basename ${CERT})".XXXXXX.der)
+DER_FILE=$(mktemp -t "$(basename "${CERT}")".XXXXXX.der)
 openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
 #
@@ -1322,7 +1322,7 @@ openssl x509 -outform der -in "${PEM_FILE}" -out "${DER_FILE}" > /dev/null 2>&1
 
 CERTTOOL_CAN_VERIFY="false"
 CERTTOOL_VERSION=$(certtool --version | head -n1 | grep -Po '(?<=\s)[0-9\.]+$')
-if version_gt $CERTTOOL_VERSION $CERTTOOL_MIN_VER; then
+if version_gt "$CERTTOOL_VERSION" "$CERTTOOL_MIN_VER"; then
   CERTTOOL_CAN_VERIFY="true"
 fi
 
@@ -1334,10 +1334,10 @@ OPENSSL_IS_OLD="true"
 OPENSSL_VERSION_NUM=$(openssl version | grep -Po '(?<=OpenSSL\s)\d\.\d\.\d(?=[a-z]\s)')
 OPENSSL_VERSION_EXT=$(openssl version | grep -Po '(?<=OpenSSL\s\d\.\d\.\d)[a-z](?=\s)')
 OPENSSL_FULLVERSION="${OPENSSL_VERSION_NUM}${OPENSSL_VERSION_EXT}"
-if [ "$OPENSSL_VERSION_NUM" == "$OPENSSL_MIN_VERSION_NUM" ] || version_gt $OPENSSL_VERSION_NUM $OPENSSL_MIN_VERSION_NUM; then
+if [ "$OPENSSL_VERSION_NUM" == "$OPENSSL_MIN_VERSION_NUM" ] || version_gt "$OPENSSL_VERSION_NUM" "$OPENSSL_MIN_VERSION_NUM"; then
   REQ_EXT_NUMBER=$(printf '%d' "'$OPENSSL_MIN_VERSION_EXT")
   CUR_EXT_NUMBER=$(printf '%d' "'$OPENSSL_VERSION_EXT")
-  if [ ${CUR_EXT_NUMBER} -ge ${REQ_EXT_NUMBER} ]; then
+  if [ "${CUR_EXT_NUMBER}" -ge "${REQ_EXT_NUMBER}" ]; then
     OPENSSL_IS_OLD="false"
   fi
 fi
@@ -1389,7 +1389,7 @@ AWS_LINTED="false"
 AWS_CERTLINT_ERROR=""
 AWS_CABLINT_ERROR=""
 if check_ruby_version; then
-  pushd ${AWS_CLINT_DIR} > /dev/null 2>&1 || exit_script 1 "Failed to change directories."
+  pushd "${AWS_CLINT_DIR}" > /dev/null 2>&1 || exit_script 1 "Failed to change directories."
   if ! AWS_CERTLINT=$(ruby -I lib:ext bin/certlint "${DER_FILE}" 2>&1 | uniq); then
     AWS_CERTLINT_ERROR=$(echo "${AWS_CERTLINT}" | tail -n1)
     print_warn "AWS certlint returned a non-zero exit code."
@@ -1412,18 +1412,18 @@ fi
 
 GS_CERTTYPE=""
 err=0
-pushd ${GS_CLINT_DIR} > /dev/null 2>&1 || exit_script 1 "Failed to change directories."
+pushd "${GS_CLINT_DIR}" > /dev/null 2>&1 || exit_script 1 "Failed to change directories."
 if [ ! -z "${CA_CHAIN}" ]; then
   if ! GS_CERTLINT=$(./gs-certlint -issuer "${CA_CHAIN_FULL_PATH}" -cert "${PEM_FILE}"); then
     GS_ERR_COUNT=$(echo "${GS_CERTLINT}" | grep -Po "(?<=^Certificate\sErrors\:\s)[0-9]+(?=$)")
-    if [ ! -z "${GS_ERR_COUNT}" ] && [ ${GS_ERR_COUNT} -gt 0 ]; then
+    if [ ! -z "${GS_ERR_COUNT}" ] && [ "${GS_ERR_COUNT}" -gt 0 ]; then
       err=1
     fi
   fi
 else
   if ! GS_CERTLINT=$(./gs-certlint -cert "${PEM_FILE}"); then
     GS_ERR_COUNT=$(echo "${GS_CERTLINT}" | grep -Po "(?<=^Certificate\sErrors\:\s)[0-9]+(?=$)")
-    if [ ! -z "${GS_ERR_COUNT}" ] && [ ${GS_ERR_COUNT} -gt 0 ]; then
+    if [ ! -z "${GS_ERR_COUNT}" ] && [ "${GS_ERR_COUNT}" -gt 0 ]; then
       err=1
     fi
   fi
@@ -1485,17 +1485,18 @@ fi
 #
 
 err=0
+OPENSSL_CMD="openssl verify ${OPENSSL_ARGS} ${OPENSSL_EXTRA}"
 if [ ! -z "${CA_CHAIN}" ]; then
-  if ! OPENSSL_OUT=$(openssl verify ${OPENSSL_ARGS} ${OPENSSL_EXTRA} -CAfile "${PEM_CHAIN_FILE}" "${PEM_FILE}" 2>&1); then
+  if ! OPENSSL_OUT=$(${OPENSSL_CMD} -CAfile "${PEM_CHAIN_FILE}" "${PEM_FILE}" 2>&1); then
     err=1
   fi
 else
-  if ! OPENSSL_OUT=$(openssl verify ${OPENSSL_ARGS} ${OPENSSL_EXTRA} "${PEM_FILE}" 2>&1); then
+  if ! OPENSSL_OUT=$(${OPENSSL_CMD} "${PEM_FILE}" 2>&1); then
     err=1
   fi
 fi
 if [ ! -z "${OPENSSL_OUT}" ]; then
-  OPENSSL_OUT=$(echo "${OPENSSL_OUT}" | sed 's/\/tmp\/'"$(basename ${PEM_FILE})"'//' | sed 's/error\s\:\sverification\sfailed//')
+  OPENSSL_OUT=$(echo "${OPENSSL_OUT}" | sed 's/\/tmp\/'"$(basename "${PEM_FILE}")"'//' | sed 's/error\s\:\sverification\sfailed//')
 fi
 if [ $err -ne 0 ]; then
   CRL_CHECK_SKIP="true"
@@ -1515,7 +1516,7 @@ CA_FILE=""
 CRL_IS_WARNING="false"
 if [ "${CRL_CHECK_SKIP}" != "true" ]; then
   if CRL_URL=$(get_crl_http_from_pem "${PEM_FILE}"); then
-    RAW_CRL_FILE=$(mktemp -t "$(basename ${CERT})".XXXXXX.raw.crl)
+    RAW_CRL_FILE=$(mktemp -t "$(basename "${CERT}")".XXXXXX.raw.crl)
     if ! wget -qO "${RAW_CRL_FILE}" "${CRL_URL}"; then
       # Failed to download CRL file
       if [ ! -z "${PEM_CHAIN_FILE}" ]; then
@@ -1525,7 +1526,7 @@ if [ "${CRL_CHECK_SKIP}" != "true" ]; then
       print_warn "Failed to download CRL from '${CRL_URL}'."
     else
       PEM_CRL_FILE=$(convert2pem "${RAW_CRL_FILE}")
-      TMP_CRL_FILE=$(mktemp -t "$(basename ${CERT})".XXXXXX.tmp.crl)
+      TMP_CRL_FILE=$(mktemp -t "$(basename "${CERT}").XXXXXX.tmp.crl")
       if [ ! -z "${PEM_CHAIN_FILE}" ]; then
         cat "${PEM_CHAIN_FILE}" "${PEM_CRL_FILE}" > "${TMP_CRL_FILE}"
       else
@@ -1565,12 +1566,13 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
     DEBUG_ARG="-d ${DEBUG_LEVEL}"
   fi
   err=0
+  CERTTOOL_CMD="certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA}"
   if [ ! -z "${CA_CHAIN}" ]; then
-    if ! CERTTOOL_OUT=$(certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} --load-ca-certificate "${CA_CHAIN}" 2>&1 < "${PEM_FILE}"); then
+    if ! CERTTOOL_OUT=$(${CERTTOOL_CMD} --load-ca-certificate "${CA_CHAIN}" 2>&1 < "${PEM_FILE}"); then
       err=1
     fi
   else
-    if ! CERTTOOL_OUT=$(certtool ${DEBUG_ARG} --verify ${GNUTLS_EXTRA} 2>&1 < "${PEM_FILE}"); then
+    if ! CERTTOOL_OUT=$(${CERTTOOL_CMD} --verify 2>&1 < "${PEM_FILE}"); then
       err=1
     fi
   fi
