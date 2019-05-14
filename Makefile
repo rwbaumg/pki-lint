@@ -13,4 +13,4 @@ list:
 test:
 	pushd ${LINTS_DIR} && ${MAKE} test && popd
 check:
-	shellcheck --exclude=SC2086 --exclude=SC2143 --exclude=SC2001 build.sh lint.sh
+	shellcheck --exclude=SC2086 --exclude=SC2143 --exclude=SC2001 --exclude SC2236 build.sh lint.sh
