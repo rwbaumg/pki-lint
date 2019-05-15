@@ -84,6 +84,7 @@ gs-certlint/%:
 	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -u -v github.com/cloudflare/cfssl/revoke && \
 	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -u -v github.com/golang/groupcache/lru && \
 	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -u -v github.com/pkg/profile && \
+	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go get -u -v golang.org/x/text/unicode/norm && \
 	GOPATH=$(abspath ${PATH_GOPATH}) GOCACHE=$(abspath ${PATH_GOCACHE}) go build -a -x -v && \
 	popd;
 
