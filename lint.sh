@@ -1572,7 +1572,7 @@ if [ "${CERTTOOL_CAN_VERIFY}" == "true" ]; then
       err=1
     fi
   else
-    if ! CERTTOOL_OUT=$(${CERTTOOL_CMD} --verify 2>&1 < "${PEM_FILE}"); then
+    if ! CERTTOOL_OUT=$(${CERTTOOL_CMD} 2>&1 < "${PEM_FILE}"); then
       err=1
     fi
   fi
