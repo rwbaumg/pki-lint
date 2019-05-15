@@ -9,7 +9,6 @@ X.509 certificate linter
 [![CII Best Practices Summary](https://bestpractices.coreinfrastructure.org/projects/2735/badge)](https://bestpractices.coreinfrastructure.org/en/projects/2735)
 [![Travis (.org) branch](https://img.shields.io/travis/rwbaumg/pki-lint/github.svg?label=build&logo=travis&style=flat)](https://travis-ci.org/rwbaumg/pki-lint)
 [![GitHub release](https://img.shields.io/github/release/rwbaumg/pki-lint.svg?color=blue&label=release&logo=github&style=flat)](https://github.com/rwbaumg/pki-lint/releases/latest)
-[![GitHub All Releases](https://img.shields.io/github/downloads/rwbaumg/pki-lint/total.svg?logo=github&style=flat)](https://github.com/rwbaumg/pki-lint/releases)
 [![GitHub issues](https://img.shields.io/github/issues-raw/rwbaumg/pki-lint.svg?label=open%20issues&logo=github&style=flat)](https://github.com/rwbaumg/pki-lint/issues)
 [![Donate with Bitcoin](https://en.cryptobadges.io/badge/micro/14JFg2GrXM4b45G68s53zEh4sqptHEmRfY)](https://en.cryptobadges.io/donate/14JFg2GrXM4b45G68s53zEh4sqptHEmRfY)
 [![GitHub followers](https://img.shields.io/github/followers/rwbaumg.svg?label=follow%20%40rwbaumg&logo=github&style=flat)](https://github.com/rwbaumg)
