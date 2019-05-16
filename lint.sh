@@ -2133,6 +2133,9 @@ else
 fi
 fi
 
+if [ -e "${PEM_CHAIN_FILE}" ]; then
+  rm ${VERY_VERBOSE_FLAG} -f "${PEM_CHAIN_FILE}"
+fi
 if [ -n "${CA_FILE}" ]; then
   rm ${VERY_VERBOSE_FLAG} -f "${CA_FILE}"
 fi
