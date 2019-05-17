@@ -21,5 +21,5 @@
 [submodule "lints/zlint"]
 	path = lints/zlint
 	url = https://github.com/rwbaumg/zlint.git
-	branch = master
+	branch = x19e-master
 	ignore = untracked
