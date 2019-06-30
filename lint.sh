@@ -1325,21 +1325,27 @@ CERTTOOL_VERSION=$(certtool --version | head -n1 | grep -Po '(?<=\s)[0-9\.]+$')
 if version_gt "$CERTTOOL_VERSION" "$CERTTOOL_MIN_VER"; then
   CERTTOOL_CAN_VERIFY="true"
 fi
+if [ -z "${CERTTOOL_VERSION}" ]; then
+  exit_script 1 "Failed to detect installed certtool version."
+fi
 
 if [ $VERBOSITY -gt 1 ]; then
   print_info "Detected certtool version ${CERTTOOL_VERSION}"
 fi
 
 OPENSSL_IS_OLD="true"
-OPENSSL_VERSION_NUM=$(openssl version | grep -Po '(?<=OpenSSL\s)\d\.\d\.\d(?=[a-z]\s)')
+OPENSSL_VERSION_NUM=$(openssl version | grep -Po '(?<=OpenSSL\s)\d\.\d\.\d(?=[a-z]\s)?')
 OPENSSL_VERSION_EXT=$(openssl version | grep -Po '(?<=OpenSSL\s\d\.\d\.\d)[a-z](?=\s)')
 OPENSSL_FULLVERSION="${OPENSSL_VERSION_NUM}${OPENSSL_VERSION_EXT}"
-if [ "$OPENSSL_VERSION_NUM" == "$OPENSSL_MIN_VERSION_NUM" ] || version_gt "$OPENSSL_VERSION_NUM" "$OPENSSL_MIN_VERSION_NUM"; then
+if version_gt "$OPENSSL_VERSION_NUM" "$OPENSSL_MIN_VERSION_NUM"; then
   REQ_EXT_NUMBER=$(printf '%d' "'$OPENSSL_MIN_VERSION_EXT")
   CUR_EXT_NUMBER=$(printf '%d' "'$OPENSSL_VERSION_EXT")
-  if [ "${CUR_EXT_NUMBER}" -ge "${REQ_EXT_NUMBER}" ]; then
+  if [ -z "${OPENSSL_VERSION_EXT}" ] || [ "${CUR_EXT_NUMBER}" -ge "${REQ_EXT_NUMBER}" ]; then
     OPENSSL_IS_OLD="false"
   fi
+fi
+if [ -z "${OPENSSL_FULLVERSION}" ]; then
+  exit_script 1 "Failed to detect installed OpenSSL version."
 fi
 
 if [ $VERBOSITY -gt 1 ]; then
