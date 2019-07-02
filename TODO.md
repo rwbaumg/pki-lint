@@ -1,12 +1,12 @@
 # pki-lint TODO list
 
--   [ ] Fix linking for ASN1_TIME_to_tm() function (currently breaking TravisCI build)
 -   [ ] Create new development branch for ```gs-certlint``` module to fix multiple bugs and/or contact upstream devs
 -   [ ] Support custom error levels for certain messages depending on context?
 -   [ ] Add support for optional downloading of AIA certificates to attempt to build missing chains.
 -   [ ] Add support for OpenSSL CRL validation along the entire chain (use ```-crl_check_all```).
 -   [ ] Add basic test PKI structure for post-build unit testing.
 -   [ ] Refactor LLVM / clang++ installation to use upstream source.
+-   [x] Fix linking for ASN1_TIME_to_tm() function (currently breaking TravisCI build)
 -   [x] Fix remaining shellcheck warnings and remove exclusions from ```make check``` target.
 -   [x] Check/fix zlint output processing for accuracy.
 -   [x] Fix cases where output is null (eg. certain GlobalSign lint output not processed).
