@@ -657,7 +657,7 @@ function test_ev_host()
 function test_cert()
 {
   if [ -n "${CERT}" ]; then
-    usage "Cannot specify multiple search terms."
+    usage "Cannot specify multiple certificates."
   fi
 }
 
