@@ -6,9 +6,9 @@
 -   [ ] Add support for OpenSSL CRL validation along the entire chain (use ```-crl_check_all```).
 -   [ ] Add basic test PKI structure for post-build unit testing.
 -   [ ] Refactor LLVM / clang++ installation to use upstream source.
--   [x] Fix linking for ASN1_TIME_to_tm() function (currently breaking TravisCI build)
--   [x] Fix remaining shellcheck warnings and remove exclusions from ```make check``` target.
--   [x] Check/fix zlint output processing for accuracy.
+-   [x] Fix linking for ```ASN1_TIME_to_tm()``` function (currently breaking ```travis-ci``` build)
+-   [x] Fix remaining ```shellcheck``` warnings and remove exclusions from ```make check``` target.
+-   [x] Check/fix ```zlint``` output processing for accuracy.
 -   [x] Fix cases where output is null (eg. certain GlobalSign lint output not processed).
 -   [x] Add PEM file name filtering to OpenSSL verify commands.
 -   [x] Fix CRL download error handling and add console output.
@@ -36,5 +36,5 @@
 -   [x] Cleanup dependency package handling in ```build.sh``` script.
 -   [x] Add Ruby and Golang version checks to ```lint.sh``` script.
 -   [x] Update ```README.md``` to include more detailed information.
--   [x] Add support for ```vfychain``` command (eg. ```vfychain -v -pp -u 11 -a ca/subCA.crt -a ca/int.crt -t -a ca/root.crt```; see [MDN vfychain](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/vfychain))
--   [x] Add support for ```certutil``` verification (eg. ```certutil -u Y -d sql:${HOME}/.pki/nssdb```; see [MDN certutil](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/tools/NSS_Tools_certutil))
+-   [x] Add support for ```vfychain``` command (eg. ```vfychain -v -pp -u 11 -a ca/subCA.crt -a ca/int.crt -t -a ca/root.crt```)
+-   [x] Add support for ```certutil``` verification (eg. ```certutil -u Y -d sql:${HOME}/.pki/nssdb```)
