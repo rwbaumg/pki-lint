@@ -168,10 +168,10 @@ For Debian and Debian-based distributions (e.g Ubuntu) with APT (Advanced Packag
 ```bash
 sudo apt-get update && \
 sudo apt-get install make gcc clang \
-   gnutls-bin openssl git jq realpath \
+   gnutls-bin openssl git jq libssl-dev \
    ruby-dev golang-go libnspr4-dev \
    libcurl4-openssl-dev libnss3-dev \
-   libnss3-tools libssl-dev && \
+   libnss3-tools && \
 sudo gem install simpleidn && \
 sudo gem install public_suffix && \
 sudo apt-get install shellcheck

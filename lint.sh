@@ -102,7 +102,6 @@ function add_missing_pkg()
 }
 
 # Check for required comamnds in PATH
-hash realpath 2>/dev/null || { add_missing_pkg "realpath"; }
 hash openssl 2>/dev/null || { add_missing_pkg "openssl"; }
 hash git 2>/dev/null || { add_missing_pkg "git"; }
 hash certtool 2>/dev/null || { add_missing_pkg "gnutls-bin"; }
@@ -657,7 +656,7 @@ function test_ev_host()
 function test_cert()
 {
   if [ -n "${CERT}" ]; then
-    usage "Cannot specify multiple search terms."
+    usage "Cannot specify multiple certificates."
   fi
 }
 
@@ -1297,7 +1296,7 @@ fi
 
 CA_CHAIN_FULL_PATH=""
 if [ -n "${CA_CHAIN}" ]; then
-  CA_CHAIN_FULL_PATH=$(realpath "${CA_CHAIN}")
+  CA_CHAIN_FULL_PATH=$(readlink -m "${CA_CHAIN}")
 fi
 
 PEM_FILE=$(mktemp -t "$(basename "${CERT}")".XXXXXX.pem)
