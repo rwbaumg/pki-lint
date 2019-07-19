@@ -866,7 +866,6 @@ if ! configure_pkg_manager; then
 fi
 
 # Check for missing packages
-hash realpath 2>/dev/null || { install_pkg "realpath"; }
 hash make 2>/dev/null || { install_pkg "make"; }
 hash gcc 2>/dev/null || { install_pkg "gcc"; }
 hash gnutls-cli 2>/dev/null || { install_pkg "gnutls-bin"; }
